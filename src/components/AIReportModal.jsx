@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { FiX, FiTrendingUp, FiDollarSign, FiTarget, FiUsers, FiStar } from 'react-icons/fi'
-import { SiDaraz } from 'react-icons/si'
 import { formatPKR } from '../utils/formatPKR.js'
 
 export default function AIReportModal({ product, onClose }) {
