@@ -1,6 +1,6 @@
 import Navbar from './Navbar.jsx'
 import Sidebar from './Sidebar.jsx'
-import { useSocket } from '../hooks/useSocket.jsx'
+import { useSocket } from '../hooks/useSocket.js'
 
 export default function Layout({ children }) {
   useSocket()

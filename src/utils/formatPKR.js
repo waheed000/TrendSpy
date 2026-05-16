@@ -1,11 +1,11 @@
 export function formatPKR(amount) {
   if (amount >= 1000000) {
-    return `PKR ${(amount / 1000000).toFixed(1)}M`
+    return `Rs. ${(amount / 1000000).toFixed(1)}M`
   }
   if (amount >= 1000) {
-    return `PKR ${(amount / 1000).toFixed(1)}K`
+    return `Rs. ${(amount / 1000).toFixed(0)},${String(amount % 1000).padStart(3, '0')}`
   }
-  return `PKR ${amount.toLocaleString('en-PK')}`
+  return `Rs. ${amount.toLocaleString('en-PK')}`
 }
 
 export function formatPriceRange(min, max) {
