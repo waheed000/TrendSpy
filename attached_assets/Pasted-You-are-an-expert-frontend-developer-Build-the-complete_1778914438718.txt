@@ -1,0 +1,187 @@
+You are an expert frontend developer. Build the complete frontend for "TrendSpy" – a product hunting tool for Pakistani e-commerce sellers.
+
+Follow this implementation plan exactly.
+
+## Tech Stack
+- React 18 (with Vite)
+- Tailwind CSS for styling
+- React Router DOM v6 for routing
+- Axios for API calls
+- Recharts for charts
+- Leaflet + react-leaflet for Pakistan map
+- Socket.io-client for real-time updates
+- Zustand for state management
+- React Query (@tanstack/react-query) for data fetching
+- React Hot Toast for notifications
+- date-fns for date formatting
+- React Icons for icons
+
+## Folder Structure (create everything)
+src/
+├── api/
+│ ├── products.js
+│ ├── trends.js
+│ └── alerts.js
+├── components/
+│ ├── Navbar.jsx
+│ ├── Sidebar.jsx
+│ ├── ProductCard.jsx
+│ ├── WinScoreBadge.jsx
+│ ├── TrendChart.jsx
+│ ├── HeatMap.jsx
+│ ├── AIReportModal.jsx
+│ ├── AlertBell.jsx
+│ ├── FilterBar.jsx
+│ └── SeasonalBanner.jsx
+├── pages/
+│ ├── Landing.jsx
+│ ├── Dashboard.jsx
+│ ├── ProductHunt.jsx
+│ ├── CityExplorer.jsx
+│ ├── Trends.jsx
+│ ├── AdSpy.jsx
+│ ├── AIAnalyst.jsx
+│ ├── Alerts.jsx
+│ ├── Seasonal.jsx
+│ └── Login.jsx
+├── store/
+│ └── useStore.js
+├── hooks/
+│ ├── useProducts.js
+│ ├── useTrends.js
+│ └── useSocket.js
+├── utils/
+│ ├── scoreColor.js
+│ ├── formatPKR.js
+│ └── cityList.js
+├── App.jsx
+├── main.jsx
+└── index.css
+
+text
+
+## Pages to Build (with full content, no placeholders)
+
+### 1. Landing Page
+- Hero section: "Find Winning Products Before Your Competitors"
+- Live counter (products tracked, cities covered, active users) – use static numbers for now but prepare for API later
+- "How it works" section (3 steps)
+- Call to action button → "Sign up free" links to /login
+- Professional, beautiful gradient background, modern glassmorphism cards.
+
+### 2. Dashboard
+- Top 10 winning products today – display using ProductCard component (sorted by Win Score)
+- City selector dropdown (Lahore, Karachi, Islamabad, Faisalabad, Rawalpindi, Multan, Peshawar, Quetta, Sialkot, Gujranwala)
+- Category filter (Fashion, Electronics, Beauty, Home, Grocery, Toys, Sports, Books)
+- Real-time update indicator (green dot with text "Live updates active")
+- Quick stats cards: Products tracked (e.g., 12,430), Hot alerts today (e.g., 47), Trending categories (e.g., "Winter wear")
+- Use mock data for now, but structure API calls ready.
+
+### 3. Product Hunt Page
+- Full product list with FilterBar component (city, category, min score)
+- Sort by: Win Score, Trending, Newest, Most Ads
+- Each ProductCard shows: product image + name, Win Score badge (color coded red<50, yellow50-74, green75+), price range in PKR, trend arrow (↑↓), platform icons (Daraz, OLX, TikTok), and a "View AI Report" button that opens AIReportModal.
+- Implement pagination (load more button).
+
+### 4. City Explorer Page
+- Interactive Pakistan map using Leaflet (center at 30.3753, 69.3451, zoom 5)
+- On city click, show a popup with top 5 winning products in that city (use mock data per city)
+- Add a heatmap overlay (simplified: color intensity based on demand – use mock intensity per city)
+- City vs city comparison chart (bar chart using Recharts) – compare Win Scores of top products between two selected cities.
+
+### 5. Trends Page
+- Line charts (Recharts) for product search volume over 30/60/90 days – use mock data for 5 sample products
+- Category trend comparison (stacked area chart)
+- Rising vs Falling products tables (two columns)
+- Include a note that data is from Google Trends (mock for now).
+
+### 6. Ad Spy Page
+- Table/grid of Facebook ads running 30+ days in Pakistan
+- Filters: category, city, ad duration (slider), format (image/video/carousel)
+- Each ad card shows: headline, description, creative type, number of competitors running same product
+- Use mock ad data.
+
+### 7. AI Analyst Page
+- Search bar for any product (e.g., "heater", "smart watch")
+- On search, display a full AI-generated report (mock response for demo) with:
+  - Profit calculator: buy price → sell price → margin %
+  - Best platform recommendation (Daraz, OLX, TikTok)
+  - Ad copy suggestions in Urdu + English
+  - Competitor count alert
+- Make it look like real AI analysis (use placeholder text but structured nicely).
+
+### 8. Seasonal Page
+- Pakistan seasonal calendar (Ramadan, Eid ul Fitr, Eid ul Adha, Wedding season, Back to school, Winter)
+- Upcoming season countdown timer
+- Pre-season winning products to stock now (grid of ProductCard)
+- Last year's winners for same season (expandable section).
+
+### 9. Alerts Page
+- Form to set custom alert: city + category + min win score threshold
+- View alert history (list of triggered alerts with timestamps)
+- Toggle between Telegram / Email notifications (buttons)
+- Daily digest settings (checkbox and time picker)
+- Use mock data for existing alerts.
+
+### 10. Login Page
+- Simple email/password login form (no backend yet, but simulate login)
+- "Sign up free" link
+- After login, redirect to Dashboard.
+
+## Components Details
+
+- **ProductCard**: accepts props (product object). Shows image, name, WinScoreBadge, price range, trend, platforms, and a button to open AIReportModal. Use Tailwind card styling with hover effects.
+- **WinScoreBadge**: component that receives score and returns colored badge with text.
+- **TrendChart**: Recharts line chart with props for data.
+- **HeatMap**: uses Leaflet and geoJson – create a simple mock heatmap layer showing city intensity.
+- **AIReportModal**: modal dialog (using a simple div overlay or a library like react-modal). Shows AI report content.
+- **FilterBar**: dropdowns for city, category, min score, plus reset button.
+- **SeasonalBanner**: shows upcoming event and countdown (e.g., "Ramadan starts in 12 days").
+- **AlertBell**: icon with notification count badge (mock unread count 3).
+
+## State Management (Zustand)
+Create a store in store/useStore.js that holds:
+- selectedCity, selectedCategory, minWinScore
+- user (null or mock user)
+- alertCount
+- darkMode? (optional)
+- actions to update these.
+
+## API Layer (mock for now but ready for real API)
+In api/*.js, create functions that return mock data (promises with setTimeout). Example:
+- fetchProducts(city, category, minScore)
+- fetchTrends(productId)
+- fetchAds(filters)
+- createAlert(alertData)
+
+## Socket.io Client
+Create hook useSocket.js that connects to a mock socket (or real later). For now, just simulate "new product alert" every 30 seconds and show toast notification.
+
+## Styling Requirements
+- Use Tailwind CSS exclusively.
+- Dark/light mode not mandatory but a nice plus.
+- Fully responsive: mobile (stack cards), tablet (2 columns), desktop (3-4 columns).
+- Use modern fonts (Inter or Poppins).
+- Smooth transitions, hover effects, glassmorphism cards with backdrop-blur where appropriate.
+- Professional color palette: primary indigo/purple, accent orange, neutral gray.
+
+## Code Quality
+- Write clean, well-commented, and maintainable code.
+- No console.logs in production (except for debugging placeholders you can remove later).
+- Use functional components with React Hooks.
+- Separate concerns: pages only orchestrate, components are reusable.
+- Use PropTypes or TypeScript? (optional, but good practice – you can skip if not required).
+
+## Environment Variables (create .env file)
+VITE_API_URL=http://localhost:5000
+VITE_SOCKET_URL=http://localhost:5000
+
+text
+(These will be used later, but declare them.)
+
+## Deliverables
+Generate all files listed in the folder structure with complete code. Ensure the app runs without errors (npm run dev). Use mock data extensively so the UI looks fully functional. The project should be production-ready in appearance.
+
+Start by creating the project structure, installing dependencies (generate package.json accordingly), and then implement each file in order. Do not skip any file. The final output must be a fully working React app.
+
+Now, build it.
