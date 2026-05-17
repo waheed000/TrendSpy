@@ -7,6 +7,10 @@ const nextConfig = {
       'slugify',
       'mongodb-memory-server',
       'mongodb-memory-server-core',
+      'cheerio',
+      'axios',
+      'puppeteer',
+      'google-trends-api',
     ],
   },
   webpack: (config, { isServer }) => {
@@ -18,6 +22,10 @@ const nextConfig = {
         'slugify',
         'mongodb-memory-server',
         'mongodb-memory-server-core',
+        'cheerio',
+        'axios',
+        'puppeteer',
+        'google-trends-api',
       ];
     }
     return config;
