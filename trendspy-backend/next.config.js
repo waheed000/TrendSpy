@@ -3,6 +3,8 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [
       'mongoose',
+      'bcryptjs',
+      'slugify',
       'mongodb-memory-server',
       'mongodb-memory-server-core',
     ],
@@ -12,6 +14,8 @@ const nextConfig = {
       config.externals = [
         ...config.externals,
         'mongoose',
+        'bcryptjs',
+        'slugify',
         'mongodb-memory-server',
         'mongodb-memory-server-core',
       ];

@@ -9,11 +9,13 @@
     "test:db": "node scripts/test-db.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.3.1",
     "mongoose": "^8.0.0",
     "next": "14.0.4",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "slugify": "^1.6.9"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.1.0"

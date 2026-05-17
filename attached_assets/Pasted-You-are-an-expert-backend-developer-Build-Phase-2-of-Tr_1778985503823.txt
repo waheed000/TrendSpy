@@ -1,0 +1,217 @@
+You are an expert backend developer. Build Phase 2 of TrendSpy backend completely with clean, professional, production-ready code. No dummy data. All database models must be real Mongoose schemas ready for production.
+
+## Phase 2 Goal: Create all MongoDB Database Models
+
+Create ALL Mongoose models as specified below. Each model must have:
+- Complete schema with proper data types
+- Indexes for fields that will be frequently queried
+- Virtuals where needed (like product score from other fields)
+- Instance methods where appropriate
+- Static methods for common queries
+- Timestamps (createdAt, updatedAt) on all models
+- Proper validation and error handling
+
+## Models to Create:
+
+### 1. User Model (`models/User.js`)
+```javascript
+// Schema fields:
+// - name: String, required, trim
+// - email: String, required, unique, lowercase, trim
+// - password: String, required (min 6 chars, will be hashed)
+// - telegramChatId: String (optional, for alerts)
+// - emailNotifications: Boolean, default true
+// - telegramNotifications: Boolean, default false
+// - dailyDigest: Boolean, default false
+// - digestTime: String, default "08:00"
+// - role: String, enum ['user', 'admin'], default 'user'
+// - isActive: Boolean, default true
+// - lastLogin: Date
+// 
+// Methods:
+// - comparePassword(candidatePassword) : Promise<boolean>
+// 
+// Statics:
+// - findByEmail(email)
+// 
+// Indexes:
+// - email (unique)
+// - isActive
+// - role
+2. Product Model (models/Product.js)
+javascript
+// Schema fields:
+// - name: String, required, index
+// - slug: String, required, unique (auto-generated from name)
+// - category: String, required, index (Fashion, Electronics, Beauty, Home, Grocery, Toys, Sports, Books)
+// - imageUrl: String
+// - images: [String]
+// - description: String
+// - platforms: [String] (daraz, olx, tiktok, facebook, instagram)
+// - cities: [String] (Lahore, Karachi, Islamabad, Faisalabad, Rawalpindi, Multan, Peshawar, Quetta, Sialkot, Gujranwala)
+// - priceMin: Number, min 0
+// - priceMax: Number, min 0
+// - winScore: Number, min 0, max 100, default 0, index
+// - darazOrders: Number, default 0
+// - darazRating: Number, min 0, max 5
+// - olxViews: Number, default 0
+// - olxListings: Number, default 0
+// - activeAds: Number, default 0
+// - tiktokViews: Number, default 0
+// - tiktokHashtagVolume: Number, default 0
+// - googleTrendSpike: Number, default 0 (% increase)
+// - alibabaOrderSurge: Number, default 0
+// - seasonalRelevance: Number, min 0, max 100, default 0
+// - trend: String, enum ['rising', 'falling', 'stable'], default 'stable', index
+// - competitorCount: Number, default 0
+// - lastScrapedAt: Date
+// - isWinning: Boolean, default false, index (winScore >= 75)
+// 
+// Methods:
+// - updateWinScore() : recalculates and returns score
+// - getPriceRange() : returns formatted string
+// 
+// Statics:
+// - findWinners(city, category, minScore)
+// - findByCity(city)
+// - findByCategory(category)
+// - findRising()
+// 
+// Indexes:
+// - winScore (descending)
+// - category + winScore (compound)
+// - cities (multikey)
+// - slug (unique)
+// - trend
+// - isWinning
+// - lastScrapedAt
+3. Alert Model (models/Alert.js)
+javascript
+// Schema fields:
+// - userId: ObjectId, ref 'User', required, index
+// - city: String, index
+// - category: String, index
+// - minWinScore: Number, min 0, max 100, default 75
+// - channel: String, enum ['email', 'telegram', 'both'], default 'email'
+// - isActive: Boolean, default true
+// - lastTriggeredAt: Date
+// - triggerCount: Number, default 0
+// 
+// Statics:
+// - findByUser(userId)
+// - findActiveAlerts()
+// - checkAndTrigger(product)
+// 
+// Indexes:
+// - userId + isActive (compound)
+// - city + category + minWinScore (compound for matching)
+4. TrendScore Model (models/TrendScore.js)
+javascript
+// Schema fields:
+// - productId: ObjectId, ref 'Product', required, index
+// - productSlug: String, required, index
+// - date: Date, required, index
+// - searchVolume: Number (0-100)
+// - city: String, index
+// - category: String, index
+// - dailyScore: Number, min 0, max 100
+// - weekOverWeekChange: Number
+// - monthOverMonthChange: Number
+// 
+// Statics:
+// - getTrends(productId, days, city)
+// - getCityComparison(city1, city2, category)
+// 
+// Indexes:
+// - productId + date + city (unique compound for upsert)
+// - date (TTL index? optional)
+5. ScrapedAd Model (models/ScrapedAd.js)
+javascript
+// Schema fields:
+// - productId: ObjectId, ref 'Product' (optional, if matched)
+// - productName: String, index
+// - platform: String, enum ['facebook', 'instagram', 'tiktok'], required
+// - adId: String, unique (platform-specific ID)
+// - headline: String
+// - description: String
+// - creativeType: String, enum ['image', 'video', 'carousel']
+// - imageUrl: String
+// - videoUrl: String
+// - advertiserName: String
+// - advertiserPage: String
+// - daysRunning: Number
+// - spendLevel: String, enum ['low', 'medium', 'high']
+// - city: String
+// - category: String
+// - scrapedAt: Date, default Date.now, index
+// - isActive: Boolean, default true
+// 
+// Indexes:
+// - adId (unique)
+// - platform + productName
+// - daysRunning (for finding proven ads, >30 days)
+// - scrapedAt
+6. SeasonalEvent Model (models/SeasonalEvent.js)
+javascript
+// Schema fields:
+// - name: String, required, unique (Ramadan, Eid ul Fitr, Eid ul Adha, Wedding Season, Back to School, Winter, Summer, Independence Day)
+// - slug: String, required, unique
+// - startDate: Date, required
+// - endDate: Date, required
+// - preparationStartDate: Date (2-3 weeks before actual start)
+// - year: Number, required
+// - isActive: Boolean, default true
+// - categoryBoost: Map of category to boost percentage
+// - typicalWinningProducts: [{ productName: String, category: String }]
+// 
+// Statics:
+// - findCurrentSeason()
+// - findUpcomingSeasons(days)
+// - getPreparationProducts()
+// 
+// Indexes:
+// - startDate + endDate
+// - year + name (unique)
+// - isActive
+Additional Requirements:
+Create models/index.js that exports all models:
+
+javascript
+export { default as User } from './User.js';
+export { default as Product } from './Product.js';
+export { default as Alert } from './Alert.js';
+export { default as TrendScore } from './TrendScore.js';
+export { default as ScrapedAd } from './ScrapedAd.js';
+export default { default as SeasonalEvent } from './SeasonalEvent.js';
+Create lib/validators.js with reusable validation functions:
+
+javascript
+export const isValidCity = (city) => [...]; // list of 10 cities
+export const isValidCategory = (category) => [...];
+export const isValidWinScore = (score) => score >= 0 && score <= 100;
+All models must have timestamps enabled: { timestamps: true }
+
+Write clean code with comments explaining complex fields and methods
+
+No dummy data – models should be ready for real production data
+
+Files to Create:
+models/User.js
+
+models/Product.js
+
+models/Alert.js
+
+models/TrendScore.js
+
+models/ScrapedAd.js
+
+models/SeasonalEvent.js
+
+models/index.js
+
+lib/validators.js
+
+After creating all models, update lib/db.js to ensure models are registered. Test that each model can be imported without errors.
+
+Now implement all models with clean, professional, production-ready code. No shortcuts. No dummy data.
