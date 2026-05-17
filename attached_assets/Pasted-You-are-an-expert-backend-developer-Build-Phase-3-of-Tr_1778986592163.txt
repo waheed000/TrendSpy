@@ -1,0 +1,98 @@
+You are an expert backend developer. Build Phase 3 of TrendSpy backend completely with clean, professional, production-ready code.
+
+## Phase 3 Goal: Authentication (JWT) + Basic API Routes
+
+Implement complete authentication system and basic CRUD APIs for products and trends. All APIs must return real data from MongoDB (no dummy data). All routes must have proper error handling, validation, and HTTP status codes.
+
+## Packages to Install:
+- bcryptjs
+- jsonwebtoken
+- cookie (for parsing cookies)
+
+## Environment Variables to Add in .env.local:
+- JWT_SECRET (use a strong random string)
+- JWT_EXPIRES_IN (set to "7d")
+
+## Files to Create:
+
+### 1. middleware/auth.js
+Create authentication middleware that:
+- Extracts JWT token from cookies OR Authorization header (Bearer token)
+- Verifies the token using JWT_SECRET
+- Fetches user from database (exclude password field)
+- Returns user object or throws error with appropriate status code (401)
+- Export a withAuth higher-order function that wraps API handlers
+
+### 2. app/api/auth/register/route.js (POST)
+- Accept name, email, password
+- Validate all fields (name required, email valid, password min 6 chars)
+- Check if email already exists (return 409 if yes)
+- Hash password using bcryptjs (salt rounds = 10)
+- Create user in database
+- Generate JWT token (payload: userId, email)
+- Set HTTP-only cookie with token (expires 7 days)
+- Return user object (id, name, email, role) and token in response
+
+### 3. app/api/auth/login/route.js (POST)
+- Accept email, password
+- Find user by email
+- If user not found, return 401 with "Invalid credentials"
+- Compare password with hashed password using bcryptjs
+- If incorrect, return 401 with "Invalid credentials"
+- Generate JWT token
+- Set HTTP-only cookie
+- Return user object and token
+
+### 4. app/api/auth/logout/route.js (POST)
+- Clear the token cookie (set maxAge=0)
+- Return success message
+
+### 5. app/api/auth/me/route.js (GET)
+- Protected route using withAuth middleware
+- Return current authenticated user (id, name, email, role, telegramChatId, notification preferences)
+
+### 6. app/api/products/route.js (GET)
+- Public route (no auth required for viewing)
+- Accept query parameters: city, category, minScore, sortBy (winScore, trending, newest, mostAds), page (default 1), limit (default 20)
+- Filter products based on query params
+- Sort products (winScore descending by default)
+- Return paginated response with: products array, total count, current page, total pages
+- Include only necessary fields (name, slug, imageUrl, winScore, priceMin, priceMax, trend, platforms, cities, category)
+
+### 7. app/api/products/[slug]/route.js (GET)
+- Get single product by slug
+- Return complete product object including all fields
+- If not found, return 404
+
+### 8. app/api/trends/[productId]/route.js (GET)
+- Public route
+- Accept query parameters: days (30, 60, or 90, default 30), city (optional)
+- Query TrendScore model for the product
+- Return trend data as array of { date, searchVolume, dailyScore }
+- Sort by date ascending
+
+### 9. lib/seed.js (optional but recommended)
+Create a seed script that:
+- Adds a few sample products to the database (only if products collection is empty)
+- This ensures APIs return real data during development
+- Products should have realistic winScores, categories, cities
+
+## Additional Requirements:
+- All API responses must follow format: { success: true/false, data: ... } or { success: false, error: "message" }
+- All errors must have appropriate HTTP status codes (400, 401, 404, 409, 500)
+- Add input validation for all routes
+- Use the models created in Phase 2 (User, Product, TrendScore)
+- Product list API must be fast (use proper indexes from Phase 2)
+- Write clean, commented, professional code
+
+## Testing Checklist:
+After implementation, verify:
+1. POST /api/auth/register creates a new user
+2. POST /api/auth/login returns token and cookie
+3. GET /api/auth/me returns user data (with valid token)
+4. POST /api/auth/logout clears cookie
+5. GET /api/products returns product list with filters
+6. GET /api/products/[slug] returns single product
+7. GET /api/trends/[productId] returns trend chart data
+
+Now implement all of the above with clean, production-ready code. No dummy data in APIs (use real database queries). Seed script can add initial products for testing.
