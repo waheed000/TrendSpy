@@ -1,0 +1,146 @@
+You are an expert backend developer. Build Phase 6 of TrendSpy backend with clean, professional, production-ready code.
+
+## Phase 6 Goal: Win Score Calculation Engine + Cron Jobs
+
+Implement the automated Win Score calculation service and cron jobs to run scrapers and score updates on schedule.
+
+## Packages to Install:
+- node-cron
+
+## Files to Create:
+
+### 1. services/winScoreService.js
+Create a service that calculates Win Score (0-100) for a product using this formula:
+
+| Signal | Weight | Source |
+|--------|--------|--------|
+| Daraz sales velocity | 20 | darazOrders / maxOrders in category |
+| Google Trends spike | 15 | googleTrendSpike (% increase) |
+| Facebook active ads | 20 | activeAds (30+ days running = higher score) |
+| Social engagement | 15 | tiktokViews + instagramMentions |
+| OLX marketplace demand | 10 | olxViews + olxListings |
+| Alibaba order surge | 10 | alibabaOrderSurge |
+| Seasonal relevance | 10 | seasonalRelevance (0-100 from seasonalService) |
+
+**Scoring logic:**
+- Normalize each signal to 0-100 scale
+- Apply weights
+- Cap at 100
+- If product is new (no data), default score = 30
+
+Export functions:
+- `calculateWinScore(product)` – calculates score for single product
+- `updateAllWinScores()` – iterates all products and updates winScore field
+- `getWinningProducts(city, category, minScore)` – returns products with score >= minScore (default 75)
+
+### 2. services/seasonalService.js
+Create a service that:
+- Detects current season based on date
+- Returns seasonalRelevance score (0-100) for a product category
+- Maintains seasonal calendar with date ranges:
+  - Ramadan: March-April (2025 dates)
+  - Eid ul Fitr: follows Ramadan
+  - Eid ul Adha: June
+  - Wedding season: November-February
+  - Winter: November-February
+  - Summer: May-August
+  - Back to School: August-September
+- Export: `getCurrentSeason()`, `getSeasonalRelevance(category)`, `getUpcomingSeason(days)`
+
+### 3. jobs/scrapeJob.js
+Create a cron job that runs every 6 hours:
+- Runs: darazScraper, olxScraper, tiktokScraper
+- Logs start and end times with timestamps
+- If a scraper fails, log error and continue with next
+- Export: `startScrapeJob()`
+
+### 4. jobs/trendJob.js
+Create a cron job that runs every 12 hours:
+- Runs: googleTrendsScraper, newsScraper
+- Logs results
+- Updates TrendScore collection
+- Export: `startTrendJob()`
+
+### 5. jobs/scoreJob.js
+Create a cron job that runs every 1 hour:
+- Calls updateAllWinScores()
+- After scores updated, logs: "Found X products with winScore >= 75"
+- Export: `startScoreJob()`
+
+### 6. jobs/fbAdsJob.js
+Create a cron job that runs every 12 hours:
+- Runs fbAdsScraper
+- Updates ScrapedAd collection
+- Logs new ads found
+- Export: `startFbAdsJob()`
+
+### 7. jobs/index.js
+Export all jobs:
+```javascript
+export { startScrapeJob } from './scrapeJob.js';
+export { startTrendJob } from './trendJob.js';
+export { startScoreJob } from './scoreJob.js';
+export { startFbAdsJob } from './fbAdsJob.js';
+8. lib/scheduler.js
+Initialize and start all cron jobs (only if CRON_ENABLED=true):
+
+javascript
+import cron from 'node-cron';
+import { startScrapeJob, startTrendJob, startScoreJob, startFbAdsJob } from '@/jobs';
+
+export function startAllJobs() {
+  // Only schedule if enabled
+  if (process.env.CRON_ENABLED !== 'true') {
+    console.log('⏸️ Cron jobs disabled. Set CRON_ENABLED=true to enable.');
+    return;
+  }
+  
+  // Every 6 hours: 0 */6 * * *
+  startScrapeJob();
+  
+  // Every 12 hours: 0 */12 * * *
+  startTrendJob();
+  startFbAdsJob();
+  
+  // Every 1 hour: 0 * * * *
+  startScoreJob();
+  
+  console.log('✅ All cron jobs scheduled');
+}
+9. Update app/layout.js or create app/api/cron/status/route.js (optional)
+Create a simple status endpoint to check if cron jobs are running:
+
+javascript
+// app/api/cron/status/route.js
+export async function GET() {
+  return Response.json({
+    cronEnabled: process.env.CRON_ENABLED === 'true',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
+  });
+}
+10. Update server initialization
+In your Next.js app, ensure startAllJobs() is called when server starts. Add this to a top-level file like app/api/cron/init.js or call from instrumentation.js if using Next.js 15+. For simplicity, create a file lib/init.js that imports scheduler and call it from app/layout.js.
+
+Environment Variables to Add (.env.local):
+text
+CRON_ENABLED=true
+Testing Checklist:
+winScoreService.calculateWinScore() returns correct score (0-100)
+
+seasonalService.getCurrentSeason() returns correct season
+
+Run scoreJob manually and verify product.winScore updates
+
+Verify cron jobs schedule without errors (check console logs)
+
+Important:
+All jobs must be independently try-catched – one job failing should not stop others
+
+Add console logs with timestamps for debugging
+
+In development, set CRON_ENABLED=true to test (it will run on schedule)
+
+To test jobs immediately, you can call the function directly in a route for manual testing
+
+Now implement all of the above with clean, production-ready code. No admin API key needed.

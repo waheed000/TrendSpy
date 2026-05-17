@@ -1,0 +1,25 @@
+"use strict";
+/*
+ * ATTENTION: An "eval-source-map" devtool has been used.
+ * This devtool is neither made for production nor for readable output files.
+ * It uses "eval()" calls to create a separate source file with attached SourceMaps in the browser devtools.
+ * If you are trying to read the output file, select a different devtool (https://webpack.js.org/configuration/devtool/)
+ * or disable the default devtool with "devtool: false".
+ * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
+ */
+exports.id = "lib_memoryDb_js";
+exports.ids = ["lib_memoryDb_js"];
+exports.modules = {
+
+/***/ "./lib/memoryDb.js":
+/*!*************************!*\
+  !*** ./lib/memoryDb.js ***!
+  \*************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   connectMemoryDB: () => (/* binding */ connectMemoryDB),\n/* harmony export */   disconnectMemoryDB: () => (/* binding */ disconnectMemoryDB)\n/* harmony export */ });\n/* harmony import */ var mongodb_memory_server__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! mongodb-memory-server */ \"mongodb-memory-server\");\n/* harmony import */ var mongodb_memory_server__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(mongodb_memory_server__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var mongoose__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! mongoose */ \"mongoose\");\n/* harmony import */ var mongoose__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(mongoose__WEBPACK_IMPORTED_MODULE_1__);\n\n\nlet mongod = null;\nasync function connectMemoryDB() {\n    if ((mongoose__WEBPACK_IMPORTED_MODULE_1___default().connection).readyState === 1) {\n        return (mongoose__WEBPACK_IMPORTED_MODULE_1___default().connection);\n    }\n    if (!mongod) {\n        mongod = await mongodb_memory_server__WEBPACK_IMPORTED_MODULE_0__.MongoMemoryServer.create();\n        const uri = mongod.getUri();\n        await mongoose__WEBPACK_IMPORTED_MODULE_1___default().connect(uri, {\n            dbName: \"trendspy\"\n        });\n        console.log(\"✅ In-memory MongoDB connected\");\n        console.log(\"URI:\", uri);\n    }\n    return (mongoose__WEBPACK_IMPORTED_MODULE_1___default().connection);\n}\nasync function disconnectMemoryDB() {\n    if (mongod) {\n        await mongoose__WEBPACK_IMPORTED_MODULE_1___default().disconnect();\n        await mongod.stop();\n        mongod = null;\n        console.log(\"✅ In-memory MongoDB disconnected\");\n    }\n}\n//# sourceURL=[module]\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiLi9saWIvbWVtb3J5RGIuanMiLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7O0FBQTBEO0FBQzFCO0FBRWhDLElBQUlFLFNBQVM7QUFFTixlQUFlQztJQUNwQixJQUFJRiw0REFBbUIsQ0FBQ0ksVUFBVSxLQUFLLEdBQUc7UUFDeEMsT0FBT0osNERBQW1CO0lBQzVCO0lBRUEsSUFBSSxDQUFDQyxRQUFRO1FBQ1hBLFNBQVMsTUFBTUYsb0VBQWlCQSxDQUFDTSxNQUFNO1FBQ3ZDLE1BQU1DLE1BQU1MLE9BQU9NLE1BQU07UUFFekIsTUFBTVAsdURBQWdCLENBQUNNLEtBQUs7WUFDMUJHLFFBQVE7UUFDVjtRQUVBQyxRQUFRQyxHQUFHLENBQUM7UUFDWkQsUUFBUUMsR0FBRyxDQUFDLFFBQVFMO0lBQ3RCO0lBRUEsT0FBT04sNERBQW1CO0FBQzVCO0FBRU8sZUFBZVk7SUFDcEIsSUFBSVgsUUFBUTtRQUNWLE1BQU1ELDBEQUFtQjtRQUN6QixNQUFNQyxPQUFPYSxJQUFJO1FBQ2pCYixTQUFTO1FBQ1RTLFFBQVFDLEdBQUcsQ0FBQztJQUNkO0FBQ0YiLCJzb3VyY2VzIjpbIndlYnBhY2s6Ly90cmVuZHNweS1iYWNrZW5kLy4vbGliL21lbW9yeURiLmpzPzQxMGUiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgTW9uZ29NZW1vcnlTZXJ2ZXIgfSBmcm9tICdtb25nb2RiLW1lbW9yeS1zZXJ2ZXInO1xuaW1wb3J0IG1vbmdvb3NlIGZyb20gJ21vbmdvb3NlJztcblxubGV0IG1vbmdvZCA9IG51bGw7XG5cbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBjb25uZWN0TWVtb3J5REIoKSB7XG4gIGlmIChtb25nb29zZS5jb25uZWN0aW9uLnJlYWR5U3RhdGUgPT09IDEpIHtcbiAgICByZXR1cm4gbW9uZ29vc2UuY29ubmVjdGlvbjtcbiAgfVxuXG4gIGlmICghbW9uZ29kKSB7XG4gICAgbW9uZ29kID0gYXdhaXQgTW9uZ29NZW1vcnlTZXJ2ZXIuY3JlYXRlKCk7XG4gICAgY29uc3QgdXJpID0gbW9uZ29kLmdldFVyaSgpO1xuXG4gICAgYXdhaXQgbW9uZ29vc2UuY29ubmVjdCh1cmksIHtcbiAgICAgIGRiTmFtZTogJ3RyZW5kc3B5JyxcbiAgICB9KTtcblxuICAgIGNvbnNvbGUubG9nKCfinIUgSW4tbWVtb3J5IE1vbmdvREIgY29ubmVjdGVkJyk7XG4gICAgY29uc29sZS5sb2coJ1VSSTonLCB1cmkpO1xuICB9XG5cbiAgcmV0dXJuIG1vbmdvb3NlLmNvbm5lY3Rpb247XG59XG5cbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBkaXNjb25uZWN0TWVtb3J5REIoKSB7XG4gIGlmIChtb25nb2QpIHtcbiAgICBhd2FpdCBtb25nb29zZS5kaXNjb25uZWN0KCk7XG4gICAgYXdhaXQgbW9uZ29kLnN0b3AoKTtcbiAgICBtb25nb2QgPSBudWxsO1xuICAgIGNvbnNvbGUubG9nKCfinIUgSW4tbWVtb3J5IE1vbmdvREIgZGlzY29ubmVjdGVkJyk7XG4gIH1cbn1cbiJdLCJuYW1lcyI6WyJNb25nb01lbW9yeVNlcnZlciIsIm1vbmdvb3NlIiwibW9uZ29kIiwiY29ubmVjdE1lbW9yeURCIiwiY29ubmVjdGlvbiIsInJlYWR5U3RhdGUiLCJjcmVhdGUiLCJ1cmkiLCJnZXRVcmkiLCJjb25uZWN0IiwiZGJOYW1lIiwiY29uc29sZSIsImxvZyIsImRpc2Nvbm5lY3RNZW1vcnlEQiIsImRpc2Nvbm5lY3QiLCJzdG9wIl0sInNvdXJjZVJvb3QiOiIifQ==\n//# sourceURL=webpack-internal:///./lib/memoryDb.js\n");
+
+/***/ })
+
+};
+;
