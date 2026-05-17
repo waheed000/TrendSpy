@@ -1,10 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverComponentsExternalPackages: ['mongoose'],
+    serverComponentsExternalPackages: [
+      'mongoose',
+      'mongodb-memory-server',
+      'mongodb-memory-server-core',
+    ],
   },
-  webpack: (config) => {
-    config.externals = [...config.externals, 'mongoose'];
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = [
+        ...config.externals,
+        'mongoose',
+        'mongodb-memory-server',
+        'mongodb-memory-server-core',
+      ];
+    }
     return config;
   },
 };

@@ -1,11 +1,6 @@
 import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
-const DB_NAME = process.env.DB_NAME;
-
-if (!MONGODB_URI) {
-  throw new Error('Please define MONGODB_URI environment variable');
-}
 
 let cached = global.mongoose;
 
@@ -18,16 +13,23 @@ export async function connectDB() {
     return cached.conn;
   }
 
+  if (!MONGODB_URI || MONGODB_URI.includes('localhost')) {
+    console.log('⚠️ No production MongoDB URI, using in-memory database');
+    const { connectMemoryDB } = await import('./memoryDb.js');
+    cached.conn = await connectMemoryDB();
+    return cached.conn;
+  }
+
   if (!cached.promise) {
     const opts = {
-      dbName: DB_NAME,
+      dbName: process.env.DB_NAME || 'trendspy',
       bufferCommands: false,
     };
 
     cached.promise = mongoose
       .connect(MONGODB_URI, opts)
       .then((mongoose) => {
-        console.log('✅ MongoDB connected successfully to', DB_NAME);
+        console.log('✅ MongoDB connected successfully');
         return mongoose;
       })
       .catch((err) => {
