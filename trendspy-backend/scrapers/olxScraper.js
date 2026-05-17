@@ -7,10 +7,9 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { connectDB } from '@/lib/db';
-import { Product } from '@/models/index';
-import { getRandomUserAgent } from '@/lib/fakeUserAgent';
-import { VALID_CATEGORIES } from '@/lib/validators';
+import { connectDB } from '../lib/db.js';
+import { Product } from '../models/index.js';
+import { getRandomUserAgent } from '../lib/fakeUserAgent.js';
 
 const BASE_URL = 'https://www.olx.com.pk';
 const REQUEST_DELAY_MS = 2000;

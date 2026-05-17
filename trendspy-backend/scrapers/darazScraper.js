@@ -6,9 +6,9 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { connectDB } from '@/lib/db';
-import { Product } from '@/models/index';
-import { getRandomUserAgent } from '@/lib/fakeUserAgent';
+import { connectDB } from '../lib/db.js';
+import { Product } from '../models/index.js';
+import { getRandomUserAgent } from '../lib/fakeUserAgent.js';
 
 const BASE_URL = 'https://www.daraz.pk';
 const REQUEST_DELAY_MS = 1500; // 1.5 seconds between requests

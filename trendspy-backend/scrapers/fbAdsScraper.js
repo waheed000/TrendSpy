@@ -12,9 +12,9 @@
  * Only captures ads running 30+ days (proven profitability signal).
  */
 
-import { connectDB } from '@/lib/db';
-import { ScrapedAd } from '@/models/index';
-import { getRandomUserAgent } from '@/lib/fakeUserAgent';
+import { connectDB } from '../lib/db.js';
+import { ScrapedAd } from '../models/index.js';
+import { getRandomUserAgent } from '../lib/fakeUserAgent.js';
 
 const FB_ADS_URL = 'https://www.facebook.com/ads/library/';
 const MIN_DAYS_RUNNING = 30;
@@ -142,8 +142,8 @@ async function scrapeWithPuppeteer(searchTerm, category) {
     await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
 
     const html = await page.content();
-    const cheerio = (await import('cheerio')).default;
-    const $ = cheerio.load(html);
+    const { load } = await import('cheerio');
+    const $ = load(html);
 
     return parseAdCards($, category);
   } catch (err) {

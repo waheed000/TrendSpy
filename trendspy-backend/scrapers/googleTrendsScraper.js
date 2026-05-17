@@ -5,9 +5,8 @@
  */
 
 import googleTrends from 'google-trends-api';
-import { connectDB } from '@/lib/db';
-import { Product, TrendScore } from '@/models/index';
-import { VALID_CITIES } from '@/lib/validators';
+import { connectDB } from '../lib/db.js';
+import { Product, TrendScore } from '../models/index.js';
 
 // Google Trends uses DMA region codes — Pakistan geo code
 const GEO_PAKISTAN = 'PK';
