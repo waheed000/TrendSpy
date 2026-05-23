@@ -4,12 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:next\" \"npm run dev:socket\"",
-    "dev:next": "NODE_ENV=development next dev -p 3001",
+    "dev": "NODE_ENV=development next dev -p 3001",
     "dev:socket": "node socket-server.js",
     "build": "next build",
-    "start": "concurrently \"npm run start:next\" \"npm run start:socket\"",
-    "start:next": "NODE_ENV=production next start -p 3001",
+    "start": "NODE_ENV=production next start -p 3001",
     "start:socket": "node socket-server.js",
     "test:db": "node scripts/test-db.js"
   },
