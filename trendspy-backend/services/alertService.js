@@ -3,6 +3,7 @@ import { Alert, Product } from '@/models/index';
 import { sendEmailAlert } from './emailService.js';
 import { sendWhatsAppAlert } from './whatsappService.js';
 import { emitAlertTriggered } from '@/lib/socketEmitter';
+import { getAlertInsight } from './groqService.js';
 
 export async function checkAndTriggerAlerts(product) {
   await connectDB();
@@ -21,6 +22,19 @@ export async function checkAndTriggerAlerts(product) {
 
   const results = { whatsapp: 0, email: 0, errors: [] };
 
+  // For high-value products, generate a one-line AI insight
+  let aiSummary = '';
+  if (product.winScore >= 85) {
+    try {
+      aiSummary = await getAlertInsight(product.name, product.winScore, product.category);
+    } catch {
+      // Groq unavailable — degrade gracefully
+    }
+  }
+
+  // Attach AI insight to product object for notification services
+  const enrichedProduct = aiSummary ? { ...product, aiSummary } : product;
+
   for (const alert of triggered) {
     const user = alert.userId;
     if (!user) continue;
@@ -30,7 +44,7 @@ export async function checkAndTriggerAlerts(product) {
 
     if (sendEmail && user.email) {
       try {
-        await sendEmailAlert(user.email, product);
+        await sendEmailAlert(user.email, enrichedProduct);
         results.email++;
       } catch (err) {
         results.errors.push({ type: 'email', userId: user._id, error: err.message });
@@ -40,7 +54,7 @@ export async function checkAndTriggerAlerts(product) {
 
     if (sendWhatsApp && user.phoneNumber) {
       try {
-        await sendWhatsAppAlert(user.phoneNumber, product);
+        await sendWhatsAppAlert(user.phoneNumber, enrichedProduct);
         results.whatsapp++;
       } catch (err) {
         results.errors.push({ type: 'whatsapp', userId: user._id, error: err.message });
@@ -49,7 +63,7 @@ export async function checkAndTriggerAlerts(product) {
     }
 
     // Emit real-time socket event to the user
-    emitAlertTriggered(user._id.toString(), alert, product).catch(() => {});
+    emitAlertTriggered(user._id.toString(), alert, enrichedProduct).catch(() => {});
 
     try {
       await Alert.findByIdAndUpdate(alert._id, {
