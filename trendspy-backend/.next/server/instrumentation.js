@@ -93,6 +93,16 @@ module.exports = require("node-cron");
 
 /***/ }),
 
+/***/ "nodemailer":
+/*!*****************************!*\
+  !*** external "nodemailer" ***!
+  \*****************************/
+/***/ ((module) => {
+
+module.exports = require("nodemailer");
+
+/***/ }),
+
 /***/ "puppeteer":
 /*!****************************!*\
   !*** external "puppeteer" ***!

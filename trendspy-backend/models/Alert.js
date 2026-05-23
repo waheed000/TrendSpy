@@ -26,7 +26,7 @@ const alertSchema = new mongoose.Schema(
     },
     channel: {
       type: String,
-      enum: ['email', 'telegram', 'both'],
+      enum: ['email', 'whatsapp', 'both'],
       default: 'email',
     },
     isActive: { type: Boolean, default: true },
@@ -47,14 +47,14 @@ alertSchema.statics.findByUser = function (userId) {
 
 // Static: all active alerts (for the scheduler job)
 alertSchema.statics.findActiveAlerts = function () {
-  return this.find({ isActive: true }).populate('userId', 'email telegramChatId');
+  return this.find({ isActive: true }).populate('userId', 'email phoneNumber');
 };
 
 // Static: check if a product triggers any active alerts; returns matched alerts
 alertSchema.statics.checkAndTrigger = async function (product) {
   const alerts = await this.find({ isActive: true }).populate(
     'userId',
-    'email telegramChatId emailNotifications telegramNotifications'
+    'email phoneNumber emailNotifications whatsappNotifications'
   );
 
   const triggered = alerts.filter((alert) => {

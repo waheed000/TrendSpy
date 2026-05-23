@@ -27,9 +27,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // WhatsApp phone number (Pakistan format: +923XXXXXXXXX)
+    phoneNumber: {
+      type: String,
+      default: null,
+      sparse: true,
+    },
     // Notification preferences
     emailNotifications: { type: Boolean, default: true },
     telegramNotifications: { type: Boolean, default: false },
+    whatsappNotifications: { type: Boolean, default: false },
     dailyDigest: { type: Boolean, default: false },
     digestTime: { type: String, default: '08:00' },
     role: {

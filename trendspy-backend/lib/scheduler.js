@@ -4,7 +4,7 @@
  * Only activates when CRON_ENABLED=true.
  */
 
-import { startScrapeJob, startTrendJob, startScoreJob, startFbAdsJob } from '../jobs/index.js';
+import { startScrapeJob, startTrendJob, startScoreJob, startFbAdsJob, startAlertJob } from '../jobs/index.js';
 
 let initialized = false;
 
@@ -22,6 +22,7 @@ export function startAllJobs() {
   try { startTrendJob();  } catch (err) { console.error('[Scheduler] trendJob init failed:',  err.message); }
   try { startFbAdsJob();  } catch (err) { console.error('[Scheduler] fbAdsJob init failed:',  err.message); }
   try { startScoreJob();  } catch (err) { console.error('[Scheduler] scoreJob init failed:',  err.message); }
+  try { startAlertJob(); } catch (err) { console.error('[Scheduler] alertJob init failed:',  err.message); }
 
   initialized = true;
   console.log(`[${new Date().toISOString()}] [Scheduler] All cron jobs scheduled.`);
