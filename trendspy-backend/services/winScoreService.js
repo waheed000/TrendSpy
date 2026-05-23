@@ -16,6 +16,7 @@
 import { connectDB } from '../lib/db.js';
 import { Product } from '../models/index.js';
 import { getSeasonalRelevance } from './seasonalService.js';
+import { emitNewWinningProduct, emitScoreUpdate } from '../lib/socketEmitter.js';
 
 // Score weight table (must sum to 100)
 const WEIGHTS = {
@@ -30,20 +31,17 @@ const WEIGHTS = {
 
 // Normalization caps — values above these are treated as 100
 const CAPS = {
-  darazOrders:       5000,   // orders; 5k+ = max score
-  googleTrendSpike:  150,    // % increase; 150%+ = max
-  activeAds:         50,     // ads; 50+ = max
-  tiktokViews:       5000000,// 5M views = max
-  olxViews:          100000, // 100k views = max
-  olxListings:       500,    // 500 listings = max
-  alibabaOrderSurge: 100,    // % surge; 100%+ = max
+  darazOrders:       5000,
+  googleTrendSpike:  150,
+  activeAds:         50,
+  tiktokViews:       5000000,
+  olxViews:          100000,
+  olxListings:       500,
+  alibabaOrderSurge: 100,
 };
 
 /**
  * Normalize a raw value to a 0–100 scale, capped at `cap`.
- * @param {number} value
- * @param {number} cap
- * @returns {number}
  */
 function normalize(value, cap) {
   if (!value || value <= 0) return 0;
@@ -53,11 +51,8 @@ function normalize(value, cap) {
 /**
  * Calculate the Win Score for a single product object.
  * Does NOT persist — caller is responsible for saving.
- * @param {Object} product - Mongoose document or plain object with signal fields
- * @returns {number} Win Score 0–100
  */
 export function calculateWinScore(product) {
-  // If no data signals at all, return a base score
   const hasData =
     product.darazOrders > 0 ||
     product.googleTrendSpike > 0 ||
@@ -68,23 +63,21 @@ export function calculateWinScore(product) {
 
   if (!hasData) return 30;
 
-  // Retrieve seasonal relevance (uses stored value if present, else compute live)
   const seasonal =
     product.seasonalRelevance > 0
       ? product.seasonalRelevance
       : getSeasonalRelevance(product.category);
 
-  // Normalize each signal to 0-100
-  const darazScore    = normalize(product.darazOrders, CAPS.darazOrders);
-  const trendsScore   = normalize(product.googleTrendSpike, CAPS.googleTrendSpike);
-  const adsScore      = normalize(product.activeAds, CAPS.activeAds);
-  const tiktokScore   = normalize(product.tiktokViews, CAPS.tiktokViews);
-  const olxScore      = normalize(
+  const darazScore   = normalize(product.darazOrders, CAPS.darazOrders);
+  const trendsScore  = normalize(product.googleTrendSpike, CAPS.googleTrendSpike);
+  const adsScore     = normalize(product.activeAds, CAPS.activeAds);
+  const tiktokScore  = normalize(product.tiktokViews, CAPS.tiktokViews);
+  const olxScore     = normalize(
     (product.olxViews || 0) + (product.olxListings || 0) * 100,
     CAPS.olxViews
   );
-  const alibabaScore  = normalize(product.alibabaOrderSurge, CAPS.alibabaOrderSurge);
-  const seasonScore   = Math.min(seasonal, 100);
+  const alibabaScore = normalize(product.alibabaOrderSurge, CAPS.alibabaOrderSurge);
+  const seasonScore  = Math.min(seasonal, 100);
 
   const raw =
     darazScore   * (WEIGHTS.darazSalesVelocity / 100) +
@@ -100,46 +93,63 @@ export function calculateWinScore(product) {
 
 /**
  * Recalculate and persist Win Scores for all products.
- * Processes in batches to avoid overwhelming MongoDB.
- * @param {{ batchSize?: number }} options
- * @returns {Promise<{ processed: number, updated: number, winners: number }>}
+ * Emits socket events for new winners and significant score changes.
  */
 export async function updateAllWinScores({ batchSize = 100 } = {}) {
   await connectDB();
 
   let processed = 0;
-  let updated = 0;
-  let winners = 0;
-  let skip = 0;
+  let updated   = 0;
+  let winners   = 0;
+  let skip      = 0;
+  const newWinners = [];
 
   console.log(`[${new Date().toISOString()}] [WinScore] Starting full score update…`);
 
   while (true) {
     const batch = await Product.find({})
-      .select('name category darazOrders googleTrendSpike activeAds tiktokViews olxViews olxListings alibabaOrderSurge seasonalRelevance winScore')
+      .select('name slug category darazOrders googleTrendSpike activeAds tiktokViews olxViews olxListings alibabaOrderSurge seasonalRelevance winScore isWinning cities priceMin priceMax imageUrl trend')
       .skip(skip)
       .limit(batchSize)
       .lean();
 
     if (batch.length === 0) break;
 
-    const bulkOps = batch.map((product) => {
-      const score = calculateWinScore(product);
-      const isWinning = score >= 75;
+    const bulkOps = [];
+
+    for (const product of batch) {
+      const oldScore   = product.winScore || 0;
+      const newScore   = calculateWinScore(product);
+      const wasWinning = product.isWinning || false;
+      const isWinning  = newScore >= 75;
+
       if (isWinning) winners++;
-      return {
+
+      bulkOps.push({
         updateOne: {
           filter: { _id: product._id },
-          update: { $set: { winScore: score, isWinning } },
+          update: { $set: { winScore: newScore, isWinning } },
         },
-      };
-    });
+      });
+
+      // Emit: newly crossed the winning threshold
+      if (isWinning && !wasWinning) {
+        const enriched = { ...product, winScore: newScore, isWinning };
+        newWinners.push(enriched);
+        emitNewWinningProduct(enriched).catch(() => {});
+      }
+
+      // Emit: score changed significantly (>= 10 points)
+      if (Math.abs(newScore - oldScore) >= 10) {
+        emitScoreUpdate({ ...product, winScore: newScore }, oldScore).catch(() => {});
+      }
+    }
 
     await Product.bulkWrite(bulkOps);
 
     processed += batch.length;
-    updated += bulkOps.length;
-    skip += batchSize;
+    updated   += bulkOps.length;
+    skip      += batchSize;
 
     console.log(`[WinScore] Processed ${processed} products so far…`);
   }
@@ -148,13 +158,11 @@ export async function updateAllWinScores({ batchSize = 100 } = {}) {
     `[${new Date().toISOString()}] [WinScore] Done. Processed: ${processed}, Updated: ${updated}, Winners (≥75): ${winners}`
   );
 
-  return { processed, updated, winners };
+  return { processed, updated, winners, newWinners };
 }
 
 /**
  * Fetch winning products filtered by optional city, category, and minimum score.
- * @param {{ city?: string, category?: string, minScore?: number }} options
- * @returns {Promise<Array>}
  */
 export async function getWinningProducts({ city, category, minScore = 75 } = {}) {
   await connectDB();

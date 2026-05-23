@@ -2,6 +2,7 @@ import { connectDB } from '@/lib/db';
 import { Alert, Product } from '@/models/index';
 import { sendEmailAlert } from './emailService.js';
 import { sendWhatsAppAlert } from './whatsappService.js';
+import { emitAlertTriggered } from '@/lib/socketEmitter';
 
 export async function checkAndTriggerAlerts(product) {
   await connectDB();
@@ -13,8 +14,8 @@ export async function checkAndTriggerAlerts(product) {
 
   const triggered = alerts.filter((alert) => {
     const scoreOk = product.winScore >= alert.minWinScore;
-    const cityOk = !alert.city || (Array.isArray(product.cities) && product.cities.includes(alert.city));
-    const catOk = !alert.category || product.category === alert.category;
+    const cityOk  = !alert.city || (Array.isArray(product.cities) && product.cities.includes(alert.city));
+    const catOk   = !alert.category || product.category === alert.category;
     return scoreOk && cityOk && catOk;
   });
 
@@ -24,7 +25,7 @@ export async function checkAndTriggerAlerts(product) {
     const user = alert.userId;
     if (!user) continue;
 
-    const sendEmail = alert.channel === 'email' || alert.channel === 'both';
+    const sendEmail    = alert.channel === 'email'    || alert.channel === 'both';
     const sendWhatsApp = alert.channel === 'whatsapp' || alert.channel === 'both';
 
     if (sendEmail && user.email) {
@@ -47,6 +48,9 @@ export async function checkAndTriggerAlerts(product) {
       }
     }
 
+    // Emit real-time socket event to the user
+    emitAlertTriggered(user._id.toString(), alert, product).catch(() => {});
+
     try {
       await Alert.findByIdAndUpdate(alert._id, {
         $set: { lastTriggeredAt: new Date() },
@@ -64,13 +68,13 @@ export async function checkAllProductsForAlerts() {
   await connectDB();
 
   const products = await Product.find({ winScore: { $gte: 75 } });
-  const totals = { whatsapp: 0, email: 0, errors: [] };
+  const totals   = { whatsapp: 0, email: 0, errors: [] };
 
   for (const product of products) {
     try {
       const result = await checkAndTriggerAlerts(product);
       totals.whatsapp += result.whatsapp;
-      totals.email += result.email;
+      totals.email    += result.email;
       totals.errors.push(...result.errors);
     } catch (err) {
       console.error(`[AlertService] Error checking alerts for product "${product.name}":`, err.message);

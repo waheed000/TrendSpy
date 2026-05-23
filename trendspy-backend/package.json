@@ -2,10 +2,15 @@
   "name": "trendspy-backend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development next dev -p 3001",
+    "dev": "concurrently \"npm run dev:next\" \"npm run dev:socket\"",
+    "dev:next": "NODE_ENV=development next dev -p 3001",
+    "dev:socket": "node socket-server.js",
     "build": "next build",
-    "start": "NODE_ENV=production next start -p 3001",
+    "start": "concurrently \"npm run start:next\" \"npm run start:socket\"",
+    "start:next": "NODE_ENV=production next start -p 3001",
+    "start:socket": "node socket-server.js",
     "test:db": "node scripts/test-db.js"
   },
   "dependencies": {
@@ -13,16 +18,21 @@
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "dotenv": "^16.3.1",
+    "express": "^4.22.2",
     "google-trends-api": "^4.9.2",
     "jsonwebtoken": "^9.0.3",
     "mongodb-memory-server": "^11.1.0",
     "mongoose": "^8.0.0",
     "next": "14.0.4",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^6.9.16",
     "puppeteer": "^24.43.1",
     "react": "^18",
     "react-dom": "^18",
-    "slugify": "^1.6.9"
+    "slugify": "^1.6.9",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

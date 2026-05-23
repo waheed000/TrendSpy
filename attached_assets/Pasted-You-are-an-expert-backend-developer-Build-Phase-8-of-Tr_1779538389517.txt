@@ -1,0 +1,139 @@
+You are an expert backend developer. Build Phase 8 of TrendSpy backend with clean, professional, production-ready code.
+
+## Phase 8 Goal: Socket.io Real-time Updates
+
+Implement real-time WebSocket connections so frontend receives instant updates when new winning products are found or scores change.
+
+## Packages to Install:
+- socket.io
+- socket.io-client (for frontend, but backend only needs socket.io)
+
+## Note for Next.js:
+Next.js App Router doesn't work directly with socket.io on the same port. You have two options:
+
+**Option A (Recommended):** Create a separate Express server for socket.io on port 3002
+**Option B:** Use Next.js custom server (requires changes to start script)
+
+Implement Option A for simplicity and stability.
+
+## Files to Create:
+
+### 1. socket-server.js (in root directory)
+Create a standalone Express + Socket.io server:
+- Runs on port 3002 (or SOCKET_PORT env variable)
+- Listens for client connections
+- Handles authentication via JWT token from client
+- Emits events:
+  - `newWinningProduct` - when product reaches winScore >= 75
+  - `scoreUpdated` - when product score changes significantly
+  - `alertTriggered` - when user's personal alert fires
+- Stores connected users in memory: Map(socketId, { userId, socketId })
+
+Export functions:
+- `emitToUser(userId, event, data)` - send to specific user
+- `emitToAll(event, data)` - broadcast to all connected clients
+- `getConnectedUsers()` - returns count
+
+### 2. lib/socketEmitter.js
+Create a helper module that imports the socket server:
+- Functions to emit events from anywhere in the backend:
+  - `emitNewWinningProduct(product)`
+  - `emitScoreUpdate(product)`
+  - `emitAlertTriggered(userId, alert, product)`
+- These functions should be called from winScoreService and alertService
+
+### 3. services/winScoreService.js (UPDATE)
+Add socket emission after score update:
+- When a product's winScore crosses 75 for the first time, call `emitNewWinningProduct(product)`
+- When score changes by more than 10 points, call `emitScoreUpdate(product)`
+
+### 4. services/alertService.js (UPDATE)
+Add socket emission when alert is sent:
+- After sending WhatsApp/Email, call `emitAlertTriggered(userId, alert, product)`
+
+### 5. jobs/scoreJob.js (UPDATE)
+After updating all scores, emit a batch update event:
+- `emitScoreBatchUpdate({ count: updatedCount, newWinners: winnersList })`
+
+### 6. app/api/socket/token/route.js
+Create an endpoint that returns a temporary socket connection token:
+- Validates JWT from request
+- Returns a short-lived token (5 minutes) for socket authentication
+- This prevents exposing main JWT to WebSocket
+
+### 7. Update package.json scripts
+```json
+"scripts": {
+  "dev": "concurrently \"npm run dev:next\" \"npm run dev:socket\"",
+  "dev:next": "next dev -p 3001",
+  "dev:socket": "node socket-server.js",
+  "start": "concurrently \"npm run start:next\" \"npm run start:socket\"",
+  "start:next": "next start -p 3001",
+  "start:socket": "node socket-server.js"
+}
+Add concurrently as dev dependency.
+
+8. Environment Variables (.env.local)
+text
+SOCKET_PORT=3002
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3002
+Socket Events Documentation for Frontend:
+Event	Direction	Data	Description
+newWinningProduct	Server → Client	{ product }	New product with winScore >= 75
+scoreUpdated	Server → Client	{ productId, oldScore, newScore }	Product score changed significantly
+alertTriggered	Server → Client	{ alert, product }	User's personal alert was triggered
+connection	Client → Server	-	Client connects
+authenticate	Client → Server	{ token }	Client sends socket token
+subscribe	Client → Server	{ productIds[] }	Subscribe to specific product updates
+Authentication Flow:
+Client logs in via REST API, gets JWT
+
+Client calls GET /api/socket/token to get short-lived socket token
+
+Client connects to WebSocket with token
+
+Socket server verifies token and associates socket with userId
+
+Testing Checklist:
+Socket server starts on port 3002
+
+Client can connect and authenticate
+
+When scoreJob runs, all connected clients receive newWinningProduct
+
+When user's alert triggers, only that user receives alertTriggered
+
+Frontend can subscribe to specific products
+
+Directory Structure After Phase 8:
+text
+trendspy-backend/
+├── socket-server.js          (NEW)
+├── lib/
+│   ├── socketEmitter.js      (NEW)
+│   ├── db.js
+│   ├── scheduler.js
+│   └── ...
+├── services/
+│   ├── winScoreService.js    (UPDATED)
+│   ├── alertService.js       (UPDATED)
+│   └── ...
+├── jobs/
+│   ├── scoreJob.js           (UPDATED)
+│   └── ...
+├── app/
+│   └── api/
+│       └── socket/
+│           └── token/
+│               └── route.js  (NEW)
+└── ...
+Important Notes:
+Socket server runs independently on port 3002
+
+Use concurrently to run both Next.js and socket server
+
+In production, both services should be deployed together
+
+Memory store for connected users is fine for now (Redis optional for scaling)
+
+Now implement all of the above with clean, production-ready code.
