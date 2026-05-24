@@ -4,6 +4,29 @@
  */
 
 import Groq from 'groq-sdk';
+import { connectDB } from '../lib/db.js';
+import Supplier from '../models/Supplier.js';
+
+/**
+ * Query DB for suppliers relevant to a product category + city.
+ */
+export async function getSuppliersForProduct(productName, category, city = null) {
+  try {
+    await connectDB();
+    const filter = {};
+    if (category && category !== 'General') filter.category = category;
+    if (city) filter.city = city;
+    const suppliers = await Supplier.find(filter)
+      .sort({ verified: -1, rating: -1 })
+      .limit(3)
+      .select('name city phone website rating verified')
+      .lean();
+    return suppliers.map((s) => ({
+      name: s.name, city: s.city, phone: s.phone || null,
+      website: s.website || null, rating: s.rating || 0, verified: s.verified || false,
+    }));
+  } catch { return []; }
+}
 
 function getClient() {
   const key = process.env.GROQ_API_KEY;
@@ -79,7 +102,16 @@ Return a JSON object with this exact structure:
   "marketPotential": "High, Medium, or Low — followed by one sentence explanation"
 }`;
 
-  return callGroq(systemPrompt, userPrompt);
+  const aiResult = await callGroq(systemPrompt, userPrompt);
+
+  // Enrich with real DB suppliers (fails silently if DB unavailable)
+  const suppliers = await getSuppliersForProduct(
+    productName,
+    productData.category || null,
+    productData.cities?.[0] || null
+  );
+
+  return { ...aiResult, suppliers };
 }
 
 /**

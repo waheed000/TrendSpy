@@ -112,3 +112,14 @@ export async function emitScoreBatchUpdate(payload) {
     data:  payload,
   });
 }
+
+/**
+ * Broadcast to all clients that new ads have been detected.
+ * @param {{ count: number, categories: string[] }} payload
+ */
+export async function emitNewAdsDetected(payload) {
+  await emitInternal({
+    event: 'newAdsDetected',
+    data:  payload,
+  });
+}

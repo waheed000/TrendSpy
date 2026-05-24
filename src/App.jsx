@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Landing from './pages/Landing.jsx'
 import Login from './pages/Login.jsx'
+import Onboarding from './pages/Onboarding.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import ProductHunt from './pages/ProductHunt.jsx'
 import CityExplorer from './pages/CityExplorer.jsx'
@@ -37,6 +38,14 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute>
+              <Onboarding />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={

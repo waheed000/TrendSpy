@@ -1,0 +1,168 @@
+You are an expert full-stack developer. Add all missing features to TrendSpy, including a complete supplier discovery system. NO DUMMY DATA.
+
+## Phase 10 Goal: Missing Features + Supplier Discovery
+
+---
+
+## FEATURE 1: User Onboarding (First Time Login)
+
+### Backend: `app/api/user/onboarding/route.js` (POST)
+- Protected route
+- Body: { categories, city, platforms }
+- Save to User: onboardingCompleted, selectedCategories, selectedCity, selectedPlatforms
+
+### Backend: `app/api/user/onboarding/status/route.js` (GET)
+- Returns { needsOnboarding, userPreferences }
+
+### Frontend: `src/pages/Onboarding.jsx`
+- 3-step form (categories, city, platforms)
+- After submit, redirect to Dashboard
+
+### Update: `src/App.jsx` – add /onboarding route
+
+---
+
+## FEATURE 2: Supplier Discovery & Management System
+
+### Create MongoDB Model: `models/Supplier.js`
+```javascript
+{
+  name: String,
+  city: String,           // Lahore, Karachi, etc.
+  category: String,       // Electronics, Fashion, etc.
+  phone: String,
+  email: String,
+  website: String,
+  address: String,
+  products: [String],     // product categories they supply
+  rating: Number,
+  verified: Boolean,
+  sourceUrl: String,      // where we found them
+  createdAt: Date,
+  updatedAt: Date
+}
+Create Backend API: app/api/suppliers/route.js
+GET (public): Fetch suppliers by city, category, search
+
+POST (admin only): Add new supplier
+
+Create Backend API: app/api/suppliers/discover/route.js (POST - admin)
+Triggers a scraper to find suppliers from online directories
+
+Scrapes sources: tradekey.com.pk, pakistanimporters.com, zamindar.pk, facebook marketplace business pages
+
+Extracts: name, city, category, phone, website
+
+Saves new suppliers to database (avoid duplicates)
+
+Create Scraper: scrapers/supplierScraper.js
+Uses puppeteer + cheerio
+
+Searches: "wholesale suppliers Lahore", "electronic suppliers Karachi", etc.
+
+Extract and return supplier objects
+
+Runs via cron job every 7 days or manual trigger
+
+Update AI Report: services/groqService.js
+In analyzeProduct, call getSuppliersForProduct(productName, city)
+
+Query Supplier model for relevant suppliers (match category or product keywords)
+
+Return top 3 suppliers with phone/website
+
+Update AI Report Response to include:
+json
+{
+  "suppliers": [
+    {
+      "name": "Aventra Enterprises",
+      "city": "Lahore",
+      "phone": "+923235866445",
+      "website": "aventra.com.pk"
+    }
+  ]
+}
+Frontend: Update src/components/AIReportModal.jsx
+Display supplier list with phone (click to call) and website link
+
+FEATURE 3: Win Score Breakdown Visual (Progress Bars)
+Frontend: src/components/ScoreBreakdown.jsx
+Show 7 signals with progress bars (Daraz, Google Trends, FB Ads, Social, OLX, Alibaba, Seasonal)
+
+Total score at top
+
+Backend: Ensure GET /api/products/[slug] returns all score fields
+FEATURE 4: Ad Spy Real-time Refresh
+Backend: app/api/ads/route.js – add lastFetch query param
+Frontend: src/hooks/useAdsRealtime.js – listen to newAdsDetected socket event
+Socket server: emit newAdsDetected when fbAdsJob finds new ads
+FEATURE 5: Complete Profile Section (Edit Profile)
+Backend: app/api/user/profile/route.js (GET, PUT)
+Update: name, phoneNumber, city, selectedCategories, selectedPlatforms, emailNotifications, whatsappNotifications, dailyDigest, digestTime
+
+Backend: app/api/user/password/route.js (PUT)
+Change password (old + new)
+
+Backend: app/api/user/account/route.js (DELETE)
+Delete account and all associated data
+
+Frontend: src/pages/Profile.jsx
+Full form with all fields (name, email read-only, phone, city, categories multi-select, platforms multi-select, notification toggles, digest time picker)
+
+Change password modal
+
+Delete account button with confirmation
+
+Frontend: Update src/store/useStore.js
+Add user profile update actions
+
+FEATURE 6: Alert History
+Backend: models/AlertLog.js
+javascript
+{
+  userId: ObjectId,
+  alertId: ObjectId,
+  productId: ObjectId,
+  productName: String,
+  winScore: Number,
+  channel: String,  // email/whatsapp/both
+  sentAt: Date,
+  delivered: Boolean
+}
+Backend: app/api/user/alerts/history/route.js (GET)
+Returns paginated alert history for authenticated user
+
+Frontend: src/pages/Profile.jsx – add "Alert History" tab
+Table with product name, score, date, status
+
+Environment Variables (.env.local)
+text
+SUPPLIER_SCRAPER_ENABLED=true
+ADMIN_API_KEY=your_secret_admin_key_for_supplier_discovery
+Packages to Install (if not already)
+Already installed: nodemailer, groq-sdk, fits-api, playwright, puppeteer, cheerio
+
+Testing Checklist:
+New user sees onboarding page after signup
+
+Profile edit saves all fields correctly
+
+AI report shows real supplier contacts (phone, website) from database
+
+Admin can trigger supplier discovery via API
+
+Score breakdown shows progress bars on product click
+
+Ad Spy auto-refreshes when new ads found
+
+Alert history shows past alerts
+
+Important Notes:
+Supplier discovery scraper must respect robots.txt and add delays
+
+Profile phone number must validate Pakistan format: +923XXXXXXXXX
+
+All new APIs must be protected with JWT except public supplier search
+
+Now implement all of the above with clean, production-ready code. NO DUMMY DATA.

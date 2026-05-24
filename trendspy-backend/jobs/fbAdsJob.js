@@ -6,6 +6,7 @@
 
 import cron from 'node-cron';
 import fbAdsScraper from '../scrapers/fbAdsScraper.js';
+import { emitNewAdsDetected } from '../lib/socketEmitter.js';
 
 const SCHEDULE = '0 */12 * * *'; // Every 12 hours
 
@@ -18,6 +19,10 @@ async function runFbAdsJob() {
     console.log(
       `[${new Date().toISOString()}] [FbAdsJob] Done. Ads found: ${ads.length}, Saved: ${saved}`
     );
+    if (saved > 0) {
+      const categories = [...new Set(ads.map((a) => a.category).filter(Boolean))];
+      emitNewAdsDetected({ count: saved, categories }).catch(() => {});
+    }
   } catch (err) {
     console.error(`[${new Date().toISOString()}] [FbAdsJob] FAILED: ${err.message}`);
   }

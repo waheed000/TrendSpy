@@ -1,45 +1,99 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { FiEye, FiImage, FiVideo, FiLayout, FiSliders } from 'react-icons/fi'
-import { fetchAds } from '../api/alerts.js'
+import { useState, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { FiEye, FiImage, FiVideo, FiLayout, FiSliders, FiRefreshCw, FiWifi } from 'react-icons/fi'
 import { CITIES, CATEGORIES } from '../utils/cityList.js'
+import { useAdsRealtime } from '../hooks/useAdsRealtime.js'
+import useStore from '../store/useStore.js'
 
 const CREATIVE_ICONS = {
-  image: FiImage,
-  video: FiVideo,
+  image:    FiImage,
+  video:    FiVideo,
   carousel: FiLayout,
 }
 
 const SPEND_COLORS = {
-  Low: 'bg-blue-500/20 text-blue-400',
-  Medium: 'bg-yellow-500/20 text-yellow-400',
-  High: 'bg-orange-500/20 text-orange-400',
+  Low:       'bg-blue-500/20 text-blue-400',
+  Medium:    'bg-yellow-500/20 text-yellow-400',
+  High:      'bg-orange-500/20 text-orange-400',
   'Very High': 'bg-red-500/20 text-red-400',
 }
 
+async function fetchAdsFromAPI(filters) {
+  const params = new URLSearchParams()
+  if (filters.category && filters.category !== 'All') params.set('category', filters.category)
+  if (filters.city     && filters.city     !== 'All') params.set('city',     filters.city)
+  if (filters.creative && filters.creative !== 'All') params.set('creative', filters.creative)
+  if (filters.minDuration > 0) params.set('minDuration', filters.minDuration)
+  params.set('limit', '30')
+
+  const res  = await fetch(`/api/ads?${params}`)
+  const data = await res.json()
+  if (!data.success) throw new Error(data.error || 'Failed to fetch ads')
+  return data.data.ads
+}
+
 export default function AdSpy() {
+  const user = useStore((s) => s.user)
+  const queryClient = useQueryClient()
   const [filters, setFilters] = useState({
-    category: 'All',
-    city: 'All',
-    creative: 'All',
+    category:    'All',
+    city:        'All',
+    creative:    'All',
     minDuration: 0,
   })
   const [durationInput, setDurationInput] = useState(0)
+  const [isLive, setIsLive] = useState(false)
 
-  const { data: ads, isLoading } = useQuery({
+  useAdsRealtime()
+
+  const { data: ads = [], isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['ads', filters],
-    queryFn: () => fetchAds(filters),
+    queryFn:  () => fetchAdsFromAPI(filters),
+    staleTime: 60_000,
+    retry: 1,
+    onSuccess: () => setIsLive(true),
+    onError: () => setIsLive(false),
   })
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['ads'] })
+  }, [queryClient])
 
   const updateFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val }))
 
+  const lastUpdated = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit' })
+    : null
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="section-title">Ad Spy</h1>
-        <p className="section-subtitle">Facebook ads running 30+ days for Pakistani products</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="section-title">Ad Spy</h1>
+          <p className="section-subtitle">Facebook ads running 30+ days for Pakistani products</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <span className="text-xs text-gray-600">Updated {lastUpdated}</span>
+          )}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs ${
+            isLive ? 'bg-green-500/15 text-green-400' : 'bg-white/5 text-gray-500'
+          }`}>
+            <FiWifi size={11} />
+            {isLive ? 'Live' : 'Offline'}
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="p-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-lg transition-all disabled:opacity-50"
+            title="Refresh ads"
+          >
+            <FiRefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
+      {/* Filters */}
       <div className="glass-card p-4 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <FiSliders className="text-primary-400" size={16} />
@@ -69,7 +123,9 @@ export default function AdSpy() {
             className="select-field text-sm py-2 w-auto min-w-32"
           >
             {['All', 'image', 'video', 'carousel'].map((c) => (
-              <option key={c} value={c}>{c === 'All' ? 'All Formats' : c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              <option key={c} value={c}>
+                {c === 'All' ? 'All Formats' : c.charAt(0).toUpperCase() + c.slice(1)}
+              </option>
             ))}
           </select>
           <div className="flex items-center gap-2">
@@ -90,6 +146,7 @@ export default function AdSpy() {
         </div>
       </div>
 
+      {/* Results */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -100,21 +157,29 @@ export default function AdSpy() {
             </div>
           ))}
         </div>
+      ) : ads.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-4xl mb-3">📋</p>
+          <p className="text-white font-medium mb-1">No ads found</p>
+          <p className="text-gray-500 text-sm">
+            Adjust your filters or wait for the next scrape cycle (every 12 hours)
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {ads?.map((ad) => {
+          {ads.map((ad) => {
             const CreativeIcon = CREATIVE_ICONS[ad.creative] || FiEye
             return (
-              <div key={ad.id} className="glass-card-hover p-5 flex flex-col gap-3">
+              <div key={ad.id || ad.adId} className="glass-card-hover p-5 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-blue-600/20 border border-blue-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-blue-400 text-xs font-bold">f</span>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500">{ad.platform}</span>
+                      <span className="text-xs text-gray-500 capitalize">{ad.platform}</span>
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SPEND_COLORS[ad.spend]}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SPEND_COLORS[ad.spend] || SPEND_COLORS.Low}`}>
                           {ad.spend} spend
                         </span>
                       </div>
@@ -128,31 +193,27 @@ export default function AdSpy() {
                   <p className="text-xs text-gray-400 leading-relaxed line-clamp-2">{ad.description}</p>
                 </div>
 
+                {ad.advertiser && (
+                  <p className="text-xs text-gray-600 truncate">by {ad.advertiser}</p>
+                )}
+
                 <div className="flex items-center gap-3 pt-2 border-t border-white/5">
                   <div className="flex items-center gap-1.5 text-xs text-gray-500">
                     <CreativeIcon size={13} />
                     {ad.creative}
                   </div>
                   <span className="text-gray-700">·</span>
-                  <span className="text-xs text-gray-500">{ad.city}</span>
-                  <span className="text-gray-700">·</span>
-                  <span className="text-xs text-gray-500">{ad.category}</span>
-                  <div className="ml-auto flex items-center gap-1">
-                    <span className="text-xs text-red-400 font-semibold">{ad.competitors}</span>
-                    <span className="text-xs text-gray-600">competitors</span>
-                  </div>
+                  <span className="text-xs text-gray-500">{ad.city || 'PK'}</span>
+                  {ad.category && (
+                    <>
+                      <span className="text-gray-700">·</span>
+                      <span className="text-xs text-gray-500">{ad.category}</span>
+                    </>
+                  )}
                 </div>
               </div>
             )
           })}
-        </div>
-      )}
-
-      {!isLoading && ads?.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="text-white font-medium mb-1">No ads found</p>
-          <p className="text-gray-500 text-sm">Try adjusting your filters</p>
         </div>
       )}
     </div>

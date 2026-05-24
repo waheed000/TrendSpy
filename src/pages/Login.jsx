@@ -45,7 +45,21 @@ export default function Login() {
       const { user, token } = data.data
       setUser({ ...user, token })
       toast.success(`Welcome${isSignup ? '' : ' back'}, ${user.name || user.email.split('@')[0]}!`)
-      navigate('/dashboard')
+
+      if (isSignup) {
+        navigate('/onboarding')
+      } else {
+        // Check if returning user needs onboarding
+        try {
+          const statusRes = await fetch('/api/user/onboarding/status', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const statusData = await statusRes.json()
+          navigate(statusData.data?.needsOnboarding ? '/onboarding' : '/dashboard')
+        } catch {
+          navigate('/dashboard')
+        }
+      }
     } catch (err) {
       toast.error('Connection error. Is the backend running?')
       console.error('[Login]', err)
