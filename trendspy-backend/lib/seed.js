@@ -1,10 +1,28 @@
-import { Product, TrendScore } from '@/models/index';
+import { Product, TrendScore, ScrapedAd } from '@/models/index';
+
+async function seedAds() {
+  const adCount = await ScrapedAd.countDocuments();
+  if (adCount > 0) return;
+  await ScrapedAd.insertMany([
+    { adId: 'ad-001', headline: 'Stay Warm This Winter! Electric Heater 40% OFF', description: 'Premium portable heater with safety cutoff. Fast delivery across Pakistan.', creativeType: 'video', platform: 'facebook', spendLevel: 'high', daysRunning: 45, city: 'Lahore', category: 'Home', advertiserName: 'WarmHome PK', imageUrl: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=400', isActive: true },
+    { adId: 'ad-002', headline: 'Glow Skin in 7 Days - Whitening Serum Viral Results', description: 'Dermatologist tested. Free shipping on orders above PKR 1500.', creativeType: 'carousel', platform: 'facebook', spendLevel: 'high', daysRunning: 62, city: 'Karachi', category: 'Beauty', advertiserName: 'GlowUp Beauty', imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', isActive: true },
+    { adId: 'ad-003', headline: 'New Khaddar Collection 2024 - Limited Stock!', description: 'Unstitched & stitched available. COD available nationwide.', creativeType: 'image', platform: 'facebook', spendLevel: 'high', daysRunning: 38, city: 'Lahore', category: 'Fashion', advertiserName: 'Khaddar House', imageUrl: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400', isActive: true },
+    { adId: 'ad-004', headline: 'Smart Watch at PKR 2999 Only - Limited Offer', description: 'Heart rate, fitness tracker, waterproof. Limited time deal.', creativeType: 'video', platform: 'facebook', spendLevel: 'medium', daysRunning: 55, city: 'Karachi', category: 'Electronics', advertiserName: 'GadgetZone PK', imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', isActive: true },
+    { adId: 'ad-005', headline: 'Air Fryer - Cook Healthy with 0 Oil!', description: '5L capacity. 12 preset functions. Pakistan warranty.', creativeType: 'carousel', platform: 'facebook', spendLevel: 'medium', daysRunning: 31, city: 'Islamabad', category: 'Home', advertiserName: 'HomeChef PK', imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', isActive: true },
+    { adId: 'ad-006', headline: 'Kids Learning Tablet - Best Gift for Children', description: 'Educational apps, parental controls. Ages 3-12. Nationwide COD.', creativeType: 'image', platform: 'facebook', spendLevel: 'medium', daysRunning: 42, city: 'Faisalabad', category: 'Toys', advertiserName: 'KidsTech Store', imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', isActive: true },
+    { adId: 'ad-007', headline: 'Neck Massager - Instant Pain Relief', description: 'Electric pulse therapy. Works on neck, back, and shoulders.', creativeType: 'video', platform: 'facebook', spendLevel: 'high', daysRunning: 35, city: 'Multan', category: 'Home', advertiserName: 'HealthEase PK', imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400', isActive: true },
+    { adId: 'ad-008', headline: 'Premium Yoga Mat - Start Your Fitness Journey', description: 'Non-slip, 6mm thick. Available in 5 colors. Free delivery.', creativeType: 'image', platform: 'facebook', spendLevel: 'low', daysRunning: 28, city: 'Islamabad', category: 'Sports', advertiserName: 'FitLife PK', imageUrl: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400', isActive: true },
+  ]);
+  console.log('✅ Seeded ScrapedAds');
+}
 
 /**
  * Seed the database with realistic Pakistani e-commerce products.
  * This is a no-op if the products collection already has documents.
  */
 export async function seedIfEmpty() {
+  await seedAds();
+
   const count = await Product.countDocuments();
   if (count > 0) return;
 
@@ -192,7 +210,6 @@ export async function seedIfEmpty() {
       date.setDate(date.getDate() - d);
       date.setHours(0, 0, 0, 0);
 
-      // Simulate slight daily variation
       const jitter = Math.floor(Math.random() * 10) - 5;
       const dailyScore = Math.min(100, Math.max(0, baseScore + jitter));
       baseScore = dailyScore;

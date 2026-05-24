@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { FiBell, FiPlus, FiTrash2, FiMail, FiMessageCircle, FiClock, FiCheck } from 'react-icons/fi'
+import { FiBell, FiPlus, FiTrash2, FiMail, FiMessageCircle, FiClock, FiCheck, FiLock } from 'react-icons/fi'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
-import { fetchAlerts, fetchAlertHistory, createAlert, deleteAlert } from '../api/alerts.js'
+import { fetchAlerts, createAlert, deleteAlert } from '../api/alerts.js'
 import { CITIES, CATEGORIES } from '../utils/cityList.js'
 import { getScoreClasses } from '../utils/scoreColor.js'
 import useStore from '../store/useStore.js'
@@ -11,21 +11,31 @@ import useStore from '../store/useStore.js'
 export default function Alerts() {
   const queryClient = useQueryClient()
   const setAlertCount = useStore((s) => s.setAlertCount)
-  const [notifyVia, setNotifyVia] = useState('telegram')
+  const user = useStore((s) => s.user)
+  const alertHistory = useStore((s) => s.alertHistory)
+  const storeAlertHistory = useStore((s) => s.fetchAlertHistory)
+  const [notifyVia, setNotifyVia] = useState('email')
   const [digestEnabled, setDigestEnabled] = useState(true)
   const [digestTime, setDigestTime] = useState('08:00')
   const [form, setForm] = useState({ city: 'Lahore', category: 'Electronics', minScore: 75 })
 
-  const { data: alerts } = useQuery({ queryKey: ['alerts'], queryFn: fetchAlerts })
-  const { data: history } = useQuery({ queryKey: ['alert-history'], queryFn: fetchAlertHistory })
+  useEffect(() => {
+    if (user?.token) storeAlertHistory()
+  }, [user?.token])
+
+  const { data: alerts } = useQuery({
+    queryKey: ['alerts', user?.token],
+    queryFn: fetchAlerts,
+  })
 
   const createMutation = useMutation({
     mutationFn: createAlert,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
       toast.success('Alert created!')
-      setAlertCount(3)
+      if (alerts) setAlertCount(alerts.length + 1)
     },
+    onError: (err) => toast.error(err.message),
   })
 
   const deleteMutation = useMutation({
@@ -34,11 +44,30 @@ export default function Alerts() {
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
       toast.success('Alert deleted')
     },
+    onError: (err) => toast.error(err.message),
   })
 
   const handleCreate = (e) => {
     e.preventDefault()
     createMutation.mutate({ ...form, notifyVia })
+  }
+
+  if (!user) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="section-title">Alerts</h1>
+          <p className="section-subtitle">Get notified when products meet your criteria</p>
+        </div>
+        <div className="glass-card p-12 text-center">
+          <div className="w-16 h-16 bg-primary-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiLock className="text-primary-400" size={28} />
+          </div>
+          <h3 className="text-white font-semibold mb-2">Login Required</h3>
+          <p className="text-gray-500 text-sm">Sign in to create and manage product alerts.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -100,8 +129,8 @@ export default function Alerts() {
               <label className="text-xs text-gray-400 mb-2 block">Notify via</label>
               <div className="flex gap-2">
                 {[
-                  { id: 'telegram', icon: FiMessageCircle, label: 'Telegram' },
                   { id: 'email', icon: FiMail, label: 'Email' },
+                  { id: 'whatsapp', icon: FiMessageCircle, label: 'WhatsApp' },
                 ].map((n) => (
                   <button
                     key={n.id}
@@ -167,6 +196,9 @@ export default function Alerts() {
         <div className="space-y-4">
           <div className="glass-card p-5">
             <h3 className="text-sm font-semibold text-white mb-3">Active Alerts ({alerts?.length || 0})</h3>
+            {!alerts?.length && (
+              <p className="text-gray-500 text-sm text-center py-4">No alerts yet. Create your first one.</p>
+            )}
             <div className="space-y-3">
               {alerts?.map((alert) => (
                 <div key={alert.id} className="flex items-center gap-3 p-3 bg-white/3 rounded-xl border border-white/5">
@@ -195,24 +227,29 @@ export default function Alerts() {
               <FiBell className="text-accent-400" size={16} />
               <h3 className="text-sm font-semibold text-white">Alert History</h3>
             </div>
-            <div className="space-y-2.5">
-              {history?.map((h) => (
-                <div key={h.id} className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FiCheck className="text-green-400" size={12} />
+            {alertHistory.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">No alert history yet.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {alertHistory.map((h, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <FiCheck className="text-green-400" size={12} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white font-medium truncate">{h.productName || h.product}</p>
+                      <p className="text-xs text-gray-500">
+                        {h.channel || h.notifyVia || 'email'} · Score {h.winScore}
+                        {h.delivered === false && <span className="text-red-400 ml-1">· failed</span>}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-600 whitespace-nowrap">
+                      {formatDistanceToNow(new Date(h.sentAt || h.triggeredAt || Date.now()), { addSuffix: true })}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white font-medium truncate">{h.product}</p>
-                    <p className="text-xs text-gray-500">
-                      {h.city} · {h.category} · Score {h.winScore}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-600 whitespace-nowrap">
-                    {formatDistanceToNow(h.triggeredAt, { addSuffix: true })}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

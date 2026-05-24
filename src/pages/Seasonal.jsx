@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns'
 import ProductCard from '../components/ProductCard.jsx'
-import { MOCK_PRODUCTS } from '../api/products.js'
+import { fetchTopProducts } from '../api/products.js'
 import { FiChevronDown, FiChevronUp, FiCalendar, FiClock } from 'react-icons/fi'
 
 const SEASONS = [
@@ -12,8 +12,7 @@ const SEASONS = [
     date: new Date('2026-02-18'),
     color: 'from-primary-600/30 to-purple-900/20 border-primary-500/30',
     icon: '🌙',
-    products: [2, 11, 4],
-    lastYear: [2, 4, 11],
+    categories: ['Fashion', 'Beauty', 'Home'],
     description: 'Highest sales season. Demand spikes for food items, modest fashion, home decor.',
   },
   {
@@ -23,8 +22,7 @@ const SEASONS = [
     date: new Date('2026-03-20'),
     color: 'from-green-600/30 to-emerald-900/20 border-green-500/30',
     icon: '🎉',
-    products: [2, 7, 11],
-    lastYear: [2, 11, 7],
+    categories: ['Fashion', 'Beauty'],
     description: 'Fashion and gifting season. Khaddar, formal wear, cosmetics top sellers.',
   },
   {
@@ -34,8 +32,7 @@ const SEASONS = [
     date: new Date('2025-06-06'),
     color: 'from-yellow-600/30 to-orange-900/20 border-yellow-500/30',
     icon: '🐑',
-    products: [2, 6, 9],
-    lastYear: [2, 6, 9],
+    categories: ['Fashion', 'Home', 'Sports'],
     description: 'Big spending on meat, appliances, and modest fashion.',
   },
   {
@@ -45,8 +42,7 @@ const SEASONS = [
     date: new Date('2025-10-15'),
     color: 'from-pink-600/30 to-rose-900/20 border-pink-500/30',
     icon: '💍',
-    products: [11, 2, 4],
-    lastYear: [11, 4, 2],
+    categories: ['Fashion', 'Beauty', 'Home'],
     description: 'Oct–Dec, Feb–Apr. Jewelry, bridal suits, decor drive massive sales.',
   },
   {
@@ -56,8 +52,7 @@ const SEASONS = [
     date: new Date('2025-08-25'),
     color: 'from-blue-600/30 to-sky-900/20 border-blue-500/30',
     icon: '📚',
-    products: [10, 9, 5],
-    lastYear: [10, 9, 5],
+    categories: ['Electronics', 'Toys', 'Sports'],
     description: 'Aug–Sep. Bags, stationery, footwear, and electronics for students.',
   },
   {
@@ -67,8 +62,7 @@ const SEASONS = [
     date: new Date('2025-11-01'),
     color: 'from-cyan-600/30 to-blue-900/20 border-cyan-500/30',
     icon: '❄️',
-    products: [1, 7, 2],
-    lastYear: [1, 7, 2],
+    categories: ['Home', 'Fashion', 'Electronics'],
     description: 'Nov–Feb. Heaters, blankets, warm clothing dominate all platforms.',
   },
 ]
@@ -79,16 +73,17 @@ function useCountdown(targetDate) {
   useEffect(() => {
     const calc = () => {
       const now = new Date()
-      const total = Math.max(0, targetDate - now)
-      const days = Math.floor(total / (1000 * 60 * 60 * 24))
-      const hours = Math.floor((total % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-      const minutes = Math.floor((total % (1000 * 60 * 60)) / (1000 * 60))
-      const seconds = Math.floor((total % (1000 * 60)) / 1000)
-      setTimeLeft({ days, hours, minutes, seconds })
+      const future = targetDate > now ? targetDate : new Date(targetDate.setFullYear(now.getFullYear() + 1))
+      const totalSeconds = Math.max(0, Math.floor((future - now) / 1000))
+      const days = Math.floor(totalSeconds / 86400)
+      const hours = Math.floor((totalSeconds % 86400) / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
+      setTimeLeft({ days, hours, minutes, seconds, total: totalSeconds })
     }
     calc()
-    const t = setInterval(calc, 1000)
-    return () => clearInterval(t)
+    const id = setInterval(calc, 1000)
+    return () => clearInterval(id)
   }, [targetDate])
 
   return timeLeft
@@ -97,75 +92,72 @@ function useCountdown(targetDate) {
 function CountdownUnit({ value, label }) {
   return (
     <div className="text-center">
-      <div className="w-14 h-14 glass-card flex items-center justify-center text-2xl font-black text-white">
-        {String(value).padStart(2, '0')}
-      </div>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
+      <div className="text-2xl font-black text-white tabular-nums">{String(value).padStart(2, '0')}</div>
+      <div className="text-xs text-gray-500 uppercase tracking-wider">{label}</div>
     </div>
   )
 }
 
-function SeasonCard({ season }) {
-  const [expanded, setExpanded] = useState(false)
-  const daysLeft = differenceInDays(season.date, new Date())
-  const isSoon = daysLeft <= 30
-  const products = MOCK_PRODUCTS.filter((p) => season.products.includes(p.id))
-  const lastYearProducts = MOCK_PRODUCTS.filter((p) => season.lastYear.includes(p.id))
+function SeasonCard({ season, products, isExpanded, onToggle }) {
+  const countdown = useCountdown(season.date)
+  const seasonProducts = products.filter((p) => season.categories.includes(p.category)).slice(0, 3)
+
+  const isNear = countdown.total < 30 * 86400
 
   return (
-    <div className={`glass-card p-5 bg-gradient-to-br ${season.color}`}>
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{season.emoji}</span>
-          <div>
-            <h3 className="text-base font-bold text-white">{season.name}</h3>
-            <p className="text-xs text-gray-400">{season.description}</p>
+    <div className={`glass-card bg-gradient-to-br ${season.color} overflow-hidden`}>
+      <div
+        className="p-5 cursor-pointer"
+        onClick={onToggle}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">{season.emoji}</span>
+            <div>
+              <h3 className="text-base font-bold text-white">{season.name}</h3>
+              <p className="text-xs text-gray-400">{season.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {isNear && (
+              <span className="text-xs bg-accent-500/20 text-accent-400 border border-accent-500/30 px-2 py-0.5 rounded-full font-medium">
+                Coming Soon
+              </span>
+            )}
+            {isExpanded ? <FiChevronUp className="text-gray-400" size={16} /> : <FiChevronDown className="text-gray-400" size={16} />}
           </div>
         </div>
-        <div className="text-right flex-shrink-0 ml-3">
-          <p className="text-2xl font-black text-white">{daysLeft > 0 ? daysLeft : 0}</p>
-          <p className="text-xs text-gray-500">days away</p>
+
+        <div className="flex items-center gap-1 mt-4">
+          <FiClock className="text-gray-500" size={13} />
+          <span className="text-xs text-gray-500 mr-3">Countdown:</span>
+          <div className="flex items-center gap-3">
+            <CountdownUnit value={countdown.days} label="d" />
+            <span className="text-gray-600 font-bold">:</span>
+            <CountdownUnit value={countdown.hours} label="h" />
+            <span className="text-gray-600 font-bold">:</span>
+            <CountdownUnit value={countdown.minutes} label="m" />
+            <span className="text-gray-600 font-bold">:</span>
+            <CountdownUnit value={countdown.seconds} label="s" />
+          </div>
         </div>
       </div>
 
-      {isSoon && (
-        <div className="flex items-center gap-1.5 text-xs text-accent-400 mb-3">
-          <FiClock size={12} />
-          <span className="font-medium">Stock up now — {daysLeft} days to go!</span>
-        </div>
-      )}
-
-      <div className="mb-3">
-        <p className="text-xs text-gray-500 mb-2">Products to stock now:</p>
-        <div className="grid grid-cols-1 gap-2">
-          {products.slice(0, 2).map((p) => (
-            <div key={p.id} className="flex items-center justify-between py-1.5 px-3 bg-white/5 rounded-lg">
-              <span className="text-xs text-gray-300 truncate">{p.name}</span>
-              <span className={`text-xs font-bold ml-2 ${p.winScore >= 75 ? 'text-green-400' : p.winScore >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-                {p.winScore}
-              </span>
+      {isExpanded && (
+        <div className="px-5 pb-5 border-t border-white/10 pt-4">
+          <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
+            <FiCalendar size={12} />
+            Top products for this season
+          </p>
+          {seasonProducts.length === 0 ? (
+            <p className="text-gray-500 text-sm py-2">No products found for this season.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {seasonProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-white py-1.5 hover:bg-white/5 rounded-lg transition-all duration-200"
-      >
-        {expanded ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
-        {expanded ? 'Hide' : 'Show'} last year's winners
-      </button>
-
-      {expanded && (
-        <div className="mt-3 pt-3 border-t border-white/10">
-          <p className="text-xs text-gray-500 mb-2">Last year's top performers:</p>
-          {lastYearProducts.map((p) => (
-            <div key={p.id} className="flex items-center justify-between py-1 px-2 text-xs">
-              <span className="text-gray-400 truncate">{p.name}</span>
-              <span className="text-gray-500 ml-2">{p.priceMin.toLocaleString()} – {p.priceMax.toLocaleString()} PKR</span>
-            </div>
-          ))}
+          )}
         </div>
       )}
     </div>
@@ -173,57 +165,61 @@ function SeasonCard({ season }) {
 }
 
 export default function Seasonal() {
-  const nextSeason = SEASONS.filter((s) => s.date > new Date()).sort((a, b) => a.date - b.date)[0] || SEASONS[0]
-  const countdown = useCountdown(nextSeason.date)
+  const [expanded, setExpanded] = useState(null)
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchTopProducts(30)
+      .then(setProducts)
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const toggle = (id) => setExpanded((prev) => (prev === id ? null : id))
+
+  const nextSeason = [...SEASONS].sort((a, b) => {
+    const now = new Date()
+    const da = a.date > now ? a.date : new Date(a.date.getFullYear() + 1, a.date.getMonth(), a.date.getDate())
+    const db = b.date > now ? b.date : new Date(b.date.getFullYear() + 1, b.date.getMonth(), b.date.getDate())
+    return da - db
+  })[0]
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="section-title">Seasonal Planner</h1>
-        <p className="section-subtitle">Pakistan's e-commerce seasonal calendar & product recommendations</p>
+        <h1 className="section-title">Seasonal Calendar</h1>
+        <p className="section-subtitle">Plan ahead for Pakistan's biggest shopping seasons</p>
       </div>
 
-      <div className={`glass-card p-6 bg-gradient-to-br ${nextSeason.color}`}>
-        <div className="flex items-center gap-3 mb-5">
-          <span className="text-4xl">{nextSeason.emoji}</span>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Next Major Season</p>
-            <h2 className="text-2xl font-bold text-white">{nextSeason.name}</h2>
-            <p className="text-sm text-gray-400">{nextSeason.description}</p>
+      {nextSeason && (
+        <div className={`glass-card bg-gradient-to-br ${nextSeason.color} p-5`}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">{nextSeason.emoji}</span>
+            <span className="text-xs font-medium text-primary-400 uppercase tracking-wider">Next Major Season</span>
           </div>
+          <h2 className="text-xl font-bold text-white">{nextSeason.name}</h2>
+          <p className="text-sm text-gray-400">{nextSeason.description}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <CountdownUnit value={countdown.days || 0} label="Days" />
-          <span className="text-white text-2xl font-bold mb-4">:</span>
-          <CountdownUnit value={countdown.hours || 0} label="Hours" />
-          <span className="text-white text-2xl font-bold mb-4">:</span>
-          <CountdownUnit value={countdown.minutes || 0} label="Mins" />
-          <span className="text-white text-2xl font-bold mb-4">:</span>
-          <CountdownUnit value={countdown.seconds || 0} label="Secs" />
-        </div>
-      </div>
+      )}
 
-      <div>
-        <h3 className="text-base font-semibold text-white mb-4">
-          Pre-Season Products to Stock Now
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {MOCK_PRODUCTS.filter((p) => nextSeason.products.includes(p.id)).map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      </div>
-
-      <div>
-        <h3 className="text-base font-semibold text-white mb-4">
-          Pakistan Seasonal Calendar
-        </h3>
-        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      ) : (
+        <div className="space-y-4">
           {SEASONS.map((season) => (
-            <SeasonCard key={season.id} season={season} />
+            <SeasonCard
+              key={season.id}
+              season={season}
+              products={products}
+              isExpanded={expanded === season.id}
+              onToggle={() => toggle(season.id)}
+            />
           ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -9,5 +9,8 @@ export async function register() {
 
     const { startAllJobs } = await import('./lib/scheduler.js');
     startAllJobs();
+
+    const { seedIfEmpty } = await import('./lib/seed.js');
+    await seedIfEmpty();
   }
 }

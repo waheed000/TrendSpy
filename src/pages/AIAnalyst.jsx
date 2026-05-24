@@ -1,81 +1,14 @@
 import { useState } from 'react'
-import { FiSearch, FiCpu, FiDollarSign, FiTarget, FiUsers, FiStar, FiLoader } from 'react-icons/fi'
+import { FiSearch, FiCpu, FiDollarSign, FiTarget, FiUsers, FiStar, FiAlertTriangle, FiLock } from 'react-icons/fi'
 import { formatPKR } from '../utils/formatPKR.js'
-
-const MOCK_REPORTS = {
-  heater: {
-    product: 'Portable Electric Heater',
-    score: 92,
-    buyPrice: 1800,
-    sellPrice: 4200,
-    platforms: [
-      { name: 'Daraz', score: 94, reason: 'High winter demand, free shipping' },
-      { name: 'TikTok', score: 78, reason: 'Viral potential with demo videos' },
-      { name: 'OLX', score: 52, reason: 'Local buyers, lower margins' },
-    ],
-    competitors: 12,
-    adCopyEN: '"Stay warm without breaking the bank! Portable electric heater — instant heat, 50% less electricity. Limited stock. Order now & get FREE delivery across Pakistan!"',
-    adCopyUR: '"سردی سے بچیں، بجلی بچائیں! پورٹیبل الیکٹرک ہیٹر — فوری گرمی، کم بجلی۔ محدود اسٹاک۔ ابھی آرڈر کریں اور پاکستان بھر میں مفت ڈیلیوری پائیں!"',
-    summary: 'Strong seasonal product. Winter demand surges Nov–Feb. High repeat purchase rate. Low return rate for this category.',
-  },
-  watch: {
-    product: 'Smart Watch Series 9 Clone',
-    score: 85,
-    buyPrice: 950,
-    sellPrice: 2800,
-    platforms: [
-      { name: 'Daraz', score: 90, reason: 'Highest buyer trust for electronics' },
-      { name: 'OLX', score: 72, reason: 'Tech-savvy buyers, good for refurbs' },
-      { name: 'TikTok', score: 81, reason: 'Unboxing content performs well' },
-    ],
-    competitors: 28,
-    adCopyEN: '"Look smart, pay less! Series 9 Smart Watch at PKR 1999. Heart rate, sleep tracker, 36hr battery. Free delivery. Grab yours before it sells out!"',
-    adCopyUR: '"سمارٹ لگیں، کم خرچ کریں! سیریز 9 سمارٹ واچ صرف 1999 روپے میں۔ ہارٹ ریٹ، سلیپ ٹریکر، 36 گھنٹے بیٹری۔ مفت ڈیلیوری۔ ابھی آرڈر کریں!"',
-    summary: 'Highly competitive but profitable. Differentiate with bundle offers (extra straps). Avoid direct comparison with Apple — focus on value.',
-  },
-  serum: {
-    product: 'Skin Whitening Serum',
-    score: 82,
-    buyPrice: 350,
-    sellPrice: 1200,
-    platforms: [
-      { name: 'TikTok', score: 96, reason: 'Beauty content dominates TikTok PK' },
-      { name: 'Daraz', score: 85, reason: 'High review volume boosts trust' },
-      { name: 'OLX', score: 40, reason: 'Not ideal for beauty products' },
-    ],
-    competitors: 56,
-    adCopyEN: '"Visible glow in 7 days — guaranteed! Dermatologist tested serum with Vitamin C & Niacinamide. 2500+ happy customers. Buy 2 get 1 FREE today!"',
-    adCopyUR: '"7 دنوں میں نمایاں نکھار — گارنٹی! وٹامن سی اور نیاسینامائیڈ کے ساتھ ڈرماٹولوجسٹ ٹیسٹڈ سیرم۔ 2500+ خوش گاہک۔ 2 خریدیں، 1 مفت پائیں!"',
-    summary: 'Very high competition. Success depends on social proof — collect video testimonials. TikTok is essential channel. Before/after content converts best.',
-  },
-}
-
-function getReport(query) {
-  const q = query.toLowerCase()
-  if (q.includes('heater') || q.includes('warm') || q.includes('winter')) return MOCK_REPORTS.heater
-  if (q.includes('watch') || q.includes('smart') || q.includes('wrist')) return MOCK_REPORTS.watch
-  if (q.includes('serum') || q.includes('skin') || q.includes('beauty') || q.includes('glow')) return MOCK_REPORTS.serum
-  return {
-    product: query.charAt(0).toUpperCase() + query.slice(1),
-    score: Math.floor(Math.random() * 40 + 50),
-    buyPrice: Math.floor(Math.random() * 1000 + 500),
-    sellPrice: Math.floor(Math.random() * 2000 + 1500),
-    platforms: [
-      { name: 'Daraz', score: Math.floor(Math.random() * 30 + 60), reason: 'Largest Pakistani e-commerce platform' },
-      { name: 'TikTok', score: Math.floor(Math.random() * 30 + 50), reason: 'Growing market for trending products' },
-      { name: 'OLX', score: Math.floor(Math.random() * 30 + 40), reason: 'Strong for local buyer connections' },
-    ],
-    competitors: Math.floor(Math.random() * 30 + 5),
-    adCopyEN: `"Discover the best ${query} in Pakistan! Top quality at unbeatable price. Fast delivery nationwide. Order now!"`,
-    adCopyUR: `"پاکستان میں بہترین ${query} دریافت کریں! اعلیٰ معیار، بہترین قیمت۔ پورے پاکستان میں تیز ترسیل۔ ابھی آرڈر کریں!"`,
-    summary: 'Analysis based on current market trends in Pakistan. Review competition regularly and adjust pricing strategy.',
-  }
-}
+import useStore from '../store/useStore.js'
 
 export default function AIAnalyst() {
+  const user = useStore((s) => s.user)
   const [query, setQuery] = useState('')
   const [report, setReport] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [buyPrice, setBuyPrice] = useState(0)
   const [sellPrice, setSellPrice] = useState(0)
 
@@ -83,15 +16,56 @@ export default function AIAnalyst() {
     e?.preventDefault()
     if (!query.trim()) return
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 1200))
-    const r = getReport(query)
-    setReport(r)
-    setBuyPrice(r.buyPrice)
-    setSellPrice(r.sellPrice)
-    setIsLoading(false)
+    setError(null)
+    setReport(null)
+
+    try {
+      const res = await fetch('/api/ai/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user?.token}`,
+        },
+        body: JSON.stringify({ productName: query.trim() }),
+      })
+
+      const data = await res.json()
+
+      if (!data.success) {
+        setError(data.error || 'Analysis failed')
+        return
+      }
+
+      const r = data.data.analysis
+      setReport({ ...r, product: data.data.productName })
+      setBuyPrice(r.buyPrice || 0)
+      setSellPrice(r.sellPrice || 0)
+    } catch (err) {
+      setError('Failed to connect to AI service. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const margin = sellPrice > 0 ? Math.round(((sellPrice - buyPrice) / sellPrice) * 100) : 0
+
+  if (!user) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="section-title">AI Analyst</h1>
+          <p className="section-subtitle">Get deep AI-powered analysis for any product</p>
+        </div>
+        <div className="glass-card p-12 text-center">
+          <div className="w-16 h-16 bg-primary-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiLock className="text-primary-400" size={28} />
+          </div>
+          <h3 className="text-white font-semibold mb-2">Login Required</h3>
+          <p className="text-gray-500 text-sm">Sign in to access AI-powered product analysis.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -107,7 +81,7 @@ export default function AIAnalyst() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder='Try "heater", "smart watch", "skin serum"...'
+            placeholder='Try "electric heater", "smart watch", "skin serum"...'
             className="input-field pl-12 py-3.5"
           />
         </div>
@@ -129,9 +103,24 @@ export default function AIAnalyst() {
 
       {isLoading && (
         <div className="glass-card p-8 text-center">
-          <div className="w-12 h-12 border-3 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white font-medium mb-1">Analyzing product...</p>
           <p className="text-gray-500 text-sm">Scanning Daraz, OLX & TikTok · Running AI model</p>
+        </div>
+      )}
+
+      {error && !isLoading && (
+        <div className="glass-card p-5 flex items-start gap-3 border-red-500/20 bg-red-500/5">
+          <FiAlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />
+          <div>
+            <p className="text-sm font-medium text-white mb-1">Analysis Unavailable</p>
+            <p className="text-xs text-gray-400">{error}</p>
+            {error.includes('GROQ_API_KEY') && (
+              <p className="text-xs text-gray-500 mt-1">
+                Configure GROQ_API_KEY in the backend environment to enable AI analysis.
+              </p>
+            )}
+          </div>
         </div>
       )}
 
@@ -185,7 +174,7 @@ export default function AIAnalyst() {
                 <h3 className="text-sm font-semibold text-white">Platform Recommendation</h3>
               </div>
               <div className="space-y-3">
-                {report.platforms.map((p, i) => (
+                {(report.platforms || []).map((p, i) => (
                   <div key={p.name}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-white">{p.name}</span>
@@ -207,40 +196,48 @@ export default function AIAnalyst() {
             </div>
           </div>
 
-          <div className="glass-card p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <FiStar className="text-yellow-400" size={16} />
-              <h3 className="text-sm font-semibold text-white">Ad Copy Suggestions</h3>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-white/5 rounded-xl p-4">
-                <p className="text-xs text-primary-400 font-medium uppercase tracking-wider mb-2">English</p>
-                <p className="text-sm text-gray-200 leading-relaxed">{report.adCopyEN}</p>
+          {(report.adCopyEN || report.adCopyUR) && (
+            <div className="glass-card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <FiStar className="text-yellow-400" size={16} />
+                <h3 className="text-sm font-semibold text-white">Ad Copy Suggestions</h3>
               </div>
-              <div className="bg-white/5 rounded-xl p-4">
-                <p className="text-xs text-accent-400 font-medium uppercase tracking-wider mb-2">Urdu</p>
-                <p className="text-sm text-gray-200 leading-relaxed" dir="rtl">{report.adCopyUR}</p>
+              <div className="grid md:grid-cols-2 gap-4">
+                {report.adCopyEN && (
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <p className="text-xs text-primary-400 font-medium uppercase tracking-wider mb-2">English</p>
+                    <p className="text-sm text-gray-200 leading-relaxed">{report.adCopyEN}</p>
+                  </div>
+                )}
+                {report.adCopyUR && (
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <p className="text-xs text-accent-400 font-medium uppercase tracking-wider mb-2">Urdu</p>
+                    <p className="text-sm text-gray-200 leading-relaxed" dir="rtl">{report.adCopyUR}</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
 
-          <div className={`glass-card p-4 flex items-center gap-3 ${report.competitors > 20 ? 'border-red-500/20 bg-red-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}`}>
-            <FiUsers className={report.competitors > 20 ? 'text-red-400' : 'text-yellow-400'} size={20} />
-            <div>
-              <p className="text-sm font-medium text-white">{report.competitors} active competitors selling this product</p>
-              <p className="text-xs text-gray-400">
-                {report.competitors > 30
-                  ? 'Very high competition — differentiate strongly on price, speed, or quality'
-                  : report.competitors > 15
-                  ? 'Moderate competition — focus on ad creative and customer reviews'
-                  : 'Low competition — great opportunity to establish market position'}
-              </p>
+          {report.competitors != null && (
+            <div className={`glass-card p-4 flex items-center gap-3 ${report.competitors > 20 ? 'border-red-500/20 bg-red-500/5' : 'border-yellow-500/20 bg-yellow-500/5'}`}>
+              <FiUsers className={report.competitors > 20 ? 'text-red-400' : 'text-yellow-400'} size={20} />
+              <div>
+                <p className="text-sm font-medium text-white">{report.competitors} active competitors selling this product</p>
+                <p className="text-xs text-gray-400">
+                  {report.competitors > 30
+                    ? 'Very high competition — differentiate strongly on price, speed, or quality'
+                    : report.competitors > 15
+                    ? 'Moderate competition — focus on ad creative and customer reviews'
+                    : 'Low competition — great opportunity to establish market position'}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
-      {!report && !isLoading && (
+      {!report && !isLoading && !error && (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-primary-600/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <FiCpu className="text-primary-400" size={28} />

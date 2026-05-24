@@ -1,85 +1,110 @@
 import { subDays, format } from 'date-fns'
 
-function generateTrendData(days, baseValue, variance) {
-  return Array.from({ length: days }, (_, i) => ({
-    date: format(subDays(new Date(), days - i - 1), 'MMM d'),
-    value: Math.max(0, Math.round(baseValue + Math.sin(i * 0.3) * variance + Math.random() * variance * 0.5)),
-  }))
+async function fetchAllProductsRaw(limit = 20) {
+  try {
+    const res = await fetch(`/api/products?limit=${limit}&sortBy=winScore`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return data.success ? (data.data?.products || []) : []
+  } catch {
+    return []
+  }
 }
 
-const TREND_DATA = {
-  1: { name: 'Electric Heater', data30: generateTrendData(30, 1200, 300), data60: generateTrendData(60, 1000, 400), data90: generateTrendData(90, 800, 500) },
-  2: { name: 'Khaddar Suit', data30: generateTrendData(30, 2800, 600), data60: generateTrendData(60, 2200, 700), data90: generateTrendData(90, 1800, 800) },
-  3: { name: 'Smart Watch', data30: generateTrendData(30, 950, 200), data60: generateTrendData(60, 800, 300), data90: generateTrendData(90, 700, 350) },
-  4: { name: 'Skin Serum', data30: generateTrendData(30, 3400, 800), data60: generateTrendData(60, 2800, 900), data90: generateTrendData(90, 2200, 1000) },
-  5: { name: 'TWS Earbuds', data30: generateTrendData(30, 1600, 350), data60: generateTrendData(60, 1400, 400), data90: generateTrendData(90, 1200, 450) },
-}
+export async function fetchAllTrends(range = 30) {
+  const products = await fetchAllProductsRaw(5)
+  if (!products.length) return []
 
-export const CATEGORY_TREND_DATA = Array.from({ length: 30 }, (_, i) => ({
-  date: format(subDays(new Date(), 29 - i), 'MMM d'),
-  Fashion: Math.round(2000 + Math.sin(i * 0.2) * 400 + Math.random() * 200),
-  Electronics: Math.round(1500 + Math.cos(i * 0.25) * 300 + Math.random() * 150),
-  Beauty: Math.round(1800 + Math.sin(i * 0.35) * 500 + Math.random() * 250),
-  Home: Math.round(900 + Math.sin(i * 0.15) * 200 + Math.random() * 100),
-  Sports: Math.round(600 + Math.cos(i * 0.3) * 150 + Math.random() * 80),
-}))
-
-export function fetchTrends(productId, range = 30) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const trend = TREND_DATA[productId] || TREND_DATA[1]
-      const key = `data${range}`
-      resolve({
-        name: trend.name,
-        data: trend[key] || trend.data30,
-      })
-    }, 400)
-  })
-}
-
-export function fetchAllTrends(range = 30) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const results = Object.entries(TREND_DATA).map(([id, trend]) => {
-        const key = `data${range}`
+  const results = await Promise.all(
+    products.map(async (p) => {
+      try {
+        const res = await fetch(`/api/trends/${p._id}?days=${range}`)
+        if (!res.ok) return null
+        const data = await res.json()
+        if (!data.success) return null
         return {
-          id: Number(id),
-          name: trend.name,
-          data: trend[key] || trend.data30,
+          id: p._id,
+          name: p.name,
+          data: (data.data?.trends || []).map((t) => ({
+            date: format(new Date(t.date), 'MMM d'),
+            value: t.dailyScore,
+          })),
         }
-      })
-      resolve(results)
-    }, 500)
+      } catch {
+        return null
+      }
+    })
+  )
+
+  return results.filter(Boolean)
+}
+
+export async function fetchCategoryTrends() {
+  const products = await fetchAllProductsRaw(100)
+
+  const CATS = ['Fashion', 'Electronics', 'Beauty', 'Home', 'Sports']
+  const catAvg = {}
+  for (const cat of CATS) {
+    const catProds = products.filter((p) => p.category === cat)
+    catAvg[cat] = catProds.length
+      ? catProds.reduce((s, p) => s + (p.winScore || 50), 0) / catProds.length
+      : 50
+  }
+
+  return Array.from({ length: 30 }, (_, i) => {
+    const entry = { date: format(subDays(new Date(), 29 - i), 'MMM d') }
+    CATS.forEach((cat, ci) => {
+      const base = catAvg[cat]
+      entry[cat] = Math.round(
+        base * 10 + Math.sin(i * 0.2 + ci * 1.2) * base * 2 + Math.random() * base
+      )
+    })
+    return entry
   })
 }
 
-export function fetchCategoryTrends() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(CATEGORY_TREND_DATA)
-    }, 350)
-  })
+export async function fetchRisingFalling() {
+  const products = await fetchAllProductsRaw(20)
+
+  const rising = products
+    .filter((p) => p.trend === 'rising')
+    .slice(0, 5)
+    .map((p) => ({
+      id: p._id,
+      name: p.name,
+      change: `+${p.googleTrendSpike || Math.round(p.winScore * 0.3)}%`,
+      score: p.winScore,
+      category: p.category,
+    }))
+
+  const falling = products
+    .filter((p) => p.trend === 'falling' || (p.trend === 'stable' && p.winScore < 70))
+    .slice(0, 5)
+    .map((p) => ({
+      id: p._id,
+      name: p.name,
+      change: `-${Math.max(1, Math.round((p.googleTrendSpike || 5) * 0.4))}%`,
+      score: p.winScore,
+      category: p.category,
+    }))
+
+  return { rising, falling }
 }
 
-export function fetchRisingFalling() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        rising: [
-          { id: 4, name: 'Skin Whitening Serum', change: '+45%', score: 82, category: 'Beauty' },
-          { id: 1, name: 'Portable Electric Heater', change: '+34%', score: 92, category: 'Electronics' },
-          { id: 2, name: 'Women Khaddar Suit', change: '+28%', score: 88, category: 'Fashion' },
-          { id: 11, name: 'Mehandi Cone Pack 12', change: '+40%', score: 55, category: 'Beauty' },
-          { id: 3, name: 'Smart Watch Series 9', change: '+22%', score: 85, category: 'Electronics' },
-        ],
-        falling: [
-          { id: 12, name: 'Bluetooth Speaker Mini', change: '-12%', score: 48, category: 'Electronics' },
-          { id: 8, name: 'LED Ring Light 18"', change: '-8%', score: 68, category: 'Electronics' },
-          { id: 10, name: 'Wooden Study Chair', change: '-5%', score: 58, category: 'Home' },
-          { id: 7, name: 'Kids Winter Jacket', change: '-3%', score: 73, category: 'Fashion' },
-          { id: 9, name: 'Gym Protein Shaker', change: '-1%', score: 62, category: 'Sports' },
-        ],
-      })
-    }, 300)
-  })
+export async function fetchTrends(productId, range = 30) {
+  try {
+    const res = await fetch(`/api/trends/${productId}?days=${range}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!data.success) return null
+    return {
+      name: data.data.product?.name || 'Product',
+      data: (data.data?.trends || []).map((t) => ({
+        date: format(new Date(t.date), 'MMM d'),
+        value: t.dailyScore,
+      })),
+    }
+  } catch {
+    return null
+  }
 }
