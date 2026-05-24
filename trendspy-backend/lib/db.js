@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
+let mongod = null;
 let cached = global.mongoose;
 
 if (!cached) {
@@ -9,35 +9,54 @@ if (!cached) {
 }
 
 export async function connectDB() {
-  if (cached.conn) {
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
 
-  if (!MONGODB_URI || MONGODB_URI.includes('localhost')) {
-    console.log('⚠️ No production MongoDB URI, using in-memory database');
-    const { connectMemoryDB } = await import('./memoryDb.js');
-    cached.conn = await connectMemoryDB();
+  const hasProdUri =
+    process.env.MONGODB_URI &&
+    !process.env.MONGODB_URI.includes('localhost') &&
+    process.env.MONGODB_URI !== 'mongodb://localhost:27017/trendspy';
+
+  if (hasProdUri) {
+    if (!cached.promise) {
+      const opts = {
+        dbName: process.env.DB_NAME || 'trendspy',
+        bufferCommands: false,
+      };
+      cached.promise = mongoose
+        .connect(process.env.MONGODB_URI, opts)
+        .then((m) => {
+          console.log('✅ MongoDB Atlas connected');
+          return m;
+        })
+        .catch((err) => {
+          console.error('❌ MongoDB connection error:', err);
+          throw err;
+        });
+    }
+    cached.conn = await cached.promise;
     return cached.conn;
   }
 
-  if (!cached.promise) {
-    const opts = {
-      dbName: process.env.DB_NAME || 'trendspy',
-      bufferCommands: false,
-    };
+  console.log('⚠️ Using in-memory MongoDB (data resets on restart)');
 
-    cached.promise = mongoose
-      .connect(MONGODB_URI, opts)
-      .then((mongoose) => {
-        console.log('✅ MongoDB connected successfully');
-        return mongoose;
-      })
-      .catch((err) => {
-        console.error('❌ MongoDB connection error:', err);
-        throw err;
-      });
+  if (!mongod) {
+    mongod = await MongoMemoryServer.create();
+    const uri = mongod.getUri();
+    await mongoose.connect(uri, { dbName: 'trendspy' });
+    console.log('✅ In-memory MongoDB connected');
   }
 
-  cached.conn = await cached.promise;
+  cached.conn = mongoose.connection;
   return cached.conn;
+}
+
+export async function disconnectMemoryDB() {
+  if (mongod) {
+    await mongoose.disconnect();
+    await mongod.stop();
+    mongod = null;
+    console.log('✅ In-memory MongoDB disconnected');
+  }
 }

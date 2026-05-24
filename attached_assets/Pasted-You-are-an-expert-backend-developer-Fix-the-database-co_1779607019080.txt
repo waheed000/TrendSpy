@@ -1,0 +1,118 @@
+You are an expert backend developer. Fix the database connection on this Replit to use in-memory MongoDB (no Atlas, no localhost setup required).
+
+## Current Issue
+The backend is failing because it cannot connect to MongoDB. The code expects a local MongoDB or Atlas URI, but neither is available on this fresh Replit.
+
+## Solution: Implement In-Memory MongoDB
+
+### Step 1: Install required package
+```bash
+npm install --save-dev mongodb-memory-server
+Step 2: Replace lib/db.js with this code
+javascript
+import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+
+let mongod = null;
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+export async function connectDB() {
+  // If already connected
+  if (cached.conn && mongoose.connection.readyState === 1) {
+    return cached.conn;
+  }
+
+  // If production MongoDB URI exists in env (not localhost), use it
+  const hasProdUri = process.env.MONGODB_URI && 
+                     !process.env.MONGODB_URI.includes('localhost') &&
+                     process.env.MONGODB_URI !== 'mongodb://localhost:27017/trendspy';
+  
+  if (hasProdUri) {
+    if (!cached.promise) {
+      const opts = {
+        dbName: process.env.DB_NAME || 'trendspy',
+        bufferCommands: false,
+      };
+      cached.promise = mongoose.connect(process.env.MONGODB_URI, opts).then((mongoose) => {
+        console.log('✅ MongoDB Atlas connected');
+        return mongoose;
+      }).catch((err) => {
+        console.error('❌ MongoDB connection error:', err);
+        throw err;
+      });
+    }
+    cached.conn = await cached.promise;
+    return cached.conn;
+  }
+
+  // Fallback: In-memory MongoDB (no setup needed, works on any Replit)
+  console.log('⚠️ Using in-memory MongoDB (data resets on restart)');
+  
+  if (!mongod) {
+    mongod = await MongoMemoryServer.create();
+    const uri = mongod.getUri();
+    
+    await mongoose.connect(uri, {
+      dbName: 'trendspy'
+    });
+    
+    console.log('✅ In-memory MongoDB connected');
+  }
+  
+  cached.conn = mongoose.connection;
+  return cached.conn;
+}
+
+export async function disconnectMemoryDB() {
+  if (mongod) {
+    await mongoose.disconnect();
+    await mongod.stop();
+    mongod = null;
+    console.log('✅ In-memory MongoDB disconnected');
+  }
+}
+Step 3: Ensure all models are registered
+The models should auto-register when imported. If not, create a file lib/initDb.js:
+
+javascript
+import { connectDB } from './db';
+import '@/models/User';
+import '@/models/Product';
+import '@/models/Alert';
+import '@/models/TrendScore';
+import '@/models/ScrapedAd';
+import '@/models/SeasonalEvent';
+import '@/models/AlertLog';
+import '@/models/Supplier';
+import '@/models/GoogleShoppingProduct';
+import '@/models/ShopifyProduct';
+
+export async function initDb() {
+  await connectDB();
+  console.log('✅ All models registered');
+}
+Step 4: Update instrumentation.js or server start to call initDb
+If using Next.js App Router, update instrumentation.js:
+
+javascript
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { initDb } = await import('@/lib/initDb');
+    await initDb();
+  }
+}
+Step 5: No .env.local changes needed
+In-memory MongoDB works without any MONGODB_URI. The code automatically falls back.
+
+Expected Result
+Backend starts without any database connection errors
+
+All API routes work with real in-memory data
+
+Data persists during the session but resets on server restart (fine for development)
+
+Now implement all of the above. After implementation, restart the backend and verify it runs without errors.
