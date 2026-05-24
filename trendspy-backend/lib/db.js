@@ -1,9 +1,6 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
-let mongod = null;
 let cached = global.mongoose;
-
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
@@ -13,50 +10,28 @@ export async function connectDB() {
     return cached.conn;
   }
 
-  const hasProdUri =
-    process.env.MONGODB_URI &&
-    !process.env.MONGODB_URI.includes('localhost') &&
-    process.env.MONGODB_URI !== 'mongodb://localhost:27017/trendspy';
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI is not set. Ensure server.js has started the in-memory MongoDB.');
+  }
 
-  if (hasProdUri) {
-    if (!cached.promise) {
-      const opts = {
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(uri, {
         dbName: process.env.DB_NAME || 'trendspy',
         bufferCommands: false,
-      };
-      cached.promise = mongoose
-        .connect(process.env.MONGODB_URI, opts)
-        .then((m) => {
-          console.log('✅ MongoDB Atlas connected');
-          return m;
-        })
-        .catch((err) => {
-          console.error('❌ MongoDB connection error:', err);
-          throw err;
-        });
-    }
-    cached.conn = await cached.promise;
-    return cached.conn;
+      })
+      .then((m) => {
+        console.log('✅ MongoDB connected');
+        return m;
+      })
+      .catch((err) => {
+        cached.promise = null;
+        console.error('❌ MongoDB connection error:', err);
+        throw err;
+      });
   }
 
-  console.log('⚠️ Using in-memory MongoDB (data resets on restart)');
-
-  if (!mongod) {
-    mongod = await MongoMemoryServer.create();
-    const uri = mongod.getUri();
-    await mongoose.connect(uri, { dbName: 'trendspy' });
-    console.log('✅ In-memory MongoDB connected');
-  }
-
-  cached.conn = mongoose.connection;
+  cached.conn = await cached.promise;
   return cached.conn;
-}
-
-export async function disconnectMemoryDB() {
-  if (mongod) {
-    await mongoose.disconnect();
-    await mongod.stop();
-    mongod = null;
-    console.log('✅ In-memory MongoDB disconnected');
-  }
 }
