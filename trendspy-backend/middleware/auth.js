@@ -59,10 +59,16 @@ export function withAuth(handler) {
       }
 
       const user = await User.findById(decoded.userId).select('-password');
-      if (!user || !user.isActive) {
+      if (!user) {
         return Response.json(
-          { success: false, error: 'User not found or deactivated' },
+          { success: false, error: 'User not found' },
           { status: 401 }
+        );
+      }
+      if (user.isActive === false) {
+        return Response.json(
+          { success: false, error: 'Account deactivated' },
+          { status: 403 }
         );
       }
 

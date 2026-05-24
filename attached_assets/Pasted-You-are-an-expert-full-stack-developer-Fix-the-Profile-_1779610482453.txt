@@ -1,0 +1,333 @@
+You are an expert full-stack developer. Fix the Profile Management system in TrendSpy. Currently users get "user not found or deactivated" errors when trying to update their profile.
+
+## Problem Diagnosis
+
+The profile API is failing because:
+1. Token extraction is not working correctly in the middleware
+2. The authMiddleware is not properly attaching user to the request
+3. Profile route is not correctly identifying the authenticated user
+
+## Files to Fix
+
+### 1. Fix `middleware/auth.js`
+
+Completely rewrite the auth middleware:
+
+```javascript
+import jwt from 'jsonwebtoken';
+import { User } from '@/models';
+
+export async function authMiddleware(request) {
+  try {
+    // Try to get token from cookies (Next.js cookies)
+    let token = request.cookies?.get('token')?.value;
+    
+    // Try from Authorization header
+    if (!token) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+    
+    // Try from request body (for some clients)
+    if (!token && request.body) {
+      const body = await request.json().catch(() => ({}));
+      token = body.token;
+    }
+    
+    if (!token) {
+      return { user: null, error: 'No authentication token provided', status: 401 };
+    }
+    
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (!decoded || !decoded.userId) {
+      return { user: null, error: 'Invalid token', status: 401 };
+    }
+    
+    // Find user (exclude password)
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return { user: null, error: 'User not found', status: 404 };
+    }
+    
+    if (user.isActive === false) {
+      return { user: null, error: 'Account deactivated', status: 403 };
+    }
+    
+    return { user, error: null };
+    
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return { user: null, error: 'Invalid token', status: 401 };
+    }
+    if (error.name === 'TokenExpiredError') {
+      return { user: null, error: 'Token expired', status: 401 };
+    }
+    
+    return { user: null, error: 'Authentication failed', status: 500 };
+  }
+}
+
+export function withAuth(handler) {
+  return async (request, context) => {
+    const { user, error, status } = await authMiddleware(request);
+    
+    if (error || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: error || 'Unauthorized' }),
+        { status: status || 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    return handler(request, { ...context, user });
+  };
+}
+2. Fix app/api/user/profile/route.js
+Rewrite GET and PUT handlers:
+
+javascript
+import { connectDB } from '@/lib/db';
+import { User } from '@/models';
+import { withAuth } from '@/middleware/auth';
+import { validatePakistanPhoneNumber } from '@/utils/phoneValidator';
+
+// GET /api/user/profile
+async function getProfile(request, { user }) {
+  try {
+    await connectDB();
+    
+    // Fetch fresh user data
+    const freshUser = await User.findById(user._id).select('-password');
+    
+    if (!freshUser) {
+      return Response.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    return Response.json({
+      success: true,
+      user: {
+        id: freshUser._id,
+        name: freshUser.name,
+        email: freshUser.email,
+        phoneNumber: freshUser.phoneNumber || '',
+        city: freshUser.selectedCity || 'Lahore',
+        selectedCategories: freshUser.selectedCategories || [],
+        selectedPlatforms: freshUser.selectedPlatforms || [],
+        emailNotifications: freshUser.emailNotifications ?? true,
+        whatsappNotifications: freshUser.whatsappNotifications ?? false,
+        dailyDigest: freshUser.dailyDigest ?? false,
+        digestTime: freshUser.digestTime || '08:00',
+        subscriptionPlan: freshUser.subscriptionPlan || 'free',
+        onboardingCompleted: freshUser.onboardingCompleted ?? false,
+        emailVerified: freshUser.emailVerified ?? false,
+        createdAt: freshUser.createdAt
+      }
+    });
+    
+  } catch (error) {
+    console.error('Profile GET error:', error);
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/user/profile
+async function updateProfile(request, { user }) {
+  try {
+    await connectDB();
+    
+    const body = await request.json();
+    const {
+      name,
+      phoneNumber,
+      city,
+      selectedCategories,
+      selectedPlatforms,
+      emailNotifications,
+      whatsappNotifications,
+      dailyDigest,
+      digestTime
+    } = body;
+    
+    // Build update object
+    const updateData = {};
+    
+    if (name !== undefined) updateData.name = name;
+    
+    if (phoneNumber !== undefined) {
+      if (phoneNumber && !validatePakistanPhoneNumber(phoneNumber)) {
+        return Response.json(
+          { success: false, error: 'Invalid Pakistan phone number. Format: +923XXXXXXXXX' },
+          { status: 400 }
+        );
+      }
+      updateData.phoneNumber = phoneNumber || null;
+    }
+    
+    if (city !== undefined) updateData.selectedCity = city;
+    if (selectedCategories !== undefined) updateData.selectedCategories = selectedCategories;
+    if (selectedPlatforms !== undefined) updateData.selectedPlatforms = selectedPlatforms;
+    if (emailNotifications !== undefined) updateData.emailNotifications = emailNotifications;
+    if (whatsappNotifications !== undefined) updateData.whatsappNotifications = whatsappNotifications;
+    if (dailyDigest !== undefined) updateData.dailyDigest = dailyDigest;
+    if (digestTime !== undefined) updateData.digestTime = digestTime;
+    
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!updatedUser) {
+      return Response.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    return Response.json({
+      success: true,
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber || '',
+        city: updatedUser.selectedCity || 'Lahore',
+        selectedCategories: updatedUser.selectedCategories || [],
+        selectedPlatforms: updatedUser.selectedPlatforms || [],
+        emailNotifications: updatedUser.emailNotifications ?? true,
+        whatsappNotifications: updatedUser.whatsappNotifications ?? false,
+        dailyDigest: updatedUser.dailyDigest ?? false,
+        digestTime: updatedUser.digestTime || '08:00',
+        subscriptionPlan: updatedUser.subscriptionPlan || 'free',
+        onboardingCompleted: updatedUser.onboardingCompleted ?? false,
+        emailVerified: updatedUser.emailVerified ?? false
+      }
+    });
+    
+  } catch (error) {
+    console.error('Profile PUT error:', error);
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// Export handlers wrapped with auth
+export const GET = withAuth(getProfile);
+export const PUT = withAuth(updateProfile);
+3. Create utils/phoneValidator.js
+javascript
+export function validatePakistanPhoneNumber(phone) {
+  if (!phone) return true; // Allow empty
+  // Format: +923XXXXXXXXX (3 for country code + 9 digits)
+  const regex = /^\+923[0-9]{9}$/;
+  return regex.test(phone);
+}
+4. Fix Frontend Profile Page – src/pages/Profile.jsx
+Update the API calls to ensure token is sent:
+
+javascript
+// In the profile fetch function
+const fetchProfile = async () => {
+  try {
+    const response = await fetch('/api/user/profile', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (data.success) {
+      setUser(data.user);
+    }
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+  }
+};
+
+// In the update function
+const handleUpdateProfile = async (formData) => {
+  try {
+    const response = await fetch('/api/user/profile', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+    const data = await response.json();
+    if (data.success) {
+      toast.success('Profile updated successfully');
+      setUser(data.user);
+    } else {
+      toast.error(data.error);
+    }
+  } catch (error) {
+    toast.error('Failed to update profile');
+  }
+};
+5. Fix Frontend src/store/useStore.js
+Ensure token is included in all auth-required API calls:
+
+javascript
+// In the store
+const token = get().token;
+
+// For API calls
+const response = await fetch(url, {
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  }
+});
+Testing Checklist
+Login to application
+
+Navigate to Profile page
+
+Profile data loads correctly (no "user not found" error)
+
+Update name → saves successfully
+
+Update phone number (+923XXXXXXXXX format) → saves successfully
+
+Update city → saves successfully
+
+Toggle notification settings → saves successfully
+
+Refresh page after update → changes persist
+
+Logout and login again → profile shows saved data
+
+Additional Fixes
+Update app/api/auth/me/route.js
+Make sure it uses the same auth pattern:
+
+javascript
+import { withAuth } from '@/middleware/auth';
+import { User } from '@/models';
+
+async function getMe(request, { user }) {
+  const freshUser = await User.findById(user._id).select('-password');
+  return Response.json({ success: true, user: freshUser });
+}
+
+export const GET = withAuth(getMe);
+Now implement all of the above with clean, production-ready code. The profile system should work without any "user not found" errors.
+
+text

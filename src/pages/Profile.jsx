@@ -139,6 +139,20 @@ export default function Profile() {
     }
   }
 
+  if (profile === false) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4 text-center">
+        <p className="text-gray-400 text-sm">Unable to load your profile.</p>
+        <button
+          onClick={() => { fetchProfile() }}
+          className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-sm font-medium transition-all"
+        >
+          Try Again
+        </button>
+      </div>
+    )
+  }
+
   if (!profile || !form) {
     return (
       <div className="flex items-center justify-center h-64">

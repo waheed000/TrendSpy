@@ -29,10 +29,20 @@ const useStore = create(
           const res = await fetch('/api/user/profile', {
             headers: { Authorization: `Bearer ${token}` },
           })
+          if (res.status === 401 || res.status === 403) {
+            set({ user: null, profile: null, alertHistory: [] })
+            window.location.href = '/login'
+            return
+          }
           const data = await res.json()
-          if (data.success) set({ profile: data.data.user })
+          if (data.success) {
+            set({ profile: data.data.user })
+          } else {
+            set({ profile: false })
+          }
         } catch (err) {
           console.error('[fetchProfile]', err)
+          set({ profile: false })
         }
       },
 
@@ -44,6 +54,11 @@ const useStore = create(
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(updates),
         })
+        if (res.status === 401 || res.status === 403) {
+          set({ user: null, profile: null, alertHistory: [] })
+          window.location.href = '/login'
+          throw new Error('Session expired — please log in again')
+        }
         const data = await res.json()
         if (!data.success) throw new Error(data.error || 'Update failed')
         set({ profile: data.data.user })
@@ -58,6 +73,11 @@ const useStore = create(
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ currentPassword, newPassword }),
         })
+        if (res.status === 401 || res.status === 403) {
+          set({ user: null, profile: null, alertHistory: [] })
+          window.location.href = '/login'
+          throw new Error('Session expired — please log in again')
+        }
         const data = await res.json()
         if (!data.success) throw new Error(data.error || 'Password change failed')
         return data
@@ -83,6 +103,11 @@ const useStore = create(
           const res = await fetch(`/api/user/alerts/history?page=${page}&limit=20`, {
             headers: { Authorization: `Bearer ${token}` },
           })
+          if (res.status === 401 || res.status === 403) {
+            set({ user: null, profile: null, alertHistory: [] })
+            window.location.href = '/login'
+            return
+          }
           const data = await res.json()
           if (data.success) {
             set({
@@ -102,6 +127,11 @@ const useStore = create(
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         })
+        if (res.status === 401 || res.status === 403) {
+          set({ user: null, profile: null, alertHistory: [] })
+          window.location.href = '/login'
+          throw new Error('Session expired — please log in again')
+        }
         const data = await res.json()
         if (!data.success) throw new Error(data.error || 'Failed to generate key')
         set((s) => ({ profile: s.profile ? { ...s.profile, apiKey: data.data.apiKey } : s.profile }))
