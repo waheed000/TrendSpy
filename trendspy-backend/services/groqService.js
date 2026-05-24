@@ -60,6 +60,47 @@ async function callGroq(systemPrompt, userPrompt) {
 }
 
 /**
+ * Normalize the GROQ response to guarantee the exact shape the frontend expects.
+ * Falls back gracefully if the AI omits or misnames any field.
+ */
+function normalizeAnalysis(ai, productData = {}) {
+  const toInt = (v, fallback) => {
+    const n = parseInt(v, 10);
+    return isNaN(n) ? fallback : n;
+  };
+
+  // Support old schema field names as fallbacks
+  const profitAnalysis = ai.profitAnalysis || {};
+  const adCopy = ai.adCopy || {};
+
+  const buyPrice  = toInt(ai.buyPrice  ?? profitAnalysis.buyPrice,  productData.priceMin  || 1500);
+  const sellPrice = toInt(ai.sellPrice ?? profitAnalysis.sellPrice, productData.priceMax  || 3000);
+
+  const platforms = Array.isArray(ai.platforms) && ai.platforms.length
+    ? ai.platforms.map((p) => ({
+        name:   p.name   || 'Platform',
+        score:  toInt(p.score, 70),
+        reason: p.reason || '',
+      }))
+    : [
+        { name: 'Daraz',  score: 80, reason: profitAnalysis.recommendedPlatform === 'Daraz'  ? 'Recommended platform' : 'Strong buyer base' },
+        { name: 'TikTok', score: 72, reason: 'Good for viral product demos' },
+        { name: 'OLX',    score: 60, reason: 'Good for local, second-hand angle' },
+      ];
+
+  return {
+    summary:     ai.summary     || ai.marketPotential || 'AI analysis complete.',
+    score:       toInt(ai.score ?? productData.winScore, 75),
+    buyPrice,
+    sellPrice,
+    platforms,
+    adCopyEN:    ai.adCopyEN    || adCopy.english || '',
+    adCopyUR:    ai.adCopyUR    || adCopy.urdu    || '',
+    competitors: toInt(ai.competitors, null),
+  };
+}
+
+/**
  * Analyze a product and return profit analysis, ad copy, competitor alert and market potential.
  * @param {string} productName
  * @param {Object} productData - Optional fields: category, winScore, priceMin, priceMax, cities, darazOrders, tiktokViews, activeAds
@@ -87,23 +128,26 @@ Active Facebook Ads: ${productData.activeAds || 0}
 Product: ${productName}
 ${context}
 
-Return a JSON object with this exact structure:
+Return a JSON object with EXACTLY this structure (all fields required):
 {
-  "profitAnalysis": {
-    "buyPrice": "estimated buy price from Alibaba or wholesale in PKR",
-    "sellPrice": "recommended selling price in PKR",
-    "profitMargin": "estimated profit margin as a percentage string e.g. '35%'",
-    "recommendedPlatform": "best platform to sell on: Daraz, OLX, TikTok, or Shopify"
-  },
-  "adCopy": {
-    "english": "compelling Facebook/Instagram ad copy in English (2-3 sentences)",
-    "urdu": "Roman Urdu TikTok ad copy (2-3 sentences)"
-  },
-  "competitorAlert": "brief sentence about competitor count and market saturation warning",
-  "marketPotential": "High, Medium, or Low — followed by one sentence explanation"
+  "summary": "one sentence overview of why this product is a good or bad opportunity in Pakistan right now",
+  "score": <integer 0-100 representing overall win/opportunity score>,
+  "buyPrice": <integer — estimated wholesale/Alibaba buy price in PKR>,
+  "sellPrice": <integer — recommended retail selling price in PKR>,
+  "platforms": [
+    { "name": "Daraz",    "score": <integer 0-100>, "reason": "one short sentence" },
+    { "name": "TikTok",   "score": <integer 0-100>, "reason": "one short sentence" },
+    { "name": "OLX",      "score": <integer 0-100>, "reason": "one short sentence" }
+  ],
+  "adCopyEN": "compelling Facebook/Instagram ad copy in English (2-3 sentences with call-to-action)",
+  "adCopyUR": "Roman Urdu TikTok ad copy (2-3 sentences, casual tone)",
+  "competitors": <integer — estimated number of active sellers currently selling this product on Pakistani platforms>
 }`;
 
   const aiResult = await callGroq(systemPrompt, userPrompt);
+
+  // Normalize the result to guarantee the frontend-expected shape
+  const normalized = normalizeAnalysis(aiResult, productData);
 
   // Enrich with real DB suppliers + international opportunity data (fail silently)
   const [suppliers, opportunity] = await Promise.all([
@@ -124,7 +168,7 @@ Return a JSON object with this exact structure:
       }
     : null;
 
-  return { ...aiResult, suppliers, international };
+  return { ...normalized, suppliers, international };
 }
 
 /**

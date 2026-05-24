@@ -1,5 +1,4 @@
 {
-  "/api/alerts/route": "app/api/alerts/route.js",
-  "/api/user/alerts/history/route": "app/api/user/alerts/history/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
   "/api/ai/analyze/route": "app/api/ai/analyze/route.js"
 }
