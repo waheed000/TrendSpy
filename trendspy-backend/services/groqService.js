@@ -6,6 +6,7 @@
 import Groq from 'groq-sdk';
 import { connectDB } from '../lib/db.js';
 import Supplier from '../models/Supplier.js';
+import { calculateOpportunityScore } from './opportunityService.js';
 
 /**
  * Query DB for suppliers relevant to a product category + city.
@@ -104,14 +105,26 @@ Return a JSON object with this exact structure:
 
   const aiResult = await callGroq(systemPrompt, userPrompt);
 
-  // Enrich with real DB suppliers (fails silently if DB unavailable)
-  const suppliers = await getSuppliersForProduct(
-    productName,
-    productData.category || null,
-    productData.cities?.[0] || null
-  );
+  // Enrich with real DB suppliers + international opportunity data (fail silently)
+  const [suppliers, opportunity] = await Promise.all([
+    getSuppliersForProduct(productName, productData.category || null, productData.cities?.[0] || null),
+    calculateOpportunityScore(productName).catch(() => null),
+  ]);
 
-  return { ...aiResult, suppliers };
+  const international = opportunity
+    ? {
+        globalStores:       opportunity.globalStores,
+        avgGlobalPrice:     `$${opportunity.avgPriceUSD}`,
+        avgGlobalPricePKR:  opportunity.avgPricePKR,
+        shippingToPakistan: '15–20 days (Alibaba), 5–7 days (Shopify)',
+        opportunityScore:   opportunity.score,
+        opportunityGap:     opportunity.gap,
+        shopifyStoreCount:  opportunity.shopifyCount,
+        localAvailability:  opportunity.localProducts,
+      }
+    : null;
+
+  return { ...aiResult, suppliers, international };
 }
 
 /**
