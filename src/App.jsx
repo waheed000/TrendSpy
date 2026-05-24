@@ -10,6 +10,7 @@ import AdSpy from './pages/AdSpy.jsx'
 import AIAnalyst from './pages/AIAnalyst.jsx'
 import Alerts from './pages/Alerts.jsx'
 import Seasonal from './pages/Seasonal.jsx'
+import Profile from './pages/Profile.jsx'
 import Layout from './components/Layout.jsx'
 import useStore from './store/useStore.js'
 
@@ -40,9 +41,7 @@ export default function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Layout>
-                <Dashboard />
-              </Layout>
+              <Layout><Dashboard /></Layout>
             </ProtectedRoute>
           }
         />
@@ -50,9 +49,7 @@ export default function App() {
           path="/products"
           element={
             <ProtectedRoute>
-              <Layout>
-                <ProductHunt />
-              </Layout>
+              <Layout><ProductHunt /></Layout>
             </ProtectedRoute>
           }
         />
@@ -60,9 +57,7 @@ export default function App() {
           path="/city-explorer"
           element={
             <ProtectedRoute>
-              <Layout>
-                <CityExplorer />
-              </Layout>
+              <Layout><CityExplorer /></Layout>
             </ProtectedRoute>
           }
         />
@@ -70,9 +65,7 @@ export default function App() {
           path="/trends"
           element={
             <ProtectedRoute>
-              <Layout>
-                <Trends />
-              </Layout>
+              <Layout><Trends /></Layout>
             </ProtectedRoute>
           }
         />
@@ -80,9 +73,7 @@ export default function App() {
           path="/ad-spy"
           element={
             <ProtectedRoute>
-              <Layout>
-                <AdSpy />
-              </Layout>
+              <Layout><AdSpy /></Layout>
             </ProtectedRoute>
           }
         />
@@ -90,9 +81,7 @@ export default function App() {
           path="/ai-analyst"
           element={
             <ProtectedRoute>
-              <Layout>
-                <AIAnalyst />
-              </Layout>
+              <Layout><AIAnalyst /></Layout>
             </ProtectedRoute>
           }
         />
@@ -100,9 +89,7 @@ export default function App() {
           path="/alerts"
           element={
             <ProtectedRoute>
-              <Layout>
-                <Alerts />
-              </Layout>
+              <Layout><Alerts /></Layout>
             </ProtectedRoute>
           }
         />
@@ -110,9 +97,15 @@ export default function App() {
           path="/seasonal"
           element={
             <ProtectedRoute>
-              <Layout>
-                <Seasonal />
-              </Layout>
+              <Layout><Seasonal /></Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Layout><Profile /></Layout>
             </ProtectedRoute>
           }
         />

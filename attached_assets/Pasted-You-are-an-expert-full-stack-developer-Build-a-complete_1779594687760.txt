@@ -1,0 +1,276 @@
+You are an expert full-stack developer. Build a complete Profile Section for TrendSpy with all features listed below. NO DUMMY DATA.
+
+## Goal: Complete Profile Management System
+
+Implement all 14 profile features with backend APIs and frontend UI.
+
+---
+
+## BACKEND APIs TO CREATE
+
+### 1. `app/api/user/profile/route.js`
+
+**GET** – Fetch user profile
+- Returns: { id, name, email, phoneNumber, city, selectedCategories, selectedPlatforms, emailNotifications, whatsappNotifications, dailyDigest, digestTime, subscriptionPlan, apiKey, profilePicture, createdAt }
+
+**PUT** – Update profile fields
+- Body: { name, phoneNumber, city, selectedCategories, selectedPlatforms, emailNotifications, whatsappNotifications, dailyDigest, digestTime }
+- Validate phoneNumber: must be +923XXXXXXXXX format (Pakistan)
+- Validate city: must be from cityList
+- Validate selectedCategories: must be valid categories
+- Save and return updated user
+
+### 2. `app/api/user/password/route.js` (PUT)
+- Protected route
+- Body: { currentPassword, newPassword }
+- Verify current password with bcrypt
+- Hash new password and save
+- Return success message
+
+### 3. `app/api/user/account/route.js` (DELETE)
+- Protected route
+- Deletes user account AND all associated data (alerts, alert history)
+- Returns success message
+
+### 4. `app/api/user/alerts/history/route.js` (GET)
+- Protected route
+- Query params: page (default 1), limit (default 20)
+- Returns paginated alert history for authenticated user
+- Fields: productName, winScore, channel, sentAt, delivered
+
+### 5. `app/api/user/apikey/route.js` (POST for pro users)
+- Protected route
+- Generates new API key for pro/business users
+- Returns: { apiKey: "trendspy_live_xxxxxxxxxxxx" }
+
+---
+
+## DATABASE MODEL UPDATES
+
+### Update `models/User.js`
+Add these fields:
+```javascript
+// Already have: name, email, password, phoneNumber, emailNotifications, whatsappNotifications, dailyDigest, digestTime
+
+// Add missing fields:
+selectedCategories: [{ type: String, enum: ['Fashion', 'Electronics', 'Beauty', 'Home', 'Grocery', 'Toys', 'Sports', 'Books'] }],
+selectedCity: { type: String },
+selectedPlatforms: [{ type: String, enum: ['Facebook Ads', 'Daraz', 'TikTok Shop', 'Instagram', 'OLX'] }],
+subscriptionPlan: { type: String, enum: ['free', 'pro', 'business'], default: 'free' },
+apiKey: { type: String, unique: true, sparse: true },
+profilePicture: { type: String, default: null }, // URL to avatar
+apiKeyGeneratedAt: { type: Date },
+apiKeyLastUsed: { type: Date }
+Create models/AlertLog.js
+javascript
+{
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  alertId: { type: mongoose.Schema.Types.ObjectId, ref: 'Alert' },
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  productName: { type: String, required: true },
+  winScore: { type: Number, required: true },
+  channel: { type: String, enum: ['email', 'whatsapp', 'both'], required: true },
+  sentAt: { type: Date, default: Date.now },
+  delivered: { type: Boolean, default: true },
+  errorMessage: { type: String }
+}
+FRONTEND PROFILE PAGE
+Create src/pages/Profile.jsx
+Complete profile page with:
+
+Section 1: Personal Information
+Full Name (input)
+
+Email (disabled, read-only)
+
+Phone Number (input, placeholder "+923XXXXXXXXX")
+
+Profile Picture (upload option – optional, can skip or add later)
+
+Section 2: Business Preferences
+Default City (dropdown from cityList)
+
+Interested Categories (multi-select: Fashion, Electronics, Beauty, Home, Grocery, Toys, Sports, Books)
+
+Where do you sell? (multi-select: Facebook Ads, Daraz, TikTok Shop, Instagram, OLX)
+
+Section 3: Notification Settings
+Email Alerts (toggle)
+
+WhatsApp Alerts (toggle)
+
+Daily Email Digest (toggle)
+
+Digest Time (time picker, only if daily digest enabled)
+
+Section 4: Subscription & API
+Current Plan: Free / Pro / Business (badge)
+
+API Key: Show if pro/business, button to regenerate
+
+Button: "Upgrade Plan" (modal or redirect)
+
+Section 5: Alert History
+Table showing: Product, Score, Channel, Date, Status
+
+Pagination
+
+Refresh button
+
+Section 6: Account Management
+Button: "Change Password" (opens modal)
+
+Button: "Delete Account" (red, with confirmation modal)
+
+Frontend Components to Create
+src/components/ChangePasswordModal.jsx
+Inputs: Current Password, New Password, Confirm Password
+
+Submit button, loading state
+
+src/components/DeleteAccountModal.jsx
+Warning message: "This action is permanent. All your alerts and history will be deleted."
+
+Input: type "DELETE" to confirm
+
+Submit button (red)
+
+src/components/UpgradePlanModal.jsx
+Show plans: Free (
+0
+)
+,
+P
+r
+o
+(
+0),Pro(19/mo), Business ($49/mo)
+
+Feature comparison table
+
+Stripe integration (optional – can be mock for now)
+
+src/components/ApiKeySection.jsx
+Show masked API key: "trndspy_live_••••••••"
+
+Button: "Generate New Key"
+
+Button: "Copy Key"
+
+Update src/store/useStore.js
+Add:
+
+javascript
+profile: null,
+fetchProfile: async () => { ... },
+updateProfile: async (data) => { ... },
+changePassword: async (passwords) => { ... },
+deleteAccount: async () => { ... },
+fetchAlertHistory: async (page) => { ... },
+generateApiKey: async () => { ... }
+Update src/App.jsx
+Add route:
+
+jsx
+<Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+Update Navbar
+Add "Profile" link (user icon or dropdown menu)
+
+BACKEND HELPER FUNCTIONS
+Create utils/phoneValidator.js
+javascript
+export function validatePakistanPhoneNumber(phone) {
+  const regex = /^\+923[0-9]{9}$/;
+  return regex.test(phone);
+}
+Create utils/generateApiKey.js
+javascript
+import crypto from 'crypto';
+export function generateApiKey() {
+  return `trndspy_live_${crypto.randomBytes(24).toString('hex')}`;
+}
+ENVIRONMENT VARIABLES
+No new keys needed. Reuse existing JWT_SECRET.
+
+API RESPONSE FORMATS
+GET /api/user/profile – Response:
+json
+{
+  "success": true,
+  "user": {
+    "id": "...",
+    "name": "Waheed Aslam",
+    "email": "waheed@example.com",
+    "phoneNumber": "+923001234567",
+    "city": "Lahore",
+    "selectedCategories": ["Electronics", "Fashion"],
+    "selectedPlatforms": ["Facebook Ads", "Daraz"],
+    "emailNotifications": true,
+    "whatsappNotifications": true,
+    "dailyDigest": false,
+    "digestTime": "08:00",
+    "subscriptionPlan": "free",
+    "apiKey": null,
+    "profilePicture": null,
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+GET /api/user/alerts/history – Response:
+json
+{
+  "success": true,
+  "data": {
+    "alerts": [
+      {
+        "productName": "Electric Heater",
+        "winScore": 92,
+        "channel": "whatsapp",
+        "sentAt": "2025-01-15T10:30:00.000Z",
+        "delivered": true
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 45,
+      "pages": 3
+    }
+  }
+}
+TESTING CHECKLIST
+GET /api/user/profile returns correct user data
+
+PUT /api/user/profile updates all fields (validation works)
+
+PUT /api/user/password changes password (old password required)
+
+DELETE /api/user/account deletes user + related data
+
+GET /api/user/alerts/history returns paginated history
+
+POST /api/user/apikey generates new API key (pro only)
+
+Frontend profile page loads data from API
+
+Form submission updates profile without page refresh
+
+Change password modal works
+
+Delete account modal works with confirmation
+
+Alert history table displays correctly
+
+All toggles and multi-selects work
+
+IMPORTANT NOTES
+Phone number validation: MUST be +923XXXXXXXXX format
+
+Profile picture upload: optional, can skip for now or add later
+
+API key feature: only for pro/business users (check subscriptionPlan)
+
+Alert history: should auto-refresh when new alerts are sent
+
+All APIs must be protected with JWT
+
+Now implement all of the above with clean, production-ready code. NO DUMMY DATA.

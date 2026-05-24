@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight } from 'react-icons/fi'
+import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight, FiUser } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import useStore from '../store/useStore.js'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [name, setName]               = useState('')
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSignup, setIsSignup] = useState(false)
+  const [isLoading, setIsLoading]     = useState(false)
+  const [isSignup, setIsSignup]       = useState(false)
   const setUser = useStore((s) => s.setUser)
   const navigate = useNavigate()
 
@@ -19,11 +20,38 @@ export default function Login() {
       toast.error('Please fill in all fields')
       return
     }
+    if (isSignup && !name.trim()) {
+      toast.error('Name is required')
+      return
+    }
+
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 800))
-    setUser({ email, name: email.split('@')[0] })
-    toast.success(`Welcome${isSignup ? '' : ' back'}, ${email.split('@')[0]}!`)
-    navigate('/dashboard')
+    try {
+      const endpoint = isSignup ? '/api/auth/register' : '/api/auth/login'
+      const body     = isSignup ? { name: name.trim(), email, password } : { email, password }
+
+      const res  = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+
+      if (!data.success) {
+        toast.error(data.error || 'Authentication failed')
+        return
+      }
+
+      const { user, token } = data.data
+      setUser({ ...user, token })
+      toast.success(`Welcome${isSignup ? '' : ' back'}, ${user.name || user.email.split('@')[0]}!`)
+      navigate('/dashboard')
+    } catch (err) {
+      toast.error('Connection error. Is the backend running?')
+      console.error('[Login]', err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -42,84 +70,95 @@ export default function Login() {
             {isSignup ? 'Create your account' : 'Welcome back'}
           </h1>
           <p className="text-gray-400 text-sm">
-            {isSignup
-              ? 'Start finding winning products today'
-              : 'Sign in to your TrendSpy account'}
+            {isSignup ? 'Start hunting winning products today' : "Pakistan's #1 product hunting tool"}
           </p>
         </div>
 
-        <div className="glass-card p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="glass-card p-6 rounded-2xl">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignup && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-1.5">Full Name</label>
+                <div className="relative">
+                  <FiUser size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your full name"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
-              <label className="text-sm text-gray-400 mb-1.5 block">Email address</label>
+              <label className="block text-xs text-gray-400 mb-1.5">Email Address</label>
               <div className="relative">
-                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <FiMail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seller@example.com"
-                  className="input-field pl-10"
-                  required
+                  placeholder="you@example.com"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 text-sm"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 mb-1.5 block">Password</label>
+              <label className="block text-xs text-gray-400 mb-1.5">Password</label>
               <div className="relative">
-                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                <FiLock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="input-field pl-10 pr-10"
-                  required
+                  placeholder="••••••••"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
                 >
-                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
                 </button>
               </div>
+              {isSignup && (
+                <p className="text-xs text-gray-600 mt-1">Minimum 6 characters</p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   {isSignup ? 'Create Account' : 'Sign In'}
-                  <FiArrowRight size={16} />
+                  <FiArrowRight size={15} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-white/10 text-center">
-            <p className="text-gray-500 text-sm">
-              {isSignup ? 'Already have an account?' : "Don't have an account?"}
-              {' '}
-              <button
-                onClick={() => setIsSignup(!isSignup)}
-                className="text-primary-400 hover:text-primary-300 font-medium transition-colors"
-              >
-                {isSignup ? 'Sign In' : 'Sign up free'}
-              </button>
-            </p>
+          <div className="mt-5 pt-5 border-t border-white/5 text-center">
+            <button
+              onClick={() => { setIsSignup(!isSignup); setName('') }}
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              {isSignup ? (
+                <>Already have an account? <span className="text-primary-400">Sign in</span></>
+              ) : (
+                <>Don't have an account? <span className="text-primary-400">Sign up free</span></>
+              )}
+            </button>
           </div>
         </div>
-
-        <p className="text-center text-gray-600 text-xs mt-4">
-          By continuing, you agree to our Terms of Service
-        </p>
       </div>
     </div>
   )

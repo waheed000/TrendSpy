@@ -3,21 +3,110 @@ import { persist } from 'zustand/middleware'
 
 const useStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       selectedCity: 'Lahore',
       selectedCategory: 'All',
       minWinScore: 0,
       user: null,
       alertCount: 3,
       darkMode: true,
+      profile: null,
+      alertHistory: [],
+      alertHistoryPagination: { page: 1, limit: 20, total: 0, pages: 1 },
 
-      setSelectedCity: (city) => set({ selectedCity: city }),
+      setSelectedCity:     (city)     => set({ selectedCity: city }),
       setSelectedCategory: (category) => set({ selectedCategory: category }),
-      setMinWinScore: (score) => set({ minWinScore: score }),
-      setUser: (user) => set({ user }),
-      setAlertCount: (count) => set({ alertCount: count }),
-      toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
-      logout: () => set({ user: null }),
+      setMinWinScore:      (score)    => set({ minWinScore: score }),
+      setUser:             (user)     => set({ user }),
+      setAlertCount:       (count)    => set({ alertCount: count }),
+      toggleDarkMode:      ()         => set((s) => ({ darkMode: !s.darkMode })),
+      logout:              ()         => set({ user: null, profile: null, alertHistory: [] }),
+
+      fetchProfile: async () => {
+        const token = get().user?.token
+        if (!token) return
+        try {
+          const res = await fetch('/api/user/profile', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const data = await res.json()
+          if (data.success) set({ profile: data.data.user })
+        } catch (err) {
+          console.error('[fetchProfile]', err)
+        }
+      },
+
+      updateProfile: async (updates) => {
+        const token = get().user?.token
+        if (!token) throw new Error('Not authenticated')
+        const res = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(updates),
+        })
+        const data = await res.json()
+        if (!data.success) throw new Error(data.error || 'Update failed')
+        set({ profile: data.data.user })
+        return data.data.user
+      },
+
+      changePassword: async ({ currentPassword, newPassword }) => {
+        const token = get().user?.token
+        if (!token) throw new Error('Not authenticated')
+        const res = await fetch('/api/user/password', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        })
+        const data = await res.json()
+        if (!data.success) throw new Error(data.error || 'Password change failed')
+        return data
+      },
+
+      deleteAccount: async () => {
+        const token = get().user?.token
+        if (!token) throw new Error('Not authenticated')
+        const res = await fetch('/api/user/account', {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (!data.success) throw new Error(data.error || 'Delete failed')
+        set({ user: null, profile: null, alertHistory: [] })
+        return data
+      },
+
+      fetchAlertHistory: async (page = 1) => {
+        const token = get().user?.token
+        if (!token) return
+        try {
+          const res = await fetch(`/api/user/alerts/history?page=${page}&limit=20`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const data = await res.json()
+          if (data.success) {
+            set({
+              alertHistory: data.data.alerts,
+              alertHistoryPagination: data.data.pagination,
+            })
+          }
+        } catch (err) {
+          console.error('[fetchAlertHistory]', err)
+        }
+      },
+
+      generateApiKey: async () => {
+        const token = get().user?.token
+        if (!token) throw new Error('Not authenticated')
+        const res = await fetch('/api/user/apikey', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (!data.success) throw new Error(data.error || 'Failed to generate key')
+        set((s) => ({ profile: s.profile ? { ...s.profile, apiKey: data.data.apiKey } : s.profile }))
+        return data.data.apiKey
+      },
     }),
     {
       name: 'trendspy-storage',
