@@ -29,7 +29,6 @@ const userSchema = new mongoose.Schema(
     phoneNumber: {
       type: String,
       default: null,
-      sparse: true,
     },
     // Notification preferences
     emailNotifications:    { type: Boolean, default: true },
@@ -55,9 +54,9 @@ const userSchema = new mongoose.Schema(
       enum: ['free', 'pro', 'business'],
       default: 'free',
     },
-    apiKey:             { type: String, unique: true, sparse: true, default: null },
-    apiKeyGeneratedAt:  { type: Date, default: null },
-    apiKeyLastUsed:     { type: Date, default: null },
+    apiKey:             { type: String },
+    apiKeyGeneratedAt:  { type: Date },
+    apiKeyLastUsed:     { type: Date },
     profilePicture:     { type: String, default: null },
     role:     { type: String, enum: ['user', 'admin'], default: 'user' },
     isActive: { type: Boolean, default: true },
@@ -69,7 +68,7 @@ const userSchema = new mongoose.Schema(
 
 userSchema.index({ isActive: 1 });
 userSchema.index({ role: 1 });
-userSchema.index({ apiKey: 1 }, { sparse: true });
+userSchema.index({ apiKey: 1 }, { unique: true, sparse: true });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
