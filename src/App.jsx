@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Landing from './pages/Landing.jsx'
@@ -23,9 +24,23 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+function SessionValidator() {
+  const user = useStore((s) => s.user)
+  const validateSession = useStore((s) => s.validateSession)
+
+  useEffect(() => {
+    if (user?.token) {
+      validateSession()
+    }
+  }, [])
+
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <SessionValidator />
       <Toaster
         position="top-right"
         toastOptions={{

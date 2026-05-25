@@ -20,7 +20,32 @@ const useStore = create(
       setUser:             (user)     => set({ user }),
       setAlertCount:       (count)    => set({ alertCount: count }),
       toggleDarkMode:      ()         => set((s) => ({ darkMode: !s.darkMode })),
-      logout:              ()         => set({ user: null, profile: null, alertHistory: [] }),
+
+      logout: async () => {
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' })
+        } catch {
+          // ignore network errors on logout
+        }
+        set({ user: null, profile: null, alertHistory: [] })
+      },
+
+      validateSession: async () => {
+        const token = get().user?.token
+        if (!token) return false
+        try {
+          const res = await fetch('/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!res.ok) {
+            set({ user: null, profile: null, alertHistory: [] })
+            return false
+          }
+          return true
+        } catch {
+          return false
+        }
+      },
 
       fetchProfile: async () => {
         const token = get().user?.token

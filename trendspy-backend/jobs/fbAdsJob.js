@@ -1,7 +1,7 @@
 /**
  * Facebook Ads Job — runs every 12 hours
- * Executes: Facebook Ad Library scraper.
- * Logs new ads found.
+ * Executes the Facebook Ad Library scraper and emits a socket event
+ * when new ads are found.
  */
 
 import cron from 'node-cron';
@@ -15,13 +15,15 @@ async function runFbAdsJob() {
   console.log(`[${start.toISOString()}] [FbAdsJob] Scraping Facebook Ad Library…`);
 
   try {
-    const { ads, saved } = await fbAdsScraper();
+    const { ads, totalFound, savedNew } = await fbAdsScraper();
+
     console.log(
-      `[${new Date().toISOString()}] [FbAdsJob] Done. Ads found: ${ads.length}, Saved: ${saved}`
+      `[${new Date().toISOString()}] [FbAdsJob] Done. totalFound=${totalFound} savedNew=${savedNew}`
     );
-    if (saved > 0) {
+
+    if (savedNew > 0) {
       const categories = [...new Set(ads.map((a) => a.category).filter(Boolean))];
-      emitNewAdsDetected({ count: saved, categories }).catch(() => {});
+      emitNewAdsDetected({ count: savedNew, categories, totalFound }).catch(() => {});
     }
   } catch (err) {
     console.error(`[${new Date().toISOString()}] [FbAdsJob] FAILED: ${err.message}`);

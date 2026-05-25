@@ -1,0 +1,78 @@
+You are an expert backend developer. Improve the Facebook Ad Library scraper in TrendSpy. Write clean, professional, production-ready code. NO placeholders, NO mock data.
+
+## Goal
+Fix the existing `scrapers/fbAdsScraper.js` to extract REAL ads from Facebook Ad Library for Pakistan with direct ad preview links.
+
+## Requirements
+
+### 1. Direct Ad Link
+Each ad must have a `directUrl` field that opens the exact ad on Facebook.com so users can verify it themselves.
+
+### 2. Real Data Extraction
+Extract these fields from each ad:
+- `adId` – unique identifier from Facebook
+- `directUrl` – `https://www.facebook.com/ads/library/?id={adId}`
+- `advertiserName` – who is running the ad
+- `headline` – main ad text
+- `description` – full ad description
+- `daysRunning` – how many days the ad has been active
+- `creativeType` – image, video, or carousel
+- `imageUrl` – ad image (if image ad)
+- `videoUrl` – ad video (if video ad)
+- `spendLevel` – low, medium, high (estimate from ad activity)
+- `platform` – facebook or instagram
+
+### 3. Pakistan Specific
+- Country filter: `country=PK`
+- Search for products relevant to Pakistani market
+- Extract ads in English and Urdu
+
+### 4. Error Handling
+- If Facebook blocks the request, log error and return empty array (do NOT crash)
+- Add random delays (2-5 seconds) between searches
+- Rotate user agents
+- Use stealth plugin to avoid detection
+
+### 5. Database Saving
+- Save each unique ad to `ScrapedAd` collection (upsert by adId)
+- Update `daysRunning` and `spendLevel` on subsequent scrapes
+- Link ads to products in `Product` collection
+
+### 6. Output Format
+The scraper must return:
+```javascript
+{
+  success: true,
+  ads: [
+    {
+      adId: "123456789",
+      directUrl: "https://www.facebook.com/ads/library/?id=123456789",
+      advertiserName: "Store Name",
+      headline: "Main ad text",
+      daysRunning: 45,
+      creativeType: "image",
+      imageUrl: "https://...",
+      platform: "facebook",
+      spendLevel: "high"
+    }
+  ],
+  totalFound: 10,
+  savedNew: 8
+}
+7. Integration with Existing Code
+Call this scraper from jobs/fbAdsJob.js (every 12 hours)
+
+Emit socket event newAdsDetected when new ads are found
+
+Update competitor counts in Product model
+
+Important Notes
+No hardcoded mock data
+
+No fallback to fake ads if scraping fails (just return empty array with error log)
+
+Use existing fakeUserAgent.js and delay helper
+
+Respect robots.txt and Facebook's rate limits
+
+Now implement the improved Facebook Ad Library scraper.
