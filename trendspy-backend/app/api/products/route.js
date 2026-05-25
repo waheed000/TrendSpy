@@ -2,6 +2,8 @@ import { connectDB } from '@/lib/db';
 import { Product } from '@/models/index';
 import { seedIfEmpty } from '@/lib/seed';
 import { isValidCity, isValidCategory } from '@/lib/validators';
+import { calculateConfidenceScore, confidenceLabel } from '@/services/productVerificationService';
+import { getSeasonalScore } from '@/services/seasonalFilterService';
 
 const SORT_OPTIONS = {
   winScore: { winScore: -1 },
@@ -23,8 +25,18 @@ const PROJECTION = {
   category: 1,
   isWinning: 1,
   darazOrders: 1,
+  darazRating: 1,
   activeAds: 1,
   tiktokViews: 1,
+  olxViews: 1,
+  olxListings: 1,
+  googleTrendSpike: 1,
+  alibabaOrderSurge: 1,
+  competitorCount: 1,
+  topCompetitors: 1,
+  isVerified: 1,
+  imageMismatchFlag: 1,
+  seasonalWarning: 1,
   createdAt: 1,
 };
 
@@ -50,10 +62,34 @@ export async function GET(request) {
     const sort = SORT_OPTIONS[sortBy] || SORT_OPTIONS.winScore;
     const skip = (page - 1) * limit;
 
-    const [products, total] = await Promise.all([
+    const [rawProducts, total] = await Promise.all([
       Product.find(filter, PROJECTION).sort(sort).skip(skip).limit(limit).lean(),
       Product.countDocuments(filter),
     ]);
+
+    // Feature 6: Enrich each product with confidence score + seasonal warning
+    const products = rawProducts.map((p) => {
+      const score = calculateConfidenceScore(p);
+      const label = confidenceLabel(score);
+
+      // Live seasonal warning (or persisted one from autoCorrect job)
+      const { warning: liveWarning } = getSeasonalScore(p.category, p.name);
+      const seasonalWarning = p.seasonalWarning || liveWarning || null;
+
+      // Verification note from image mismatch flag
+      const verificationNote = p.imageMismatchFlag
+        ? 'Image may not match product — verify before sourcing'
+        : null;
+
+      return {
+        ...p,
+        confidence:      label,
+        confidenceScore: score,
+        isVerified:      p.isVerified ?? score >= (parseInt(process.env.CONFIDENCE_THRESHOLD, 10) || 60),
+        verificationNote,
+        seasonalWarning,
+      };
+    });
 
     return Response.json({
       success: true,

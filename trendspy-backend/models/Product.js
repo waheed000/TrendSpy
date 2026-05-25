@@ -65,6 +65,19 @@ const productSchema = new mongoose.Schema(
     },
 
     competitorCount: { type: Number, default: 0 },
+    topCompetitors: [{ type: String }],
+    lastCompetitorCheck: { type: Date, default: null },
+
+    // Cross-platform verification
+    isVerified: { type: Boolean, default: false },
+    confidenceScore: { type: Number, min: 0, max: 100, default: 0 },
+
+    // Image validation
+    imageMismatchFlag: { type: Boolean, default: false },
+
+    // Seasonal warning message (null when in-season)
+    seasonalWarning: { type: String, default: null },
+
     lastScrapedAt: { type: Date, default: null },
 
     // Quick-filter flag: true when winScore >= 75

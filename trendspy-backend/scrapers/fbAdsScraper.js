@@ -432,4 +432,25 @@ async function fbAdsScraper({ searchTerm, category } = {}) {
   };
 }
 
+/**
+ * Count unique competitor advertisers for a product by searching
+ * the FB Ad Library JSON API for its key terms.
+ *
+ * @param {string} productName
+ * @param {string} [city]
+ * @returns {Promise<{ count: number, advertisers: string[] }>}
+ */
+export async function countCompetitors(productName, city) {
+  const searchTerms = productName.split(/\s+/).slice(0, 3).join(' ');
+  const query = city ? `${searchTerms} ${city}` : `${searchTerms} Pakistan`;
+
+  const ads = await tryJsonApi(query, 'General');
+  const advertisers = [...new Set(ads.map((a) => a.advertiserName).filter(Boolean))];
+
+  return {
+    count:       advertisers.length,
+    advertisers: advertisers.slice(0, 10),
+  };
+}
+
 export default fbAdsScraper;

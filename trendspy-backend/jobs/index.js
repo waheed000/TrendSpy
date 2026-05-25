@@ -4,3 +4,5 @@ export { startScoreJob }         from './scoreJob.js';
 export { startFbAdsJob }         from './fbAdsJob.js';
 export { startAlertJob }         from './alertJob.js';
 export { startInternationalJob } from './internationalJob.js';
+export { startCompetitorJob }    from './competitorJob.js';
+export { startAutoCorrectJob }   from './autoCorrectJob.js';

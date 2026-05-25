@@ -73,6 +73,23 @@ export default function ProductCard({ product }) {
             <span>·</span>
             <span>{product.competitors} competitors</span>
           </div>
+
+          {/* Feature 7: Data quality warnings */}
+          {product.verificationNote && (
+            <div className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 rounded-lg mb-2">
+              {product.verificationNote}
+            </div>
+          )}
+          {product.seasonalWarning && (
+            <div className="text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-1 rounded-lg mb-2">
+              {product.seasonalWarning}
+            </div>
+          )}
+          {product.confidence === 'low' && (
+            <div className="text-xs text-gray-400 bg-gray-800/50 border border-gray-700/50 px-2 py-1 rounded-lg mb-2">
+              Low confidence — verify before sourcing
+            </div>
+          )}
         </div>
 
         <button

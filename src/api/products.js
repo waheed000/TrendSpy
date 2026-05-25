@@ -20,10 +20,18 @@ export function normalizeProduct(p) {
     cities: p.cities || [],
     adsRunning: p.activeAds || 0,
     competitors: p.competitorCount || 0,
+    topCompetitors: p.topCompetitors || [],
     darazOrders: p.darazOrders || 0,
     tiktokViews: p.tiktokViews || 0,
     slug: p.slug,
     isWinning: p.isWinning || false,
+    // Feature 6 & 7: data quality / confidence fields
+    confidence: p.confidence || 'medium',
+    confidenceScore: p.confidenceScore ?? 0,
+    isVerified: p.isVerified ?? false,
+    verificationNote: p.verificationNote || null,
+    seasonalWarning: p.seasonalWarning || null,
+    imageMismatchFlag: p.imageMismatchFlag || false,
   }
 }
 
