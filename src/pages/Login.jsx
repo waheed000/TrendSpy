@@ -42,6 +42,11 @@ export default function Login() {
         return
       }
 
+      if (data.requiresVerification) {
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}`)
+        return
+      }
+
       const { user, token } = data.data
       setUser({ ...user, token })
       toast.success(`Welcome${isSignup ? '' : ' back'}, ${user.name || user.email.split('@')[0]}!`)
@@ -49,7 +54,6 @@ export default function Login() {
       if (isSignup) {
         navigate('/onboarding')
       } else {
-        // Check if returning user needs onboarding
         try {
           const statusRes = await fetch('/api/user/onboarding/status', {
             headers: { Authorization: `Bearer ${token}` },
@@ -121,7 +125,14 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-xs text-gray-400 mb-1.5">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs text-gray-400">Password</label>
+                {!isSignup && (
+                  <Link to="/forgot-password" className="text-xs text-primary-400 hover:text-primary-300 transition-colors">
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
               <div className="relative">
                 <FiLock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input

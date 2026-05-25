@@ -1,0 +1,849 @@
+You are an expert full-stack developer. Add authentication enhancements to TrendSpy: Forgot Password (OTP-based) and Email Verification (OTP on signup). NO SOCIAL LOGIN.
+
+## Phase 12 Goal: Complete OTP-Based Authentication
+
+Add OTP-based email verification for new users and OTP-based password reset for existing users.
+
+---
+
+## Packages to Install
+
+```bash
+npm install nodemailer
+PART 1: Email Verification (OTP on Signup)
+Create: models/EmailVerification.js
+javascript
+import mongoose from 'mongoose';
+
+const emailVerificationSchema = new mongoose.Schema({
+  email: { type: String, required: true, index: true },
+  otp: { type: String, required: true },
+  purpose: { type: String, enum: ['verification', 'reset'], default: 'verification' },
+  expiresAt: { type: Date, required: true, index: { expires: '15m' } },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export default mongoose.models.EmailVerification || mongoose.model('EmailVerification', emailVerificationSchema);
+Update: models/User.js
+Add this field:
+
+javascript
+emailVerified: { type: Boolean, default: false }
+Create: services/otpService.js
+javascript
+import crypto from 'crypto';
+import EmailVerification from '@/models/EmailVerification';
+import User from '@/models/User';
+import nodemailer from 'nodemailer';
+
+// Generate 6-digit OTP
+export function generateOTP() {
+  return crypto.randomInt(100000, 999999).toString();
+}
+
+// Send email using nodemailer
+async function sendEmail(to, subject, html) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+
+  await transporter.sendMail({
+    from: `"TrendSpy" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html
+  });
+}
+
+// Send verification OTP
+export async function sendVerificationOTP(email) {
+  const otp = generateOTP();
+  
+  // Save to database
+  await EmailVerification.findOneAndUpdate(
+    { email, purpose: 'verification' },
+    { otp, expiresAt: new Date(Date.now() + 15 * 60 * 1000) },
+    { upsert: true }
+  );
+  
+  // Send email
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 500px; background: white; padding: 30px; border-radius: 10px; margin: 0 auto; }
+        .otp { font-size: 36px; font-weight: bold; color: #2563eb; background: #f0f9ff; padding: 15px; text-align: center; letter-spacing: 5px; border-radius: 8px; }
+        .footer { margin-top: 20px; font-size: 12px; color: #6b7280; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 style="color: #2563eb;">Verify Your Email</h2>
+        <p>Thank you for signing up for <strong>TrendSpy</strong> - Pakistan's #1 Product Hunter.</p>
+        <p>Your verification code is:</p>
+        <div class="otp">${otp}</div>
+        <p>This code expires in <strong>15 minutes</strong>.</p>
+        <p>If you didn't create an account, please ignore this email.</p>
+        <div class="footer">
+          <hr>
+          <p>TrendSpy - Find winning products before your competitors</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  await sendEmail(email, "Verify Your Email - TrendSpy", html);
+  return { success: true };
+}
+
+// Verify OTP
+export async function verifyOTP(email, otp, purpose = 'verification') {
+  const record = await EmailVerification.findOne({ email, otp, purpose });
+  
+  if (!record) {
+    throw new Error('Invalid OTP');
+  }
+  
+  if (record.expiresAt < new Date()) {
+    throw new Error('OTP has expired');
+  }
+  
+  // Delete used OTP
+  await EmailVerification.deleteOne({ _id: record._id });
+  
+  return { verified: true };
+}
+
+// Resend OTP
+export async function resendVerificationOTP(email) {
+  return await sendVerificationOTP(email);
+}
+Update: app/api/auth/register/route.js
+Modify registration flow:
+
+javascript
+import { sendVerificationOTP } from '@/services/otpService';
+
+// Inside POST handler, after creating user:
+const user = await User.create({
+  name,
+  email: email.toLowerCase(),
+  password: hashedPassword,
+  emailVerified: false  // Not verified yet
+});
+
+// Send OTP email
+await sendVerificationOTP(user.email);
+
+// Return response WITHOUT token
+return Response.json({
+  success: true,
+  message: "Verification OTP sent to your email",
+  email: user.email,
+  requiresVerification: true
+}, { status: 201 });
+Create: app/api/auth/verify-email/route.js (POST)
+javascript
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
+import { verifyOTP } from '@/services/otpService';
+import jwt from 'jsonwebtoken';
+
+export async function POST(request) {
+  try {
+    await connectDB();
+    
+    const { email, otp } = await request.json();
+    
+    if (!email || !otp) {
+      return Response.json(
+        { success: false, error: 'Email and OTP are required' },
+        { status: 400 }
+      );
+    }
+    
+    // Verify OTP
+    await verifyOTP(email, otp, 'verification');
+    
+    // Update user as verified
+    const user = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { emailVerified: true },
+      { new: true }
+    ).select('-password');
+    
+    if (!user) {
+      return Response.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    
+    // Set cookie
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    };
+    
+    return Response.json(
+      {
+        success: true,
+        message: 'Email verified successfully',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          emailVerified: user.emailVerified
+        },
+        token
+      },
+      {
+        status: 200,
+        headers: {
+          'Set-Cookie': `token=${token}; HttpOnly; ${cookieOptions.secure ? 'Secure;' : ''} SameSite=Lax; Max-Age=${cookieOptions.maxAge}; Path=/`,
+        }
+      }
+    );
+    
+  } catch (error) {
+    console.error('Email verification error:', error);
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 400 }
+    );
+  }
+}
+Create: app/api/auth/resend-otp/route.js (POST)
+javascript
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
+import { sendVerificationOTP } from '@/services/otpService';
+
+export async function POST(request) {
+  try {
+    await connectDB();
+    
+    const { email } = await request.json();
+    
+    if (!email) {
+      return Response.json(
+        { success: false, error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Check if user exists
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return Response.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Resend OTP
+    await sendVerificationOTP(email);
+    
+    return Response.json({
+      success: true,
+      message: 'Verification OTP resent to your email'
+    });
+    
+  } catch (error) {
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+PART 2: Forgot Password (OTP-based Reset)
+Create: services/passwordResetService.js
+javascript
+import crypto from 'crypto';
+import bcryptjs from 'bcryptjs';
+import EmailVerification from '@/models/EmailVerification';
+import User from '@/models/User';
+import { sendEmail } from './otpService';
+
+// Send password reset OTP
+export async function sendPasswordResetOTP(email) {
+  const user = await User.findOne({ email: email.toLowerCase() });
+  
+  // Don't reveal if email exists for security
+  if (!user) {
+    return { success: true, message: "If an account exists, OTP sent" };
+  }
+  
+  const otp = crypto.randomInt(100000, 999999).toString();
+  
+  // Save OTP
+  await EmailVerification.findOneAndUpdate(
+    { email: email.toLowerCase(), purpose: 'reset' },
+    { otp, expiresAt: new Date(Date.now() + 15 * 60 * 1000) },
+    { upsert: true }
+  );
+  
+  // Send email
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 500px; background: white; padding: 30px; border-radius: 10px; margin: 0 auto; }
+        .otp { font-size: 36px; font-weight: bold; color: #2563eb; background: #f0f9ff; padding: 15px; text-align: center; letter-spacing: 5px; border-radius: 8px; }
+        .warning { color: #dc2626; font-size: 12px; margin-top: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 style="color: #2563eb;">Reset Your Password</h2>
+        <p>We received a request to reset your password for <strong>TrendSpy</strong>.</p>
+        <p>Your password reset code is:</p>
+        <div class="otp">${otp}</div>
+        <p>This code expires in <strong>15 minutes</strong>.</p>
+        <p class="warning">If you didn't request this, please ignore this email. Your password will not be changed.</p>
+        <hr>
+        <p style="font-size: 12px; color: #6b7280;">TrendSpy - Pakistan's #1 Product Hunter</p>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  await sendEmail(email, "Reset Your Password - TrendSpy", html);
+  return { success: true };
+}
+
+// Reset password with OTP
+export async function resetPassword(email, otp, newPassword) {
+  const record = await EmailVerification.findOne({ 
+    email: email.toLowerCase(), 
+    otp, 
+    purpose: 'reset' 
+  });
+  
+  if (!record) {
+    throw new Error('Invalid OTP');
+  }
+  
+  if (record.expiresAt < new Date()) {
+    throw new Error('OTP has expired');
+  }
+  
+  // Hash new password
+  const salt = await bcryptjs.genSalt(10);
+  const hashedPassword = await bcryptjs.hash(newPassword, salt);
+  
+  // Update user password
+  await User.updateOne(
+    { email: email.toLowerCase() },
+    { password: hashedPassword }
+  );
+  
+  // Delete used OTP
+  await EmailVerification.deleteOne({ _id: record._id });
+  
+  return { success: true };
+}
+Create: app/api/auth/forgot-password/route.js (POST)
+javascript
+import { sendPasswordResetOTP } from '@/services/passwordResetService';
+
+export async function POST(request) {
+  try {
+    const { email } = await request.json();
+    
+    if (!email) {
+      return Response.json(
+        { success: false, error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+    
+    await sendPasswordResetOTP(email);
+    
+    return Response.json({
+      success: true,
+      message: "If an account exists with this email, you will receive a password reset OTP"
+    });
+    
+  } catch (error) {
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+Create: app/api/auth/reset-password/route.js (POST)
+javascript
+import { resetPassword } from '@/services/passwordResetService';
+
+export async function POST(request) {
+  try {
+    const { email, otp, newPassword } = await request.json();
+    
+    if (!email || !otp || !newPassword) {
+      return Response.json(
+        { success: false, error: 'Email, OTP, and new password are required' },
+        { status: 400 }
+      );
+    }
+    
+    if (newPassword.length < 6) {
+      return Response.json(
+        { success: false, error: 'Password must be at least 6 characters' },
+        { status: 400 }
+      );
+    }
+    
+    await resetPassword(email, otp, newPassword);
+    
+    return Response.json({
+      success: true,
+      message: "Password reset successful. You can now login with your new password."
+    });
+    
+  } catch (error) {
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 400 }
+    );
+  }
+}
+PART 3: Frontend Pages
+Create: src/pages/VerifyEmail.jsx
+jsx
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
+
+export default function VerifyEmail() {
+  const [searchParams] = useSearchParams();
+  const email = searchParams.get('email') || '';
+  const navigate = useNavigate();
+  const { setToken, setUser } = useAuthStore();
+  
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) value = value[0];
+    if (!/^\d*$/.test(value)) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    
+    // Auto-focus next input
+    if (value && index < 5) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+  };
+  
+  const handleVerify = async () => {
+    const otpCode = otp.join('');
+    if (otpCode.length !== 6) {
+      setError('Please enter 6-digit code');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: otpCode })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setToken(data.token);
+        setUser(data.user);
+        localStorage.setItem('token', data.token);
+        navigate('/dashboard');
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleResend = async () => {
+    setResendDisabled(true);
+    setCountdown(60);
+    
+    try {
+      const res = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setError('');
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError('Failed to resend OTP');
+    }
+    
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setResendDisabled(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+  
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Verify Your Email</h1>
+          <p className="text-gray-500 mt-2">
+            We sent a 6-digit code to <strong>{email}</strong>
+          </p>
+        </div>
+        
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Enter 6-digit code
+          </label>
+          <div className="flex gap-2 justify-center">
+            {otp.map((digit, idx) => (
+              <input
+                key={idx}
+                id={`otp-${idx}`}
+                type="text"
+                maxLength="1"
+                value={digit}
+                onChange={(e) => handleOtpChange(idx, e.target.value)}
+                className="w-12 h-12 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+              />
+            ))}
+          </div>
+        </div>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+        
+        <button
+          onClick={handleVerify}
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+        >
+          {loading ? 'Verifying...' : 'Verify & Continue'}
+        </button>
+        
+        <div className="text-center mt-4">
+          <button
+            onClick={handleResend}
+            disabled={resendDisabled}
+            className="text-blue-600 hover:underline disabled:opacity-50"
+          >
+            {resendDisabled ? `Resend in ${countdown}s` : 'Resend Code'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+Create: src/pages/ForgotPassword.jsx
+jsx
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+
+export default function ForgotPassword() {
+  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  
+  const handleSendOTP = async () => {
+    if (!email) {
+      setError('Email is required');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage(data.message);
+        setStep(2);
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleResetPassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    
+    const otpCode = otp.join('');
+    if (otpCode.length !== 6) {
+      setError('Please enter 6-digit code');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: otpCode, newPassword })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setMessage(data.message);
+        setStep(3);
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) value = value[0];
+    if (!/^\d*$/.test(value)) return;
+    
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+    
+    if (value && index < 5) {
+      document.getElementById(`reset-otp-${index + 1}`)?.focus();
+    }
+  };
+  
+  if (step === 1) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+          <h1 className="text-2xl font-bold text-center">Forgot Password?</h1>
+          <p className="text-gray-500 text-center mt-2">
+            Enter your email to receive a reset code
+          </p>
+          
+          <div className="mt-6">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          {error && <div className="mt-3 text-red-600 text-sm">{error}</div>}
+          {message && <div className="mt-3 text-green-600 text-sm">{message}</div>}
+          
+          <button
+            onClick={handleSendOTP}
+            disabled={loading}
+            className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
+          >
+            {loading ? 'Sending...' : 'Send Reset Code'}
+          </button>
+          
+          <div className="text-center mt-4">
+            <Link to="/login" className="text-blue-600 hover:underline">
+              Back to Login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (step === 2) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+          <h1 className="text-2xl font-bold text-center">Reset Password</h1>
+          <p className="text-gray-500 text-center mt-2">
+            Enter the code sent to <strong>{email}</strong>
+          </p>
+          
+          <div className="mt-6">
+            <label className="block text-sm font-medium mb-2">6-digit code</label>
+            <div className="flex gap-2 justify-center">
+              {otp.map((digit, idx) => (
+                <input
+                  key={idx}
+                  id={`reset-otp-${idx}`}
+                  type="text"
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleOtpChange(idx, e.target.value)}
+                  className="w-12 h-12 text-center text-2xl font-bold border-2 rounded-lg focus:border-blue-500 focus:outline-none"
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          {error && <div className="mt-3 text-red-600 text-sm">{error}</div>}
+          
+          <button
+            onClick={handleResetPassword}
+            disabled={loading}
+            className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
+          >
+            {loading ? 'Resetting...' : 'Reset Password'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+        <div className="text-green-500 text-5xl mb-4">✓</div>
+        <h1 className="text-2xl font-bold">Password Reset Successful!</h1>
+        <p className="text-gray-500 mt-2">
+          You can now login with your new password.
+        </p>
+        <Link
+          to="/login"
+          className="block w-full mt-6 bg-blue-600 text-white py-2 rounded-lg font-semibold text-center hover:bg-blue-700"
+        >
+          Go to Login
+        </Link>
+      </div>
+    </div>
+  );
+}
+Update: src/pages/Login.jsx
+Add "Forgot Password?" link and update signup redirect:
+
+jsx
+// After successful signup response
+if (data.requiresVerification) {
+  navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+}
+
+// Add this link below password field
+<Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+  Forgot Password?
+</Link>
+Update: src/App.jsx
+Add routes:
+
+jsx
+<Route path="/verify-email" element={<VerifyEmail />} />
+<Route path="/forgot-password" element={<ForgotPassword />} />
+Update: src/store/useAuthStore.js
+Add setToken and setUser actions if not present.
+
+Environment Variables (.env.local)
+env
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
+JWT_SECRET=your_jwt_secret
+Testing Checklist
+New user signs up → receives OTP email
+
+Wrong OTP → error message
+
+Correct OTP → verified, auto-login, redirect to Dashboard
+
+Resend OTP works (60s cooldown)
+
+Forgot Password → receives reset OTP
+
+Reset password with OTP works
+
+Old password no longer works
+
+User can login with new password
+
+Now implement all of the above with clean, production-ready code.

@@ -59,9 +59,10 @@ const userSchema = new mongoose.Schema(
     apiKeyLastUsed:     { type: Date },
     profilePicture:     { type: String, default: null },
     role:     { type: String, enum: ['user', 'admin'], default: 'user' },
-    isActive: { type: Boolean, default: true },
-    lastLogin: { type: Date },
+    isActive:            { type: Boolean, default: true },
+    lastLogin:           { type: Date },
     onboardingCompleted: { type: Boolean, default: false },
+    emailVerified:       { type: Boolean, default: false },
   },
   { timestamps: true }
 );

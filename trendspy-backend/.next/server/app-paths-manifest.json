@@ -1,4 +1,7 @@
 {
+  "/not-found": "app/not-found.js",
+  "/api/auth/reset-password/route": "app/api/auth/reset-password/route.js",
+  "/api/auth/verify-email/route": "app/api/auth/verify-email/route.js",
   "/api/auth/register/route": "app/api/auth/register/route.js",
-  "/api/ai/analyze/route": "app/api/ai/analyze/route.js"
+  "/api/auth/forgot-password/route": "app/api/auth/forgot-password/route.js"
 }
