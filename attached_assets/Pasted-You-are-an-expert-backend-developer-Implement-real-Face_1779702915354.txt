@@ -1,0 +1,169 @@
+You are an expert backend developer. Implement real Facebook Ad Library scraping using session cookies for TrendSpy. No mock data. Must work with real Pakistan ads.
+
+## Task: Enable Live Facebook Ads with Session Cookie
+
+### Step 1: Add Environment Variable
+
+In Replit Secrets, add:
+FB_SESSION_COOKIE=c_user=100007657081845; xs=21%3AF_Rt0shc0S3IuA%3A2%3A1779702431%3A-1%3A-1%3A%3AAcwkpzVWp1kQj1bKMXc63aQfDaB0i2w8wWswXk9wHA
+
+text
+
+### Step 2: Update `scrapers/fbAdsScraper.js`
+
+Completely rewrite with cookie authentication:
+
+```javascript
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-stealth';
+
+puppeteer.use(StealthPlugin());
+
+export async function scrapeFacebookAds(searchTerm, category = null) {
+  let browser = null;
+  const ads = [];
+  
+  try {
+    const cookieString = process.env.FB_SESSION_COOKIE;
+    
+    if (!cookieString) {
+      console.log('❌ FB_SESSION_COOKIE not set. Cannot scrape real ads.');
+      return { success: false, ads: [], totalFound: 0, savedNew: 0, error: 'Cookie missing' };
+    }
+    
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    
+    // Parse and set cookies
+    const cookies = cookieString.split('; ').map(cookie => {
+      const [name, value] = cookie.split('=');
+      return { name, value, domain: '.facebook.com' };
+    });
+    
+    await page.setCookie(...cookies);
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+    
+    // Facebook Ad Library URL for Pakistan
+    const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=PK&q=${encodeURIComponent(searchTerm)}`;
+    
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.waitForSelector('div[data-ad-preview]', { timeout: 15000 });
+    
+    // Extract ads
+    const extractedAds = await page.evaluate(() => {
+      const adElements = document.querySelectorAll('div[data-ad-preview]');
+      return Array.from(adElements).slice(0, 20).map(ad => {
+        const adId = ad.getAttribute('data-ad-id') || 
+                     ad.querySelector('a[href*="ads/library"]')?.href?.match(/id=(\d+)/)?.[1];
+        
+        return {
+          adId: adId,
+          directUrl: adId ? `https://www.facebook.com/ads/library/?id=${adId}` : null,
+          advertiserName: ad.querySelector('[data-advertiser-name]')?.innerText || 
+                          ad.querySelector('strong')?.innerText,
+          headline: ad.querySelector('[data-ad-body]')?.innerText ||
+                    ad.querySelector('div[dir="auto"]')?.innerText,
+          daysRunning: parseInt(ad.querySelector('[data-running-days]')?.innerText) || null,
+          creativeType: ad.querySelector('video') ? 'video' : 
+                        ad.querySelector('[data-carousel]') ? 'carousel' : 'image',
+          platform: 'facebook'
+        };
+      });
+    });
+    
+    ads.push(...extractedAds);
+    await browser.close();
+    
+    // Save to database
+    let savedNew = 0;
+    for (const ad of ads) {
+      if (ad.adId) {
+        const existing = await ScrapedAd.findOne({ adId: ad.adId });
+        if (!existing) {
+          await ScrapedAd.create({
+            adId: ad.adId,
+            directUrl: ad.directUrl,
+            advertiserName: ad.advertiserName,
+            headline: ad.headline,
+            daysRunning: ad.daysRunning,
+            creativeType: ad.creativeType,
+            platform: ad.platform,
+            category: category,
+            scrapedAt: new Date()
+          });
+          savedNew++;
+        }
+      }
+    }
+    
+    return { success: true, ads, totalFound: ads.length, savedNew };
+    
+  } catch (error) {
+    console.error('FB Scraper error:', error);
+    if (browser) await browser.close();
+    return { success: false, ads: [], totalFound: 0, savedNew: 0, error: error.message };
+  }
+}
+
+export async function countCompetitors(productName) {
+  const result = await scrapeFacebookAds(productName);
+  const uniqueAdvertisers = new Set(result.ads.map(ad => ad.advertiserName));
+  return { count: uniqueAdvertisers.size, advertisers: Array.from(uniqueAdvertisers) };
+}
+Step 3: Update jobs/fbAdsJob.js
+javascript
+import { scrapeFacebookAds } from '@/scrapers/fbAdsScraper';
+import { emitNewAdsDetected } from '@/lib/socketEmitter';
+
+export async function startFbAdsJob() {
+  const categories = ['Electronics', 'Fashion', 'Beauty', 'Home', 'Sports'];
+  let totalSaved = 0;
+  
+  for (const category of categories) {
+    const result = await scrapeFacebookAds(category, category);
+    if (result.savedNew > 0) {
+      totalSaved += result.savedNew;
+      emitNewAdsDetected(category, result.savedNew);
+    }
+    await new Promise(resolve => setTimeout(resolve, 5000)); // delay
+  }
+  
+  console.log(`✅ FB Ads job completed. New ads: ${totalSaved}`);
+}
+Step 4: Create app/api/ads/refresh/route.js
+Manual refresh endpoint:
+
+javascript
+import { scrapeFacebookAds } from '@/scrapers/fbAdsScraper';
+
+export async function POST(request) {
+  const { searchTerm, category } = await request.json();
+  const result = await scrapeFacebookAds(searchTerm, category);
+  return Response.json(result);
+}
+Step 5: Test the Setup
+bash
+# Test manually
+curl -X POST http://localhost:3001/api/ads/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"searchTerm":"smart watch","category":"Electronics"}'
+Expected Result After Implementation
+Before	After
+Ads were estimated/demo	✅ Real ads from Facebook
+No directUrl	✅ Working Facebook link
+competitorCount: 0	✅ Real competitor count
+No ad preview	✅ User can click and verify
+Testing Checklist
+FB_SESSION_COOKIE set in Secrets
+
+Backend restarted
+
+POST /api/ads/refresh returns real ads
+
+directUrl opens Facebook ad page
+
+Ad Spy page shows real ads
