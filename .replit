@@ -102,6 +102,7 @@ CRON_ENABLED = "true"
 SOCKET_PORT = "3002"
 SOCKET_INTERNAL_URL = "http://localhost:3002"
 SOCKET_INTERNAL_SECRET = "trendspy-socket-internal-secret-2025"
+JWT_SECRET = "1e455f0322ccc642ea4c204af028b90e44010e8bf7877e49592beec4a66c980d4026da14e68592685d8c3d95d0fb47d7"
 
 [userenv.development]
 FRONTEND_URL = "http://localhost:5000"
