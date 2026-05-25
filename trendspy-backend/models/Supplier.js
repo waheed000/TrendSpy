@@ -16,6 +16,27 @@ const supplierSchema = new mongoose.Schema(
     rating:   { type: Number, min: 0, max: 5, default: 0 },
     verified: { type: Boolean, default: false },
     sourceUrl: { type: String, default: null },
+
+    // Who added this supplier
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+
+    // How the supplier entered the system
+    sourceType: {
+      type: String,
+      enum: ['scraper', 'user', 'admin'],
+      default: 'scraper',
+    },
+
+    // Admin verification workflow
+    verificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'rejected'],
+      default: 'pending',
+      index: true,
+    },
+
+    // Optional review note left by admin
+    reviewNote: { type: String, default: null },
   },
   { timestamps: true }
 );

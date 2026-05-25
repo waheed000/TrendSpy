@@ -1,0 +1,60 @@
+You are an expert backend developer. Implement a complete supplier system for TrendSpy where ALL users can view suppliers, but only admin can trigger heavy scrapers. Users can also add their own known suppliers.
+
+## Goal: Supplier System with User Access + Admin Controls
+
+## Part 1: All Users Can View Suppliers (Already Working)
+- GET /api/suppliers?city=Lahore → all users
+- AI report shows suppliers automatically
+
+## Part 2: Users Can Add Their Own Suppliers (NEW)
+
+### Create: `app/api/suppliers/add/route.js` (POST)
+- Protected route (any authenticated user)
+- Body: { name, city, category, phone, website, address }
+- Set `verified: false` (user-added, needs admin check)
+- Set `addedBy: userId`
+- Set `sourceUrl: "user-submitted"`
+
+### Frontend: Add to Profile Page
+- Button: "Add Supplier You Know"
+- Modal form with fields
+- After submit → "Thank you! Supplier will be reviewed."
+
+## Part 3: Admin Can Verify Suppliers
+
+### Create: `app/api/admin/suppliers/verify/route.js` (PUT)
+- Requires ADMIN_API_KEY
+- Body: { supplierId, verified: true/false }
+- Admin can verify user-added suppliers
+
+### Frontend: Admin Dashboard (optional)
+- List pending suppliers
+- Verify/reject buttons
+
+## Part 4: Admin Can Trigger Scraper (Existing)
+- POST /api/suppliers/scrape
+- Requires ADMIN_API_KEY
+- Runs heavy puppeteer scraper
+
+## Part 5: Supplier Display Priority
+1. Verified suppliers (official sources + admin verified) → show first
+2. User-added unverified → show with "community added" badge
+3. Scraper-found unverified → show with "unverified" badge
+
+## Database Model Update
+
+Add to Supplier model:
+```javascript
+addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+sourceType: { type: String, enum: ['scraper', 'user', 'admin'], default: 'scraper' },
+verificationStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' }
+Environment Variables
+env
+ADMIN_API_KEY=trendspy_admin_2025
+Expected User Experience
+User Action	Result
+Visit Dashboard	Sees suppliers in AI report
+Click "Add Supplier"	Form opens
+Submit supplier	Saved as pending verification
+Wait 24-48 hours	Admin verifies, shows verified badge
+Now implement all of the above. NO mock data.

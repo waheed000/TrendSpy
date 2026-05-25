@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import {
   FiUser, FiPhone, FiMail, FiBell, FiShield, FiClock,
   FiTrash2, FiLock, FiRefreshCw, FiSave, FiChevronLeft, FiChevronRight,
+  FiPlusCircle,
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import useStore from '../store/useStore.js'
@@ -10,6 +11,7 @@ import ChangePasswordModal from '../components/ChangePasswordModal.jsx'
 import DeleteAccountModal from '../components/DeleteAccountModal.jsx'
 import UpgradePlanModal from '../components/UpgradePlanModal.jsx'
 import ApiKeySection from '../components/ApiKeySection.jsx'
+import AddSupplierModal from '../components/AddSupplierModal.jsx'
 
 const CATEGORIES = ['Fashion', 'Electronics', 'Beauty', 'Home', 'Grocery', 'Toys', 'Sports', 'Books']
 const PLATFORMS  = ['Facebook Ads', 'Daraz', 'TikTok Shop', 'Instagram', 'OLX']
@@ -94,9 +96,10 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [historyPage, setHistoryPage] = useState(1)
   const [historyLoading, setHistoryLoading] = useState(false)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal]     = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal]   = useState(false)
+  const [showPasswordModal, setShowPasswordModal]   = useState(false)
+  const [showDeleteModal, setShowDeleteModal]       = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal]     = useState(false)
+  const [showAddSupplier, setShowAddSupplier]       = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -449,7 +452,28 @@ export default function Profile() {
           </div>
         </SectionCard>
 
-        {/* Section 6: Account Management */}
+        {/* Section 6: Community — Add Supplier */}
+        <SectionCard title="Community Contributions" icon={FiPlusCircle}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-300">Know a local supplier?</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Share suppliers you work with — help other TrendSpy sellers source products faster.
+                Submissions are reviewed by our team within 24–48 hours.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddSupplier(true)}
+              className="ml-4 flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-primary-600/20 border border-primary-500/30 hover:bg-primary-600/30 text-primary-300 rounded-xl text-sm font-medium transition-all"
+            >
+              <FiPlusCircle size={15} />
+              Add Supplier
+            </button>
+          </div>
+        </SectionCard>
+
+        {/* Section 7: Account Management */}
         <SectionCard title="Account Management" icon={FiShield}>
           <div className="flex flex-wrap gap-3">
             <button
@@ -474,6 +498,7 @@ export default function Profile() {
 
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
       {showDeleteModal   && <DeleteAccountModal  onClose={() => setShowDeleteModal(false)} />}
+      {showAddSupplier   && <AddSupplierModal    onClose={() => setShowAddSupplier(false)} />}
       {showUpgradeModal  && (
         <UpgradePlanModal
           currentPlan={profile.subscriptionPlan}

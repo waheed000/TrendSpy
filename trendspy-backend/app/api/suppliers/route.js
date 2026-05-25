@@ -5,8 +5,19 @@ import { withAuth } from '@/middleware/auth';
 function checkAdmin(request) {
   const adminKey = process.env.ADMIN_API_KEY;
   if (!adminKey) return false;
-  const provided = request.headers.get('x-admin-key');
-  return provided === adminKey;
+  return request.headers.get('x-admin-key') === adminKey;
+}
+
+/**
+ * Sort priority:
+ *   0 — verified suppliers (official + admin-verified)
+ *   1 — community-submitted pending review (sourceType='user')
+ *   2 — scraper-found unverified (sourceType='scraper', pending)
+ */
+function sortPriority(s) {
+  if (s.verificationStatus === 'verified' || s.verified) return 0;
+  if (s.sourceType === 'user' && s.verificationStatus === 'pending')  return 1;
+  return 2;
 }
 
 export async function GET(request) {
@@ -14,22 +25,38 @@ export async function GET(request) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const city     = searchParams.get('city');
-    const category = searchParams.get('category');
-    const search   = searchParams.get('search');
-    const page     = Math.max(1, parseInt(searchParams.get('page')  || '1', 10));
-    const limit    = Math.min(100, parseInt(searchParams.get('limit') || '20', 10));
-    const skip     = (page - 1) * limit;
+    const city      = searchParams.get('city');
+    const category  = searchParams.get('category');
+    const search    = searchParams.get('search');
+    const page      = Math.max(1, parseInt(searchParams.get('page')  || '1', 10));
+    const limit     = Math.min(100, parseInt(searchParams.get('limit') || '20', 10));
+    const skip      = (page - 1) * limit;
+    const isAdmin   = checkAdmin(request);
 
     const filter = {};
     if (city     && city     !== 'All') filter.city     = city;
     if (category && category !== 'All') filter.category = category;
     if (search) filter.$text = { $search: search };
 
-    const [suppliers, total] = await Promise.all([
+    // Hide rejected suppliers from regular users
+    if (!isAdmin) filter.verificationStatus = { $ne: 'rejected' };
+
+    const [rawSuppliers, total] = await Promise.all([
       Supplier.find(filter).sort({ verified: -1, rating: -1 }).skip(skip).limit(limit).lean(),
       Supplier.countDocuments(filter),
     ]);
+
+    // Apply three-tier sort: verified → community pending → scraper pending
+    const suppliers = rawSuppliers
+      .sort((a, b) => sortPriority(a) - sortPriority(b) || (b.rating || 0) - (a.rating || 0))
+      .map((s) => ({
+        ...s,
+        badge: s.verificationStatus === 'verified' || s.verified
+          ? 'verified'
+          : s.sourceType === 'user'
+          ? 'community'
+          : 'unverified',
+      }));
 
     return Response.json({
       success: true,
@@ -65,10 +92,13 @@ export const POST = withAuth(async (request, context, user) => {
 
     const supplier = await Supplier.create({
       name, city, category, phone, email, website, address,
-      products: products || [],
-      rating: rating || 0,
-      verified: verified || false,
+      products:           products || [],
+      rating:             rating   || 0,
+      verified:           verified || false,
       sourceUrl,
+      sourceType:         'admin',
+      verificationStatus: verified ? 'verified' : 'pending',
+      addedBy:            user._id,
     });
 
     return Response.json({ success: true, data: { supplier } }, { status: 201 });
