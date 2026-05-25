@@ -1,1 +1,3 @@
-{}
+{
+  "/api/suppliers/scrape/route": "app/api/suppliers/scrape/route.js"
+}
