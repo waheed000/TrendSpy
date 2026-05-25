@@ -1,1 +1,4 @@
-{}
+{
+  "/api/ads/route": "app/api/ads/route.js",
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
+}
