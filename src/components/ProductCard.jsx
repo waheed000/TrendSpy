@@ -35,8 +35,9 @@ export default function ProductCard({ product }) {
           <div className="absolute top-2 left-2">
             <WinScoreBadge score={product.winScore} size="sm" />
           </div>
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
             <span
+              title="Trend based on verified Google Trends Pakistan data"
               className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
                 product.trend === 'up'
                   ? 'bg-green-500/20 text-green-400'
@@ -46,6 +47,7 @@ export default function ProductCard({ product }) {
               {product.trend === 'up' ? <FiTrendingUp size={12} /> : <FiTrendingDown size={12} />}
               {Math.abs(product.trendPct)}%
             </span>
+            <span className="text-[9px] text-blue-400/70 font-medium px-1">Google Verified</span>
           </div>
         </div>
 
@@ -69,9 +71,9 @@ export default function ProductCard({ product }) {
           </div>
 
           <div className="flex items-center gap-3 text-xs text-gray-500 mb-3">
-            <span>{product.adsRunning} ads running</span>
+            <span title="Estimated — FB Ads Library requires login to verify">{product.adsRunning} ads est.</span>
             <span>·</span>
-            <span>{product.competitors} competitors</span>
+            <span title="Estimated — based on category research">{product.competitors} competitors</span>
           </div>
 
           {/* Feature 7: Data quality warnings */}

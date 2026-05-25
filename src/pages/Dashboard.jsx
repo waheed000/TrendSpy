@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FiPackage, FiBell, FiTrendingUp } from 'react-icons/fi'
+import { FiPackage, FiBell, FiTrendingUp, FiInfo } from 'react-icons/fi'
 import SeasonalBanner from '../components/SeasonalBanner.jsx'
 import LocalTrends from './DashboardTabs/LocalTrends.jsx'
 import GlobalTrends from './DashboardTabs/GlobalTrends.jsx'
@@ -42,6 +42,15 @@ export default function Dashboard() {
       </div>
 
       <SeasonalBanner />
+
+      {/* Data accuracy notice */}
+      <div className="flex items-start gap-2.5 bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3">
+        <FiInfo size={14} className="text-blue-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-gray-400 leading-relaxed">
+          <span className="text-blue-400 font-semibold">Product rankings are based on verified Google Trends Pakistan data</span> (refreshed every 6 hours).
+          Daraz order counts, Facebook ads, and TikTok views shown are market estimates — live scrapers for these platforms are blocked by bot protection and login walls.
+        </p>
+      </div>
 
       {/* Quick stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

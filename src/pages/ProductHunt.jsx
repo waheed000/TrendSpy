@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiFilter, FiChevronDown } from 'react-icons/fi'
+import { FiFilter, FiChevronDown, FiInfo } from 'react-icons/fi'
 import ProductCard from '../components/ProductCard.jsx'
 import FilterBar from '../components/FilterBar.jsx'
 import { useProducts } from '../hooks/useProducts.js'
@@ -48,6 +48,15 @@ export default function ProductHunt() {
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Data quality notice */}
+      <div className="flex items-start gap-2.5 bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3">
+        <FiInfo size={14} className="text-blue-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-gray-400 leading-relaxed">
+          <span className="text-blue-400 font-semibold">Trend data is verified</span> via Google Trends Pakistan (updated every 6 hours).
+          Order counts, active ads, and TikTok views are <span className="text-gray-300">market estimates</span> — live scraping of Daraz, OLX, and FB Ads is pending due to platform bot protection.
+        </p>
       </div>
 
       <div className="flex items-center justify-between">
