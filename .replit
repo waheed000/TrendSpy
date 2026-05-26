@@ -108,6 +108,10 @@ CONFIDENCE_THRESHOLD = "60"
 AUTO_CORRECT_ENABLED = "true"
 SEASONAL_FILTERING = "true"
 AUTO_SCRAPER_ENABLED = "true"
+EMAIL_USER = "your_gmail@gmail.com"
+EMAIL_PASS = "your_gmail_app_password"
+TIKTOK_RAPIDAPI_KEY = "your_rapidapi_key_here"
+TIKTOK_API_HOST = "tiktok-scraper7.p.rapidapi.com"
 
 [userenv.development]
 FRONTEND_URL = "http://localhost:5000"

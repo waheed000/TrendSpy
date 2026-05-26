@@ -1,0 +1,68 @@
+You are an expert backend developer. Permanently store ALL environment secrets for TrendSpy so the project runs immediately after cloning/importing from GitHub – no manual re-entry required.
+
+## Goal
+
+When someone (or Waheed) clones this project from GitHub and opens in Replit, ALL secrets should already be configured. No "missing secret" prompts.
+
+## Tasks to Perform
+
+### Task 1: Create .env.local template file
+
+Create a file `trendspy-backend/.env.local` with placeholders for ALL these variables:
+- MONGODB_URI (Atlas connection string provided by user)
+- JWT_SECRET
+- EMAIL_USER and EMAIL_PASS (Gmail)
+- FB_SESSION_COOKIE (Facebook session)
+- TIKTOK_RAPIDAPI_KEY and TIKTOK_API_HOST
+- ADMIN_API_KEY
+- AUTO_SCRAPER_ENABLED, SEASONAL_FILTERING, CONFIDENCE_THRESHOLD
+
+Use the actual values Waheed provided for MongoDB and Facebook cookie. For others, use descriptive placeholders like "your_key_here".
+
+### Task 2: Convert all secrets to Replit Secrets
+
+Run `replit secrets set` commands for each of the 12+ secrets so they are stored permanently in Replit's secret manager. This includes:
+- MONGODB_URI (the Atlas string)
+- JWT_SECRET (generate a strong random string)
+- EMAIL_USER and EMAIL_PASS (use the Gmail credentials)
+- FB_SESSION_COOKIE (use the cookie string Waheed provided)
+- TIKTOK_RAPIDAPI_KEY (placeholder – user will add later)
+- ADMIN_API_KEY (generate a strong random string)
+- All feature flags set to "true" or appropriate values
+
+### Task 3: Update lib/db.js
+
+Modify the database connection logic to:
+- ALWAYS check process.env.MONGODB_URI first (Replit Secrets)
+- If MONGODB_URI is missing, log an error and exit – do NOT fall back to in-memory database
+- Remove all mongodb-memory-server imports from production paths
+
+### Task 4: Create a backup script
+
+Create `scripts/exportSecrets.js` that exports masked versions of all secrets to a backup file (values masked, not exposed). This is for documentation only.
+
+### Task 5: Update .gitignore
+
+Ensure .env.local, .env.production, .secrets-backup.json, *.pem, and *.key are all ignored by git so real secrets never get committed.
+
+### Task 6: Verify all secrets are set
+
+Run `replit secrets list` to confirm all required secrets exist in Replit's secret manager.
+
+### Task 7: Test the import flow
+
+After committing everything to GitHub:
+1. Delete the current Replit project
+2. Import the project from GitHub again
+3. Verify the project runs WITHOUT asking for any secrets
+4. Verify MongoDB Atlas connection works (data persists)
+5. Verify all scrapers work immediately
+
+## Important Notes
+
+- Never commit real secrets to GitHub – .env.local is already ignored
+- Replit Secrets survive project re-imports automatically
+- The .env.local template is for reference only – actual values come from Secrets
+- After import, run `replit secrets list` to confirm everything is there
+
+Now implement all of the above with clean, professional code.

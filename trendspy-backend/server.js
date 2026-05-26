@@ -5,26 +5,32 @@ import next from 'next';
 async function main() {
   const dev = process.env.NODE_ENV !== 'production';
 
-  // Start in-memory MongoDB BEFORE Next.js loads (keeps it out of webpack)
-  const hasProdUri =
-    process.env.MONGODB_URI &&
-    !process.env.MONGODB_URI.includes('localhost') &&
-    process.env.MONGODB_URI !== 'mongodb://localhost:27017/trendspy';
+  // ── MongoDB setup ─────────────────────────────────────────────────────────
+  // Priority 1: MONGODB_URI secret (Atlas) — data persists across restarts.
+  // Priority 2: In-memory fallback — dev only, data lost on restart.
+  const atlasUri = process.env.MONGODB_URI;
+  const isAtlas  = atlasUri &&
+    !atlasUri.includes('localhost') &&
+    atlasUri.startsWith('mongodb');
 
-  if (!hasProdUri) {
-    console.log('[server] No production MONGODB_URI — starting in-memory MongoDB...');
+  if (isAtlas) {
+    console.log('[server] ✅ Using MongoDB Atlas (persistent storage)');
+    // MONGODB_URI is already set — lib/db.js will use it directly.
+  } else {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[server] ❌ MONGODB_URI not set in production. Set it in Replit Secrets.');
+      process.exit(1);
+    }
+    console.log('[server] No Atlas URI — starting in-memory MongoDB (dev mode, data resets on restart)...');
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     const mongod = await MongoMemoryServer.create();
     process.env.MONGODB_URI = mongod.getUri();
     process.env.DB_NAME = process.env.DB_NAME || 'trendspy';
     console.log('[server] ✅ In-memory MongoDB ready');
 
-    const stop = async () => {
-      await mongod.stop();
-      process.exit(0);
-    };
+    const stop = async () => { await mongod.stop(); process.exit(0); };
     process.on('SIGTERM', stop);
-    process.on('SIGINT', stop);
+    process.on('SIGINT',  stop);
   }
 
   const app = next({ dev, dir: new URL('.', import.meta.url).pathname });
