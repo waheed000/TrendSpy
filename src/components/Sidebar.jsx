@@ -8,6 +8,7 @@ import {
   FiCpu,
   FiBell,
   FiSun,
+  FiActivity,
 } from 'react-icons/fi'
 
 const NAV_ITEMS = [
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/ai-analyst', icon: FiCpu, label: 'AI Analyst' },
   { to: '/alerts', icon: FiBell, label: 'Alerts' },
   { to: '/seasonal', icon: FiSun, label: 'Seasonal' },
+  { to: '/scheduler', icon: FiActivity, label: 'Scheduler' },
 ]
 
 export default function Sidebar() {

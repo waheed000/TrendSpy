@@ -15,6 +15,7 @@ import AIAnalyst from './pages/AIAnalyst.jsx'
 import Alerts from './pages/Alerts.jsx'
 import Seasonal from './pages/Seasonal.jsx'
 import Profile from './pages/Profile.jsx'
+import SchedulerDashboard from './pages/SchedulerDashboard.jsx'
 import Layout from './components/Layout.jsx'
 import useStore from './store/useStore.js'
 
@@ -134,6 +135,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Layout><Profile /></Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scheduler"
+          element={
+            <ProtectedRoute>
+              <Layout><SchedulerDashboard /></Layout>
             </ProtectedRoute>
           }
         />
