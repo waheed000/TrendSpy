@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FiSearch, FiCpu, FiDollarSign, FiTarget, FiUsers, FiStar, FiAlertTriangle, FiLock } from 'react-icons/fi'
 import { formatPKR } from '../utils/formatPKR.js'
 import useStore from '../store/useStore.js'
+import TikTokPanel from '../components/TikTokPanel.jsx'
 
 export default function AIAnalyst() {
   const user = useStore((s) => s.user)
@@ -234,6 +235,16 @@ export default function AIAnalyst() {
               </div>
             </div>
           )}
+
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-pink-400">
+                <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.79 1.53V6.75a4.85 4.85 0 01-1.02-.06z" />
+              </svg>
+              TikTok Trends
+            </h3>
+            <TikTokPanel productName={report.product} />
+          </div>
         </div>
       )}
 
