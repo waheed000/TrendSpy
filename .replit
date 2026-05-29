@@ -107,6 +107,7 @@ SEASONAL_FILTERING = "true"
 AUTO_SCRAPER_ENABLED = "true"
 TIKTOK_API_HOST = "tiktok-scraper7.p.rapidapi.com"
 SOCKET_INTERNAL_SECRET = "trendspy-socket-internal-secret-2025"
+TIKTOK_SANDBOX_MODE = "true"
 
 [userenv.development]
 FRONTEND_URL = "http://localhost:5000"

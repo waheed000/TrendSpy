@@ -1,23 +1,17 @@
 /**
- * TikTok Scraper — fits-api (no API key required)
- * Fetches videos from known Pakistani e-commerce/shopping TikTok accounts
- * and extracts product signals to update Product documents.
+ * TikTok Scraper — TikTok Official API
+ * Replaced fits-api with the Official API via tiktokOfficialService.
+ * Fetches trending videos in Pakistan, extracts product signals,
+ * and updates Product documents in MongoDB.
  */
 
-import { getUserVideos } from 'fits-api';
-import { connectDB } from '../lib/db.js';
-import { Product } from '../models/index.js';
-
-// Pakistani shopping/e-commerce TikTok accounts to track
-const PK_TIKTOK_ACCOUNTS = [
-  'daraz.pk',
-  'darazofficial',
-  'olxpakistan',
-  'telemart.pk',
-  'homeshopping.pk',
-  'shophive',
-  'clicky.pk',
-];
+import { connectDB }                    from '../lib/db.js';
+import { Product }                       from '../models/index.js';
+import {
+  fetchPakistanTrendingSignals,
+  searchVideos,
+  getHashtagStats,
+}                                        from '../services/tiktokOfficialService.js';
 
 // Keywords in captions that signal a product mention
 const PRODUCT_KEYWORDS = [
@@ -25,13 +19,19 @@ const PRODUCT_KEYWORDS = [
   'pkr', 'rs.', 'rupees', 'daraz', 'olx', 'delivery', 'cod', 'cash on delivery',
 ];
 
+// Pakistani e-commerce hashtags to scan when no specific account is targeted
+const PK_SHOPPING_HASHTAGS = [
+  'pakistanshopping',
+  'darazpakistan',
+  'trendingproducts',
+  'olxpakistan',
+  'onlineshopping',
+];
+
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Extract product name hints from a video caption.
- * @param {string} description
- * @returns {string[]}
- */
+// ─── Signal Extraction ────────────────────────────────────────────────────────
+
 function extractProductMentions(description) {
   if (!description) return [];
   const lower = description.toLowerCase();
@@ -39,7 +39,10 @@ function extractProductMentions(description) {
   if (!hasMention) return [];
 
   const hashtagMatches = description.match(/#([a-zA-Z][a-zA-Z0-9_]{2,})/g) || [];
-  const ignore = new Set(['darazpakistan', 'olxpakistan', 'pakistanshopping', 'pakistan', 'viral', 'fyp', 'foryou', 'trending']);
+  const ignore = new Set([
+    'darazpakistan', 'olxpakistan', 'pakistanshopping', 'pakistan',
+    'viral', 'fyp', 'foryou', 'trending', 'tiktok', 'shop',
+  ]);
 
   return hashtagMatches
     .map((h) =>
@@ -52,27 +55,22 @@ function extractProductMentions(description) {
     .filter((name) => name.length > 3 && !ignore.has(name.replace(/\s/g, '')));
 }
 
-/**
- * Aggregate stats from a list of video objects.
- */
 function aggregateStats(videos) {
   let totalViews = 0;
   let totalLikes = 0;
   const productMentions = [];
 
   for (const v of videos) {
-    totalViews += v.playCount   || v.viewCount   || v.stats?.playCount   || 0;
-    totalLikes += v.diggCount  || v.likeCount   || v.stats?.diggCount   || 0;
-    const desc = v.desc || v.description || v.title || '';
-    productMentions.push(...extractProductMentions(desc));
+    totalViews += v.viewCount  || 0;
+    totalLikes += v.likeCount  || 0;
+    productMentions.push(...extractProductMentions(v.description || ''));
   }
 
   return { totalViews, totalLikes, videoCount: videos.length, productMentions };
 }
 
-/**
- * Update Product documents with TikTok signals.
- */
+// ─── DB Update ────────────────────────────────────────────────────────────────
+
 async function updateProductSignals(productMentions, viewsToAdd, hashtagVolume) {
   let updated = 0;
   for (const mention of [...new Set(productMentions)]) {
@@ -87,7 +85,7 @@ async function updateProductSignals(productMentions, viewsToAdd, hashtagVolume) 
         { new: true }
       );
       if (result) {
-        result.updateWinScore();
+        if (typeof result.updateWinScore === 'function') result.updateWinScore();
         await result.save();
         updated++;
       }
@@ -98,54 +96,69 @@ async function updateProductSignals(productMentions, viewsToAdd, hashtagVolume) 
   return updated;
 }
 
+// ─── Main Scraper ─────────────────────────────────────────────────────────────
+
 /**
- * Main TikTok scraper — uses fits-api getUserVideos.
+ * Main TikTok scraper — uses TikTok Official API.
+ * @param {Object} opts
+ * @param {string[]} [opts.hashtags]    — override default PK hashtags
+ * @param {number}  [opts.maxVideos]   — videos per hashtag (default 30)
  */
-async function tiktokScraper({ accounts, maxVideos = 10 } = {}) {
+async function tiktokScraper({ hashtags, maxVideos = 30 } = {}) {
   await connectDB();
 
-  const targets = accounts || PK_TIKTOK_ACCOUNTS;
+  const targets = hashtags || PK_SHOPPING_HASHTAGS;
   const signals = [];
   let totalProductsUpdated = 0;
 
-  for (const username of targets) {
-    console.log(`[${new Date().toISOString()}] [TikTok] Fetching videos for @${username}`);
+  console.log(`[TikTok] Starting official API scrape for ${targets.length} hashtags…`);
+
+  for (const tag of targets) {
+    console.log(`[TikTok] Fetching videos for #${tag}`);
 
     try {
-      const videos = await getUserVideos(username, { count: maxVideos });
-      const videoList = Array.isArray(videos) ? videos : (videos?.videos || videos?.data || []);
+      const [videos, hashtagStats] = await Promise.all([
+        searchVideos({ hashtag: tag, limit: maxVideos }),
+        getHashtagStats(tag),
+      ]);
 
-      if (!videoList.length) {
-        console.log(`[TikTok] @${username}: no videos returned`);
+      if (!videos.length) {
+        console.log(`[TikTok] #${tag}: no videos returned`);
         continue;
       }
 
-      const stats = aggregateStats(videoList);
+      const stats = aggregateStats(videos);
 
       console.log(
-        `[TikTok] @${username}: ${stats.videoCount} videos, ` +
+        `[TikTok] #${tag}: ${stats.videoCount} videos, ` +
         `${stats.totalViews.toLocaleString()} views, ` +
-        `${stats.productMentions.length} product mentions`
+        `${stats.productMentions.length} product mentions, ` +
+        `hashtagVolume=${hashtagStats.viewCount.toLocaleString()}`
       );
 
-      signals.push({ account: username, ...stats, scrapedAt: new Date() });
+      signals.push({
+        hashtag:   tag,
+        hashtagViewCount: hashtagStats.viewCount,
+        ...stats,
+        scrapedAt: new Date(),
+      });
 
       const updated = await updateProductSignals(
         stats.productMentions,
         stats.totalViews,
-        stats.videoCount * 500
+        hashtagStats.viewCount || stats.videoCount * 500
       );
       totalProductsUpdated += updated;
 
-      // Polite delay between requests (1–3 seconds)
-      await delay(1000 + Math.random() * 2000);
     } catch (err) {
-      console.error(`[TikTok] Error fetching @${username}:`, err.message);
-      // One account failing does NOT stop the rest
+      console.error(`[TikTok] Error for #${tag}:`, err.message);
     }
+
+    // Polite delay — stay within sandbox rate limit (30 req/min)
+    await delay(2000 + Math.random() * 1000);
   }
 
-  console.log(`[TikTok] Done. Accounts scraped: ${signals.length}, Products updated: ${totalProductsUpdated}`);
+  console.log(`[TikTok] Done. Hashtags scraped: ${signals.length}, Products updated: ${totalProductsUpdated}`);
   return { signals, productsUpdated: totalProductsUpdated };
 }
 
