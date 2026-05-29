@@ -1,4 +1,3 @@
 {
-  "/not-found": "app/not-found.js",
   "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }
