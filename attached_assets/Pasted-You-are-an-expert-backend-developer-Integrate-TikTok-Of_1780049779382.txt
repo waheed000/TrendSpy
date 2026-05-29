@@ -1,0 +1,78 @@
+You are an expert backend developer. Integrate TikTok Official API into TrendSpy using the user's Client Key and Client Secret. This will run in sandbox mode first (no app review needed). Later the user will submit for production review.
+
+## Credentials Provided by User
+- Client Key / App Key: [USER WILL PROVIDE]
+- Client Secret: [USER WILL PROVIDE]
+
+## Implementation Tasks
+
+### 1. Add Environment Variables
+
+In Replit Secrets, add:
+TIKTOK_CLIENT_KEY=user_provided_key
+TIKTOK_CLIENT_SECRET=user_provided_secret
+TIKTOK_ACCESS_TOKEN=
+TIKTOK_SANDBOX_MODE=true
+
+text
+
+### 2. Create `services/tiktokOfficialService.js`
+
+Create service that:
+- Uses TikTok Official API endpoints (sandbox environment)
+- Exchanges Client Key + Secret for Access Token using OAuth 2.0
+- Fetches trending videos for Pakistan region
+- Searches for products by hashtag (#pakistanshopping, #darazpakistan, #trendingproducts)
+- Extracts: video views, likes, shares, comments, product mentions, hashtag volume
+
+### 3. Create `app/api/tiktok/trending/route.js`
+
+GET endpoint (protected):
+- Returns trending videos in Pakistan
+- Filters by category if provided
+- Rate limited: 50 requests per hour
+
+### 4. Create `app/api/tiktok/search/route.js`
+
+POST endpoint (protected):
+- Body: { query: "product name", hashtag: "hashtag" }
+- Returns videos matching search
+- Includes engagement metrics
+
+### 5. Update `scrapers/tiktokScraper.js`
+
+Replace fits-api with official API:
+- Use the new tiktokOfficialService
+- Update Product.tiktokViews with real data
+- Update tiktokHashtagVolume with real hashtag stats
+
+### 6. Create `jobs/tiktokJob.js`
+
+Cron job that runs every 24 hours:
+- Fetches trending products from TikTok
+- Updates product metrics in database
+- Logs success/failure
+
+### 7. Create `app/api/tiktok/auth/route.js`
+
+POST endpoint for OAuth token management:
+- Refreshes access token when expired
+- Returns current token status
+
+## Important Notes
+
+- Sandbox mode works immediately – no app review needed
+- Sandbox has rate limits (30 requests per minute)
+- Store access token securely in Replit Secrets
+- Token expires in 24 hours – auto-refresh implemented
+- When ready for production, user will submit app review
+
+## Testing Checklist
+
+- [ ] Access token generated successfully
+- [ ] GET /api/tiktok/trending returns real videos
+- [ ] POST /api/tiktok/search returns relevant content
+- [ ] TikTok scraper updates product metrics
+- [ ] Cron job runs daily without errors
+
+Now implement all of the above with clean, production-ready code. Use sandbox endpoints initially.
