@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { FiEye, FiImage, FiVideo, FiLayout, FiSliders, FiRefreshCw, FiWifi } from 'react-icons/fi'
+import { FiEye, FiImage, FiVideo, FiLayout, FiSliders, FiRefreshCw, FiWifi, FiUsers, FiExternalLink } from 'react-icons/fi'
 import { CITIES, CATEGORIES } from '../utils/cityList.js'
 import { useAdsRealtime } from '../hooks/useAdsRealtime.js'
 import useStore from '../store/useStore.js'
@@ -159,10 +159,12 @@ export default function AdSpy() {
         </div>
       ) : ads.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-4xl mb-3">📋</p>
+          <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FiEye className="text-blue-400/50" size={24} />
+          </div>
           <p className="text-white font-medium mb-1">No ads found</p>
           <p className="text-gray-500 text-sm">
-            Adjust your filters or wait for the next scrape cycle (every 12 hours)
+            Adjust your filters or add <code className="text-gray-400 bg-white/5 px-1 rounded">FB_SESSION_COOKIE</code> to Secrets to enable live scraping
           </p>
         </div>
       ) : (
@@ -185,7 +187,20 @@ export default function AdSpy() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500 whitespace-nowrap">{ad.duration} days</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs text-gray-500">{ad.duration}d</span>
+                    {ad.directUrl && (
+                      <a
+                        href={ad.directUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 text-blue-400 hover:text-blue-300 bg-blue-500/10 rounded-lg transition-all"
+                        title="View ad on Facebook"
+                      >
+                        <FiExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -204,10 +219,13 @@ export default function AdSpy() {
                   </div>
                   <span className="text-gray-700">·</span>
                   <span className="text-xs text-gray-500">{ad.city || 'PK'}</span>
-                  {ad.category && (
+                  {ad.competitors > 0 && (
                     <>
                       <span className="text-gray-700">·</span>
-                      <span className="text-xs text-gray-500">{ad.category}</span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <FiUsers size={10} />
+                        {ad.competitors} competitors
+                      </span>
                     </>
                   )}
                 </div>

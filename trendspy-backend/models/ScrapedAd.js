@@ -46,6 +46,8 @@ const scrapedAdSchema = new mongoose.Schema(
     category: { type: String, default: null },
     scrapedAt: { type: Date, default: Date.now, index: true },
     isActive: { type: Boolean, default: true },
+    // Direct link to the ad in Facebook Ads Library
+    directUrl: { type: String, default: null },
   },
   { timestamps: true }
 );

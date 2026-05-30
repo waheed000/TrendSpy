@@ -32,21 +32,47 @@ export async function GET(request) {
       ScrapedAd.countDocuments(filter),
     ]);
 
+    // Real competitor count: distinct advertisers per category from the DB
+    const categories = [...new Set(ads.map((a) => a.category).filter(Boolean))];
+    let catCompetitors = {};
+    if (categories.length > 0) {
+      const agg = await ScrapedAd.aggregate([
+        {
+          $match: {
+            isActive: true,
+            category: { $in: categories },
+            advertiserName: { $nin: ['', null, 'Unknown'] },
+          },
+        },
+        {
+          $group: {
+            _id:         '$category',
+            advertisers: { $addToSet: '$advertiserName' },
+          },
+        },
+      ]);
+      for (const row of agg) {
+        catCompetitors[row._id] = row.advertisers.length;
+      }
+    }
+
     const normalized = ads.map((ad) => ({
-      id:           ad._id,
-      adId:         ad.adId,
-      headline:     ad.headline     || 'Untitled Ad',
-      description:  ad.description  || '',
-      creative:     ad.creativeType || 'image',
-      platform:     ad.platform     || 'facebook',
-      spend:        capitalize(ad.spendLevel || 'low'),
-      duration:     ad.daysRunning  || 0,
-      city:         ad.city         || 'Pakistan',
-      category:     ad.category     || 'General',
-      advertiser:   ad.advertiserName || '',
-      imageUrl:     ad.imageUrl      || null,
-      scrapedAt:    ad.scrapedAt,
-      competitors:  0,
+      id:          ad._id,
+      adId:        ad.adId,
+      headline:    ad.headline     || 'Untitled Ad',
+      description: ad.description  || '',
+      creative:    ad.creativeType || 'image',
+      platform:    ad.platform     || 'facebook',
+      spend:       capitalize(ad.spendLevel || 'low'),
+      duration:    ad.daysRunning  || 0,
+      city:        ad.city         || 'Pakistan',
+      category:    ad.category     || 'General',
+      advertiser:  ad.advertiserName || '',
+      imageUrl:    ad.imageUrl      || null,
+      directUrl:   ad.directUrl     || (ad.adId ? `https://www.facebook.com/ads/library/?id=${ad.adId}` : null),
+      scrapedAt:   ad.scrapedAt,
+      // Real competitor count: distinct advertisers in this ad's category
+      competitors: catCompetitors[ad.category] || 0,
     }));
 
     return Response.json({

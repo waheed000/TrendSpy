@@ -296,18 +296,21 @@ export async function fetchPakistanTrendingSignals() {
 const VIDEO_FIELDS = 'id,create_time,username,like_count,comment_count,share_count,view_count,hashtag_names,video_description,music_id,region_code,voice_to_text';
 
 function normalizeVideo(raw) {
+  const videoId = raw.id || raw.video_id || '';
+  const author  = raw.username || raw.author || '';
   return {
-    videoId:     raw.id          || raw.video_id   || '',
-    author:      raw.username    || raw.author      || 'unknown',
-    description: raw.video_description || raw.desc || '',
-    viewCount:   raw.view_count  || raw.playCount   || 0,
-    likeCount:   raw.like_count  || raw.diggCount   || 0,
-    commentCount:raw.comment_count || 0,
-    shareCount:  raw.share_count || 0,
-    hashtags:    raw.hashtag_names || [],
-    createdAt:   raw.create_time ? new Date(raw.create_time * 1000).toISOString() : null,
-    regionCode:  raw.region_code || 'PK',
-    url:         raw.video_id ? `https://www.tiktok.com/@${raw.username}/video/${raw.video_id}` : null,
+    videoId,
+    author,
+    description:  raw.video_description || raw.desc || '',
+    viewCount:    raw.view_count  || raw.playCount  || 0,
+    likeCount:    raw.like_count  || raw.diggCount  || 0,
+    commentCount: raw.comment_count || 0,
+    shareCount:   raw.share_count || 0,
+    hashtags:     raw.hashtag_names || [],
+    createdAt:    raw.create_time ? new Date(raw.create_time * 1000).toISOString() : null,
+    regionCode:   raw.region_code || 'PK',
+    // Use the resolved videoId (not the raw field name) so links are never null
+    url: videoId && author ? `https://www.tiktok.com/@${author}/video/${videoId}` : null,
   };
 }
 

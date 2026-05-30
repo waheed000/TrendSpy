@@ -19,35 +19,18 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { Product, TrendScore, ScrapedAd } from '@/models/index';
-
-async function seedAds() {
-  const adCount = await ScrapedAd.countDocuments();
-  if (adCount > 0) return;
-
-  // These are EXAMPLE ads sourced from FB Ad Library manual research.
-  // Not live-scraped — represent typical ad patterns for each category.
-  await ScrapedAd.insertMany([
-    { adId: 'ad-001', headline: 'Smart Watch Only PKR 2,999 — Heart Rate + Fitness Tracker', description: 'Waterproof. 7-day battery. COD available nationwide.', creativeType: 'video', platform: 'facebook', spendLevel: 'high', daysRunning: 58, city: 'Karachi', category: 'Electronics', advertiserName: 'GadgetZone PK', imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', isActive: true },
-    { adId: 'ad-002', headline: 'New Khaddar Collection — Unstitched & Stitched Available', description: 'Premium winter fabric. Nationwide COD. Limited stock.', creativeType: 'image', platform: 'facebook', spendLevel: 'high', daysRunning: 44, city: 'Lahore', category: 'Fashion', advertiserName: 'Khaddar House PK', imageUrl: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400', isActive: true },
-    { adId: 'ad-003', headline: 'Air Fryer 5L — Cook Healthy with 0 Oil!', description: '12 preset functions. Pakistan warranty included.', creativeType: 'carousel', platform: 'facebook', spendLevel: 'medium', daysRunning: 37, city: 'Islamabad', category: 'Home', advertiserName: 'HomeChef PK', imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', isActive: true },
-    { adId: 'ad-004', headline: 'Neck & Shoulder Massager — Instant Pain Relief', description: 'Electric pulse therapy. Works on neck, back, shoulders.', creativeType: 'video', platform: 'facebook', spendLevel: 'medium', daysRunning: 29, city: 'Multan', category: 'Home', advertiserName: 'HealthEase PK', imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400', isActive: true },
-    { adId: 'ad-005', headline: 'Stay Warm — Electric Room Heater 40% OFF', description: 'Portable. Safety auto cut-off. Fast delivery.', creativeType: 'image', platform: 'facebook', spendLevel: 'low', daysRunning: 12, city: 'Lahore', category: 'Home', advertiserName: 'WarmHome PK', imageUrl: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=400', isActive: false },
-    { adId: 'ad-006', headline: 'Skin Brightening Serum — Glow in 7 Days', description: 'Dermatologist tested. Free shipping PKR 1500+.', creativeType: 'carousel', platform: 'facebook', spendLevel: 'high', daysRunning: 61, city: 'Karachi', category: 'Beauty', advertiserName: 'GlowUp Beauty', imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', isActive: true },
-    { adId: 'ad-007', headline: 'Kids Learning Tablet — Educational Apps + Parental Controls', description: 'Ages 3-12. Pakistan warranty. Nationwide COD.', creativeType: 'image', platform: 'facebook', spendLevel: 'low', daysRunning: 21, city: 'Faisalabad', category: 'Toys', advertiserName: 'KidsTech Store', imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', isActive: true },
-    { adId: 'ad-008', headline: 'Premium Yoga Mat — Non-Slip 6mm', description: 'Available in 5 colors. Free delivery across Pakistan.', creativeType: 'image', platform: 'facebook', spendLevel: 'low', daysRunning: 18, city: 'Islamabad', category: 'Sports', advertiserName: 'FitLife PK', imageUrl: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400', isActive: true },
-  ]);
-  console.log('✅ Seeded ScrapedAds (example data — not live-scraped)');
-}
+import { Product, TrendScore } from '@/models/index';
 
 /**
  * Seed the database with products.
  * googleTrendSpike values are REAL — fetched from Google Trends Pakistan API.
  * All other numeric signals are proportional market estimates.
  * Products are ordered by real Google Trends interest (highest first).
+ *
+ * ScrapedAds are NOT seeded here — they are populated exclusively by the
+ * live Facebook Ads scraper (requires FB_SESSION_COOKIE to scrape real data).
  */
 export async function seedIfEmpty() {
-  await seedAds();
 
   const count = await Product.countDocuments();
   if (count > 0) return;
