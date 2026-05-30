@@ -11,16 +11,25 @@ import {
   FiActivity,
 } from 'react-icons/fi'
 
+function TikTokIcon({ size = 17 }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.79 1.53V6.75a4.85 4.85 0 01-1.02-.06z" />
+    </svg>
+  )
+}
+
 const NAV_ITEMS = [
-  { to: '/dashboard', icon: FiGrid, label: 'Dashboard' },
-  { to: '/products', icon: FiSearch, label: 'Product Hunt' },
-  { to: '/city-explorer', icon: FiMap, label: 'City Explorer' },
-  { to: '/trends', icon: FiTrendingUp, label: 'Trends' },
-  { to: '/ad-spy', icon: FiEye, label: 'Ad Spy' },
-  { to: '/ai-analyst', icon: FiCpu, label: 'AI Analyst' },
-  { to: '/alerts', icon: FiBell, label: 'Alerts' },
-  { to: '/seasonal', icon: FiSun, label: 'Seasonal' },
-  { to: '/scheduler', icon: FiActivity, label: 'Scheduler' },
+  { to: '/dashboard',      icon: FiGrid,       label: 'Dashboard'      },
+  { to: '/products',       icon: FiSearch,     label: 'Product Hunt'   },
+  { to: '/city-explorer',  icon: FiMap,        label: 'City Explorer'  },
+  { to: '/trends',         icon: FiTrendingUp, label: 'Trends'         },
+  { to: '/ad-spy',         icon: FiEye,        label: 'Ad Spy'         },
+  { to: '/tiktok-trends',  icon: TikTokIcon,   label: 'TikTok Trends'  },
+  { to: '/ai-analyst',     icon: FiCpu,        label: 'AI Analyst'     },
+  { to: '/alerts',         icon: FiBell,       label: 'Alerts'         },
+  { to: '/seasonal',       icon: FiSun,        label: 'Seasonal'       },
+  { to: '/scheduler',      icon: FiActivity,   label: 'Scheduler'      },
 ]
 
 export default function Sidebar() {

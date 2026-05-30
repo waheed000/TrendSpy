@@ -1,5 +1,3 @@
 {
-  "/api/tiktok/search/route": "app/api/tiktok/search/route.js",
-  "/api/tiktok/trending/route": "app/api/tiktok/trending/route.js",
-  "/api/tiktok/auth/route": "app/api/tiktok/auth/route.js"
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }
