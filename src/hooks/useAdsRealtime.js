@@ -6,7 +6,7 @@ import useStore from '../store/useStore.js'
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:3002`
 
-export function useAdsRealtime() {
+export function useAdsRealtime({ onSchedulerRan } = {}) {
   const user        = useStore((s) => s.user)
   const queryClient = useQueryClient()
   const socketRef   = useRef(null)
@@ -42,6 +42,36 @@ export function useAdsRealtime() {
       })
     })
 
+    socket.on('schedulerRan', ({ scraper, totalSaved = 0, errors = 0 } = {}) => {
+      if (scraper !== 'facebookAds') return
+      queryClient.invalidateQueries({ queryKey: ['ads'] })
+      if (totalSaved > 0) {
+        toast.success(`Scrape complete — ${totalSaved} new ad${totalSaved !== 1 ? 's' : ''} saved`, {
+          style: {
+            background: '#1e1e3f',
+            color: '#fff',
+            border: '1px solid rgba(34,197,94,0.3)',
+            borderRadius: '12px',
+            fontSize: '14px',
+          },
+          duration: 6000,
+        })
+      } else {
+        toast(`Scrape complete — no new ads found${errors > 0 ? ` (${errors} error${errors !== 1 ? 's' : ''})` : ''}`, {
+          icon: '🔄',
+          style: {
+            background: '#1e1e3f',
+            color: '#fff',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: '12px',
+            fontSize: '14px',
+          },
+          duration: 5000,
+        })
+      }
+      onSchedulerRan?.()
+    })
+
     socket.on('connect_error', (err) => {
       console.warn('[useAdsRealtime] connection error:', err.message)
     })
@@ -50,7 +80,7 @@ export function useAdsRealtime() {
       socket.disconnect()
       socketRef.current = null
     }
-  }, [user?.token, queryClient])
+  }, [user?.token, queryClient, onSchedulerRan])
 
   return socketRef
 }

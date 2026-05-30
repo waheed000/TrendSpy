@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { FiEye, FiImage, FiVideo, FiLayout, FiSliders, FiRefreshCw, FiWifi, FiUsers, FiExternalLink, FiKey, FiChevronRight, FiCopy, FiCheck } from 'react-icons/fi'
+import { FiEye, FiImage, FiVideo, FiLayout, FiSliders, FiRefreshCw, FiWifi, FiUsers, FiExternalLink, FiKey, FiChevronRight, FiZap } from 'react-icons/fi'
 import { CITIES, CATEGORIES } from '../utils/cityList.js'
 import { useAdsRealtime } from '../hooks/useAdsRealtime.js'
 import useStore from '../store/useStore.js'
+import toast from 'react-hot-toast'
 
 const CREATIVE_ICONS = {
   image:    FiImage,
@@ -174,8 +175,15 @@ export default function AdSpy() {
   })
   const [durationInput, setDurationInput] = useState(0)
   const [isLive, setIsLive] = useState(false)
+  const [isScraping, setIsScraping] = useState(false)
+  const scrapeTimeoutRef = useRef(null)
 
-  useAdsRealtime()
+  const handleSchedulerRan = useCallback(() => {
+    setIsScraping(false)
+    if (scrapeTimeoutRef.current) clearTimeout(scrapeTimeoutRef.current)
+  }, [])
+
+  useAdsRealtime({ onSchedulerRan: handleSchedulerRan })
 
   const { data: ads = [], isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['ads', filters],
@@ -189,6 +197,35 @@ export default function AdSpy() {
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['ads'] })
   }, [queryClient])
+
+  const handleScrapeNow = useCallback(async () => {
+    if (isScraping) return
+    setIsScraping(true)
+
+    // Safety fallback — reset after 10 minutes if socket event never arrives
+    scrapeTimeoutRef.current = setTimeout(() => setIsScraping(false), 10 * 60 * 1000)
+
+    try {
+      const res  = await fetch('/api/ads/scrape-all', { method: 'POST' })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Failed to start scrape')
+      toast('Scraping all categories... results will appear shortly', {
+        icon: '🔍',
+        style: {
+          background: '#1e1e3f',
+          color: '#fff',
+          border: '1px solid rgba(99,102,241,0.3)',
+          borderRadius: '12px',
+          fontSize: '14px',
+        },
+        duration: 5000,
+      })
+    } catch (err) {
+      setIsScraping(false)
+      if (scrapeTimeoutRef.current) clearTimeout(scrapeTimeoutRef.current)
+      toast.error(`Could not start scrape: ${err.message}`)
+    }
+  }, [isScraping])
 
   const updateFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val }))
 
@@ -214,10 +251,19 @@ export default function AdSpy() {
             {isLive ? 'Live' : 'Offline'}
           </div>
           <button
+            onClick={handleScrapeNow}
+            disabled={isScraping}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600/20 border border-primary-500/30 text-primary-300 hover:bg-primary-600/30 hover:text-white rounded-lg text-xs font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            title="Trigger a fresh scrape of all 8 search terms"
+          >
+            <FiZap size={12} className={isScraping ? 'animate-pulse' : ''} />
+            {isScraping ? 'Scraping...' : 'Scrape Now'}
+          </button>
+          <button
             onClick={handleRefresh}
             disabled={isFetching}
             className="p-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-lg transition-all disabled:opacity-50"
-            title="Refresh ads"
+            title="Refresh display"
           >
             <FiRefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
           </button>
@@ -276,6 +322,17 @@ export default function AdSpy() {
           </div>
         </div>
       </div>
+
+      {/* Scraping progress banner */}
+      {isScraping && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-primary-500/10 border border-primary-500/20 rounded-xl">
+          <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-primary-300">Scraping Facebook Ad Library</p>
+            <p className="text-xs text-gray-500 mt-0.5">Checking 8 search terms across all categories. This takes 3–5 minutes — stay on this page or check back later.</p>
+          </div>
+        </div>
+      )}
 
       {/* Results */}
       {isLoading ? (

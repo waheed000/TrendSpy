@@ -387,6 +387,18 @@ app.post('/internal/scrape-fb-ads', async (req, res) => {
   }
 });
 
+// ─── Trigger full FB Ads job (async — returns immediately) ───────────────────
+app.post('/internal/run-fb-job', (req, res) => {
+  const secret = req.headers['x-internal-secret'];
+  if (secret !== SOCKET_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  res.json({ success: true, message: 'FB Ads scrape job started' });
+  runFacebookAdsJob().catch((e) =>
+    console.error('[internal/run-fb-job]', e.message)
+  );
+});
+
 // ─── Exported Helpers (same process use) ─────────────────────────────────────
 export function emitToUser(userId, event, data) {
   io.to(`user:${userId}`).emit(event, data);
