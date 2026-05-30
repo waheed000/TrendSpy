@@ -1,3 +1,4 @@
 {
-  "/api/scraper/status/route": "app/api/scraper/status/route.js"
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }
