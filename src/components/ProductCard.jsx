@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { FiTrendingUp, FiTrendingDown, FiExternalLink } from 'react-icons/fi'
+import { FiTrendingUp, FiTrendingDown, FiExternalLink, FiBarChart2 } from 'react-icons/fi'
 import WinScoreBadge from './WinScoreBadge.jsx'
 import AIReportModal from './AIReportModal.jsx'
+import WinScoreDetails from './WinScoreDetails.jsx'
 import { formatPriceRange } from '../utils/formatPKR.js'
 
 const PLATFORM_COLORS = {
@@ -11,8 +12,9 @@ const PLATFORM_COLORS = {
 }
 
 export default function ProductCard({ product }) {
-  const [showModal, setShowModal] = useState(false)
-  const [imgError, setImgError] = useState(false)
+  const [showModal,        setShowModal]        = useState(false)
+  const [showScoreDetails, setShowScoreDetails] = useState(false)
+  const [imgError,         setImgError]         = useState(false)
 
   return (
     <>
@@ -76,7 +78,6 @@ export default function ProductCard({ product }) {
             <span title="Estimated — based on category research">{product.competitors} competitors</span>
           </div>
 
-          {/* Feature 7: Data quality warnings */}
           {product.verificationNote && (
             <div className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 px-2 py-1 rounded-lg mb-2">
               {product.verificationNote}
@@ -94,16 +95,30 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="w-full mt-auto py-2 text-sm font-medium text-primary-400 border border-primary-500/30 rounded-xl hover:bg-primary-500/10 hover:border-primary-500/60 transition-all duration-200 flex items-center justify-center gap-2"
-        >
-          <FiExternalLink size={14} />
-          View AI Report
-        </button>
+        {/* Action buttons */}
+        <div className="mt-auto flex gap-2 pt-1">
+          <button
+            onClick={() => setShowScoreDetails(true)}
+            className="flex-1 py-2 text-sm font-medium text-gray-400 border border-white/10 rounded-xl hover:bg-white/5 hover:border-white/20 hover:text-white transition-all duration-200 flex items-center justify-center gap-1.5"
+            title="See how this Win Score was calculated"
+          >
+            <FiBarChart2 size={13} />
+            Score
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex-1 py-2 text-sm font-medium text-primary-400 border border-primary-500/30 rounded-xl hover:bg-primary-500/10 hover:border-primary-500/60 transition-all duration-200 flex items-center justify-center gap-1.5"
+          >
+            <FiExternalLink size={13} />
+            AI Report
+          </button>
+        </div>
       </div>
 
       {showModal && <AIReportModal product={product} onClose={() => setShowModal(false)} />}
+      {showScoreDetails && (
+        <WinScoreDetails product={product} onClose={() => setShowScoreDetails(false)} />
+      )}
     </>
   )
 }
