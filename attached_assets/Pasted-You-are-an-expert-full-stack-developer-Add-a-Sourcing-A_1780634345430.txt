@@ -1,0 +1,198 @@
+You are an expert full-stack developer. Add a Sourcing Assistant to TrendSpy that shows REAL verified suppliers from the database matching the product's category and city.
+
+## Goal
+
+When a user views the Win Score Details modal, show a "Sourcing Assistant" section with:
+- Real suppliers from Supplier collection
+- Verified badge (if admin verified)
+- Phone number (click to call)
+- Website link (if available)
+- Sorted by: verified first, then by rating
+
+## Implementation
+
+### 1. Create API Endpoint
+
+Create `app/api/suppliers/match/route.js`:
+
+```javascript
+import { connectDB } from '@/lib/db';
+import Supplier from '@/models/Supplier';
+
+export async function GET(request) {
+  try {
+    await connectDB();
+    
+    const { searchParams } = new URL(request.url);
+    const category = searchParams.get('category');
+    const city = searchParams.get('city');
+    const productName = searchParams.get('productName');
+    
+    let query = {};
+    
+    // Match by category or product keywords
+    if (category) {
+      query.category = { $regex: new RegExp(category, 'i') };
+    }
+    
+    // Match by city (preferred city first)
+    if (city) {
+      query.city = { $regex: new RegExp(city, 'i') };
+    }
+    
+    // Also search by product name keywords
+    if (productName) {
+      const keywords = productName.split(' ').slice(0, 3);
+      query.$or = [
+        { products: { $in: keywords } },
+        { name: { $regex: keywords.join('|'), $options: 'i' } }
+      ];
+    }
+    
+    // Get suppliers: verified first, then by rating
+    const suppliers = await Supplier.find(query)
+      .sort({ verificationStatus: -1, rating: -1 })
+      .limit(5);
+    
+    // If no suppliers found by city, try major cities
+    if (suppliers.length === 0 && city) {
+      const fallbackSuppliers = await Supplier.find({
+        city: { $in: ['Lahore', 'Karachi', 'Islamabad'] }
+      }).limit(3);
+      
+      return Response.json({
+        success: true,
+        suppliers: fallbackSuppliers,
+        fallbackUsed: true,
+        message: `No suppliers found in ${city}. Showing major city suppliers.`
+      });
+    }
+    
+    return Response.json({
+      success: true,
+      suppliers,
+      fallbackUsed: false
+    });
+    
+  } catch (error) {
+    console.error('Supplier match error:', error);
+    return Response.json(
+      { success: false, error: error.message, suppliers: [] },
+      { status: 500 }
+    );
+  }
+}
+2. Update WinScoreDetails.jsx
+Add Sourcing Assistant section inside the modal:
+
+jsx
+// Add state for suppliers
+const [suppliers, setSuppliers] = useState([]);
+const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+
+// Fetch suppliers when modal opens
+useEffect(() => {
+  if (productSlug && data) {
+    fetchSuppliers();
+  }
+}, [productSlug, data]);
+
+const fetchSuppliers = async () => {
+  setLoadingSuppliers(true);
+  try {
+    const res = await fetch(`/api/suppliers/match?category=${data?.category}&city=${data?.city || 'Lahore'}&productName=${data?.productName}`);
+    const result = await res.json();
+    if (result.success) {
+      setSuppliers(result.suppliers);
+    }
+  } catch (error) {
+    console.error('Failed to fetch suppliers:', error);
+  } finally {
+    setLoadingSuppliers(false);
+  }
+};
+
+// Add this section after the breakdown
+{/* Sourcing Assistant */}
+<div className="mt-6 border-t border-gray-700 pt-4">
+  <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+    <span>🏭</span> Sourcing Assistant
+    <span className="text-xs text-gray-400 font-normal">Verified suppliers for this product</span>
+  </h3>
+  
+  {loadingSuppliers ? (
+    <div className="text-center py-4 text-gray-400">Loading suppliers...</div>
+  ) : suppliers.length > 0 ? (
+    <div className="space-y-3">
+      {suppliers.map((supplier, idx) => (
+        <div key={idx} className="bg-gray-700 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-white">{supplier.name}</span>
+              {supplier.verificationStatus === 'verified' && (
+                <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded">✓ Verified</span>
+              )}
+            </div>
+            <span className="text-gray-400 text-sm">{supplier.city}</span>
+          </div>
+          
+          {supplier.phone && (
+            <a href={`tel:${supplier.phone}`} className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm mb-1">
+              <span>📞</span> {supplier.phone}
+            </a>
+          )}
+          
+          {supplier.website && (
+            <a href={supplier.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm">
+              <span>🌐</span> {supplier.website}
+            </a>
+          )}
+          
+          {supplier.address && (
+            <p className="text-gray-400 text-xs mt-1">{supplier.address}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="text-center py-4 bg-gray-700 rounded-lg">
+      <p className="text-gray-400">No suppliers found for this category.</p>
+      <button className="mt-2 text-blue-400 text-sm hover:underline">
+        + Add a supplier you know
+      </button>
+    </div>
+  )}
+</div>
+3. Ensure Supplier Model has required fields
+In models/Supplier.js, confirm these fields exist:
+
+javascript
+name: String,
+city: String,
+category: String,
+phone: String,
+website: String,
+address: String,
+verificationStatus: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
+rating: { type: Number, default: 0 }
+Expected Output
+User opens Win Score Details modal
+
+Scroll down to "Sourcing Assistant" section
+
+Shows 3-5 real suppliers with phone numbers
+
+Verified badge for admin-approved suppliers
+
+Click phone number to call directly
+
+Testing Checklist
+Supplier collection has real data (if empty, seed or run scraper)
+
+API returns matching suppliers by category
+
+Modal shows suppliers with clickable phone links
+
+Verified badge appears correctly
+
+Now implement all of the above with clean, production-ready code.

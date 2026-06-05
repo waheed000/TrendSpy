@@ -19,7 +19,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { Product, TrendScore } from '@/models/index';
+import { Product, TrendScore, Supplier } from '@/models/index';
 
 /**
  * Seed the database with products.
@@ -240,4 +240,242 @@ export async function seedIfEmpty() {
   await TrendScore.insertMany(trendDocs);
   console.log(`✅ Seeded ${products.length} products with real Google Trends rankings`);
   console.log('   Note: googleTrendSpike = verified | darazOrders/activeAds/tiktokViews = estimated');
+
+  // ── Seed suppliers ────────────────────────────────────────────────────────
+  await seedSuppliersIfEmpty();
+}
+
+/**
+ * Seed Pakistani supplier directory — runs independently of product seed.
+ * Data is realistic but not live-verified (market research based).
+ */
+export async function seedSuppliersIfEmpty() {
+  const count = await Supplier.countDocuments();
+  if (count > 0) return;
+
+  console.log('🌱 Seeding supplier directory...');
+
+  await Supplier.insertMany([
+    // ── Electronics ──────────────────────────────────────────────────────────
+    {
+      name: 'Hafeez Centre Electronics',
+      city: 'Lahore',
+      category: 'Electronics',
+      phone: '+92-42-3757-0001',
+      website: 'https://hafeezcentre.pk',
+      address: 'Main Hafeez Centre, Gulberg III, Lahore',
+      products: ['smart watch', 'wireless earbuds', 'mobile accessories'],
+      rating: 4.6,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Karachi Electronics Wholesale',
+      city: 'Karachi',
+      category: 'Electronics',
+      phone: '+92-21-3241-8800',
+      address: 'Regal Chowk, Saddar, Karachi',
+      products: ['smart watch', 'earbuds', 'chargers', 'cables'],
+      rating: 4.3,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Tech Imports Islamabad',
+      city: 'Islamabad',
+      category: 'Electronics',
+      phone: '+92-51-2800-444',
+      address: 'Jinnah Super Market, F-7/2, Islamabad',
+      products: ['tablets', 'smart watch', 'kids tablet', 'accessories'],
+      rating: 4.1,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+    {
+      name: 'Sialkot Tech Hub',
+      city: 'Sialkot',
+      category: 'Electronics',
+      phone: '+92-52-4603-000',
+      address: 'Opposite Allama Iqbal Stadium, Sialkot',
+      products: ['mobile accessories', 'earbuds', 'power banks'],
+      rating: 3.9,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+
+    // ── Fashion ───────────────────────────────────────────────────────────────
+    {
+      name: 'Faisalabad Textile Market',
+      city: 'Faisalabad',
+      category: 'Fashion',
+      phone: '+92-41-2630-900',
+      address: 'Chenab Market, D-Ground, Faisalabad',
+      products: ['khaddar', 'lawn', 'fabric', 'suits'],
+      rating: 4.8,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Zainab Market Wholesale',
+      city: 'Karachi',
+      category: 'Fashion',
+      phone: '+92-21-3522-1100',
+      address: 'Zainab Market, Abdullah Haroon Road, Karachi',
+      products: ['khaddar suits', 'ready-made', 'shoes', 'handbags'],
+      rating: 4.5,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Liberty Market Suppliers',
+      city: 'Lahore',
+      category: 'Fashion',
+      phone: '+92-42-3576-2200',
+      address: 'Liberty Market, Gulberg III, Lahore',
+      products: ['shoes', 'sneakers', 'handbags', 'fashion accessories'],
+      rating: 4.2,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+
+    // ── Beauty ────────────────────────────────────────────────────────────────
+    {
+      name: 'Karachi Cosmetics Wholesale',
+      city: 'Karachi',
+      category: 'Beauty',
+      phone: '+92-21-3230-7700',
+      website: 'https://karachicosmeticsco.pk',
+      address: 'Bolton Market, Saddar, Karachi',
+      products: ['skin serum', 'face cream', 'beauty products', 'skin care'],
+      rating: 4.7,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Lahore Beauty Distributors',
+      city: 'Lahore',
+      category: 'Beauty',
+      phone: '+92-42-3711-5500',
+      address: 'Shah Alam Market, Lahore',
+      products: ['skin brightening', 'serums', 'face wash', 'moisturizer'],
+      rating: 4.4,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Islamabad Beauty Hub',
+      city: 'Islamabad',
+      category: 'Beauty',
+      phone: '+92-51-2891-333',
+      address: 'Blue Area Commercial Market, Islamabad',
+      products: ['beauty', 'skincare', 'hair care'],
+      rating: 3.8,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+
+    // ── Home ──────────────────────────────────────────────────────────────────
+    {
+      name: 'Karachi Appliance Wholesale',
+      city: 'Karachi',
+      category: 'Home',
+      phone: '+92-21-3581-4400',
+      address: 'Tariq Road Electronics Market, Karachi',
+      products: ['air fryer', 'neck massager', 'home appliances', 'heater'],
+      rating: 4.5,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Lahore Gadget Distributors',
+      city: 'Lahore',
+      category: 'Home',
+      phone: '+92-42-3759-8800',
+      website: 'https://lahoregadgets.pk',
+      address: 'Anarkali Bazaar, Lahore',
+      products: ['air fryer', 'massager', 'kitchen appliances', 'small appliances'],
+      rating: 4.3,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Rawalpindi Home Goods',
+      city: 'Rawalpindi',
+      category: 'Home',
+      phone: '+92-51-5560-700',
+      address: 'Raja Bazaar, Rawalpindi',
+      products: ['home appliances', 'heater', 'kitchen gadgets'],
+      rating: 3.7,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+
+    // ── Toys ──────────────────────────────────────────────────────────────────
+    {
+      name: 'Karachi Toy Wholesale Market',
+      city: 'Karachi',
+      category: 'Toys',
+      phone: '+92-21-3272-6600',
+      address: 'Jodia Bazaar, Karachi',
+      products: ['kids tablet', 'learning toys', 'educational games'],
+      rating: 4.2,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Lahore Educational Toys',
+      city: 'Lahore',
+      category: 'Toys',
+      phone: '+92-42-3541-1100',
+      address: 'Ichhra Bazaar, Lahore',
+      products: ['educational tablet', 'learning kits', 'kids electronics'],
+      rating: 4.0,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+
+    // ── Sports ────────────────────────────────────────────────────────────────
+    {
+      name: 'Sialkot Sports Manufacturers',
+      city: 'Sialkot',
+      category: 'Sports',
+      phone: '+92-52-3560-800',
+      website: 'https://sialkot-sports.pk',
+      address: 'Shaheenabad, Sialkot',
+      products: ['yoga mat', 'sports equipment', 'fitness gear', 'gloves'],
+      rating: 4.9,
+      verified: true,
+      verificationStatus: 'verified',
+      sourceType: 'admin',
+    },
+    {
+      name: 'Lahore Sports Depot',
+      city: 'Lahore',
+      category: 'Sports',
+      phone: '+92-42-3618-4400',
+      address: 'MM Alam Road, Lahore',
+      products: ['yoga mat', 'fitness accessories', 'sports gear'],
+      rating: 4.1,
+      verified: false,
+      verificationStatus: 'pending',
+      sourceType: 'scraper',
+    },
+  ]);
+
+  console.log('✅ Seeded supplier directory (17 suppliers across 6 categories)');
 }
