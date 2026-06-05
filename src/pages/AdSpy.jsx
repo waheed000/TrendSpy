@@ -127,7 +127,7 @@ function FbCookieGuide() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white mb-0.5">{title}</p>
-              <p className="text-xs text-gray-400 leading-relaxed">{body}</p>
+              <div className="text-xs text-gray-400 leading-relaxed">{body}</div>
             </div>
           </div>
         ))}
