@@ -13,6 +13,7 @@ import axios from 'axios';
 import { connectDB } from '../lib/db.js';
 import { ScrapedAd } from '../models/index.js';
 import { getRandomUserAgent } from '../lib/fakeUserAgent.js';
+import { extractCity } from '../lib/extractCity.js';
 
 const FB_ADS_ASYNC    = 'https://www.facebook.com/ads/library/async/search_ads/';
 const SOCKET_BASE_URL = process.env.SOCKET_INTERNAL_URL || 'http://localhost:3002';
@@ -93,18 +94,22 @@ async function tryJsonApi(searchTerm, category) {
       const snapshot = raw.snapshot || raw.creative || {};
       const imageUrl = snapshot.images?.[0]?.original_image_url || '';
       const videoUrl = snapshot.videos?.[0]?.video_hd_url || '';
+      const advName  = raw.pageName || raw.page_name || 'Unknown';
+      const headline = (snapshot.title || snapshot.body?.text || raw.ad_creative_bodies?.[0] || '').slice(0, 300);
+      const desc     = (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500);
       return {
         adId,
         directUrl:      adId ? `https://www.facebook.com/ads/library/?id=${adId}` : '',
-        advertiserName: raw.pageName || raw.page_name || 'Unknown',
-        headline:       (snapshot.title || snapshot.body?.text || raw.ad_creative_bodies?.[0] || '').slice(0, 300),
-        description:    (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500),
+        advertiserName: advName,
+        headline,
+        description:    desc,
         daysRunning:    0,
         creativeType:   videoUrl ? 'video' : (snapshot.images?.length > 1 ? 'carousel' : 'image'),
         imageUrl, videoUrl,
         spendLevel:     'low',
         platform:       'facebook',
         category,
+        city:           extractCity(headline, desc, advName),
         scrapedAt:      new Date(),
       };
     }).filter((a) => a.adId && a.headline);

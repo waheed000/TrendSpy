@@ -1,8 +1,8 @@
-// File: /home/runner/workspace/trendspy-backend/app/api/tiktok/search/route.js
-import * as entry from '../../../../../../app/api/tiktok/search/route.js'
+// File: /home/runner/workspace/trendspy-backend/app/api/ai/analyze/route.js
+import * as entry from '../../../../../../app/api/ai/analyze/route.js'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../../app/api/tiktok/search/route.js')
+type TEntry = typeof import('../../../../../../app/api/ai/analyze/route.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

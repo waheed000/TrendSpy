@@ -13,6 +13,28 @@ import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import cron from 'node-cron';
 
+// ─── City detection ───────────────────────────────────────────────────────────
+const CITY_PATTERNS = [
+  { name: 'Karachi',    re: /\bkarachi\b/i     },
+  { name: 'Lahore',     re: /\blahore\b/i      },
+  { name: 'Islamabad',  re: /\bislamabad\b/i   },
+  { name: 'Rawalpindi', re: /\brawalpindi\b|\brwp\b/i },
+  { name: 'Faisalabad', re: /\bfaisalabad\b|\bfsd\b/i },
+  { name: 'Multan',     re: /\bmultan\b/i      },
+  { name: 'Peshawar',   re: /\bpeshawar\b/i    },
+  { name: 'Quetta',     re: /\bquetta\b/i      },
+  { name: 'Sialkot',    re: /\bsialkot\b/i     },
+  { name: 'Gujranwala', re: /\bgujranwala\b/i  },
+];
+
+function extractCity(...texts) {
+  const combined = texts.filter(Boolean).join(' ');
+  for (const { name, re } of CITY_PATTERNS) {
+    if (re.test(combined)) return name;
+  }
+  return null;
+}
+
 // ─── Ad Extraction Helper (Node.js, not browser) ─────────────────────────────
 function extractAdsFromHtml(html) {
   const results = [];
@@ -94,6 +116,7 @@ function extractAdsFromHtml(html) {
           imageUrl,
           videoUrl,
           platform:       'facebook',
+          city:           extractCity(headline, linkDesc, page_name),
         });
       }
     }
@@ -338,18 +361,22 @@ async function tryJsonApiFallback(searchTerm, category) {
       const snapshot = raw.snapshot || raw.creative || {};
       const imageUrl = snapshot.images?.[0]?.original_image_url || '';
       const videoUrl = snapshot.videos?.[0]?.video_hd_url || '';
+      const advName  = raw.pageName || raw.page_name || 'Unknown';
+      const headline = (snapshot.title || snapshot.body?.text || raw.ad_creative_bodies?.[0] || '').slice(0, 300);
+      const desc     = (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500);
       return {
         adId,
         directUrl:      adId ? `https://www.facebook.com/ads/library/?id=${adId}` : '',
-        advertiserName: raw.pageName || raw.page_name || 'Unknown',
-        headline:       (snapshot.title || snapshot.body?.text || raw.ad_creative_bodies?.[0] || '').slice(0, 300),
-        description:    (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500),
+        advertiserName: advName,
+        headline,
+        description:    desc,
         daysRunning:    0,
         creativeType:   videoUrl ? 'video' : (snapshot.images?.length > 1 ? 'carousel' : 'image'),
         imageUrl, videoUrl,
         spendLevel:     'low',
         platform:       'facebook',
         category,
+        city:           extractCity(headline, desc, advName),
         scrapedAt:      new Date().toISOString(),
       };
     }).filter((a) => a.adId && a.headline);

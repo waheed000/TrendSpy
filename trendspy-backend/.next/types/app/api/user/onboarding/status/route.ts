@@ -1,8 +1,8 @@
-// File: /home/runner/workspace/trendspy-backend/app/api/ads/scrape-all/route.js
-import * as entry from '../../../../../../app/api/ads/scrape-all/route.js'
+// File: /home/runner/workspace/trendspy-backend/app/api/user/onboarding/status/route.js
+import * as entry from '../../../../../../../app/api/user/onboarding/status/route.js'
 import type { NextRequest } from 'next/server.js'
 
-type TEntry = typeof import('../../../../../../app/api/ads/scrape-all/route.js')
+type TEntry = typeof import('../../../../../../../app/api/user/onboarding/status/route.js')
 
 // Check that the entry is a valid entry
 checkFields<Diff<{

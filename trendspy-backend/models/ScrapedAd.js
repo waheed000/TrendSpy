@@ -42,7 +42,7 @@ const scrapedAdSchema = new mongoose.Schema(
       enum: ['low', 'medium', 'high'],
       default: 'low',
     },
-    city: { type: String, default: null },
+    city: { type: String, default: null, index: true },
     category: { type: String, default: null },
     scrapedAt: { type: Date, default: Date.now, index: true },
     isActive: { type: Boolean, default: true },
@@ -56,6 +56,8 @@ const scrapedAdSchema = new mongoose.Schema(
 scrapedAdSchema.index({ platform: 1, productName: 1 });
 // Ads running >30 days = proven winner signal
 scrapedAdSchema.index({ daysRunning: -1 });
+// City-based filtering (used by adWinningService city filter)
+scrapedAdSchema.index({ city: 1, category: 1, scrapedAt: -1 });
 
 const ScrapedAd =
   mongoose.models.ScrapedAd || mongoose.model('ScrapedAd', scrapedAdSchema);
