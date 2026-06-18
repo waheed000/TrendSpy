@@ -7,6 +7,9 @@
  *
  * Falls back to Facebook's unauthenticated JSON API if the socket server
  * is unavailable or returns no results.
+ *
+ * Falls back to existing DB ads if both live methods return nothing,
+ * so the winning products page always has data to show.
  */
 
 import axios from 'axios';
@@ -44,8 +47,14 @@ function spendLevel(days) {
 
 /**
  * Call the socket server's Puppeteer scrape endpoint.
+ * Only works when FB_SESSION_COOKIE is set.
  */
 async function scrapeViaSockerServer(searchTerm, category) {
+  if (!process.env.FB_SESSION_COOKIE) {
+    console.log(`[FB Ads] FB_SESSION_COOKIE not set — skipping Puppeteer for "${searchTerm}"`);
+    return [];
+  }
+
   try {
     const res = await axios.post(
       `${SOCKET_BASE_URL}/internal/scrape-fb-ads`,
@@ -142,6 +151,7 @@ async function saveAds(ads) {
 
 /**
  * Main scraper — tries socket server (Puppeteer + cookie) then JSON API fallback.
+ * If both return nothing, returns existing ads from DB so the page stays populated.
  */
 async function fbAdsScraper({ searchTerm, category } = {}) {
   await connectDB();
@@ -173,8 +183,23 @@ async function fbAdsScraper({ searchTerm, category } = {}) {
     await delay(2000, 4000);
   }
 
+  // ── DB cache fallback ──────────────────────────────────────────────────────
+  // If live scraping returned nothing (FB blocking, no cookie, etc.)
+  // return existing DB ads so the winning products page stays populated.
   if (allAds.length === 0) {
-    console.warn('[FB Ads] No ads collected — cookie may be expired or FB is blocking requests.');
+    console.warn('[FB Ads] No live ads collected — serving from DB cache');
+    const cached = await ScrapedAd.find({}).sort({ scrapedAt: -1 }).limit(100).lean();
+    if (cached.length > 0) {
+      console.log(`[FB Ads] DB cache hit: ${cached.length} stored ads`);
+      return {
+        success:    true,
+        ads:        cached,
+        totalFound: cached.length,
+        savedNew:   0,
+        fromCache:  true,
+      };
+    }
+    console.warn('[FB Ads] DB cache empty — no data available');
   } else {
     console.log(`[FB Ads] Done. totalFound=${allAds.length} savedNew=${totalSaved}`);
   }

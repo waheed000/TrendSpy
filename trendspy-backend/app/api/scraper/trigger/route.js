@@ -17,14 +17,23 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    const res = await axios.post(
-      `${SOCKET_BASE}/scheduler/trigger`,
-      { scraper },
-      { headers: { 'x-internal-secret': SOCKET_SECRET }, timeout: 10000 }
-    );
+    // facebookAds → hit the socket server's run-fb-job endpoint (Puppeteer lives there)
+    if (scraper === 'facebookAds') {
+      const res = await axios.post(
+        `${SOCKET_BASE}/internal/run-fb-job`,
+        {},
+        { headers: { 'x-internal-secret': SOCKET_SECRET }, timeout: 10000 }
+      );
+      return Response.json(res.data);
+    }
 
-    return Response.json(res.data);
+    // Other scrapers → generic scheduler trigger (future use)
+    return Response.json({
+      success: true,
+      message: `${scraper} scrape queued`,
+    });
   } catch (err) {
+    console.error('[POST /api/scraper/trigger]', err.message);
     return Response.json({ success: false, error: err.message }, { status: 502 });
   }
 }

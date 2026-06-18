@@ -1,4 +1,4 @@
-import { FiExternalLink, FiUsers, FiTrendingUp, FiClock, FiBarChart2 } from 'react-icons/fi'
+import { FiExternalLink, FiUsers, FiTrendingUp, FiClock, FiBarChart2, FiZap } from 'react-icons/fi'
 
 const CATEGORY_COLORS = {
   Electronics:    { bg: 'bg-blue-500/15',   border: 'border-blue-500/25',   text: 'text-blue-400'   },
@@ -17,7 +17,7 @@ const SCORE_CLS = (s) =>
   s >= 40 ? 'text-orange-400 bg-orange-500/10 border-orange-500/25' :
             'text-red-400 bg-red-500/10 border-red-500/25'
 
-export default function AdWinnerCard({ product }) {
+export default function AdWinnerCard({ product, onViewScore, onViewAI }) {
   const catStyle = CATEGORY_COLORS[product.category] || CATEGORY_COLORS['Electronics']
 
   return (
@@ -112,15 +112,33 @@ export default function AdWinnerCard({ product }) {
         </div>
       )}
 
-      {/* CTA */}
+      {/* Action buttons */}
+      <div className="mt-auto flex gap-2 pt-1">
+        <button
+          onClick={() => onViewScore && onViewScore(product)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-300 border border-white/10 rounded-xl hover:bg-white/5 hover:border-white/20 transition-all"
+        >
+          <FiBarChart2 size={12} />
+          Score Breakdown
+        </button>
+        <button
+          onClick={() => onViewAI && onViewAI(product)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-300 border border-primary-500/30 rounded-xl hover:bg-primary-500/10 hover:border-primary-500/60 transition-all"
+        >
+          <FiZap size={12} />
+          AI Report
+        </button>
+      </div>
+
+      {/* FB Ad Library link */}
       {product.sampleUrl && (
         <a
           href={product.sampleUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-auto flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-primary-400 border border-primary-500/30 rounded-xl hover:bg-primary-500/10 hover:border-primary-500/60 transition-all"
+          className="flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-gray-600 hover:text-gray-400 transition-colors"
         >
-          <FiExternalLink size={12} />
+          <FiExternalLink size={10} />
           View on Facebook Ad Library
         </a>
       )}
