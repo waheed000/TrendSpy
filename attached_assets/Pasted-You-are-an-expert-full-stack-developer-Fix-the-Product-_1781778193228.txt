@@ -1,0 +1,117 @@
+You are an expert full-stack developer. Fix the Product Hunt page in TrendSpy so it becomes the single, complete winning product system.
+
+## Goal
+
+The Product Hunt page should be the one-stop page where users:
+1. See winning products (from Facebook ads)
+2. Filter by city
+3. Click any product → see Score Breakdown
+4. Click AI Report → get profit + ad copy
+
+## Fixes Required
+
+### 1. Fix "Real Ads Today" – No Ads Showing
+
+**Problem:** Ads not showing because:
+- `FB_SESSION_COOKIE` may have expired
+- Scraper not running automatically
+
+**Fix in `scrapers/fbAdsScraper.js`:**
+
+```javascript
+// Add cookie validation before scraping
+if (!process.env.FB_SESSION_COOKIE) {
+  console.warn('⚠️ FB_SESSION_COOKIE not set. Cannot scrape ads.');
+  return { success: false, ads: [], totalFound: 0, savedNew: 0, error: 'Cookie missing' };
+}
+
+// Add fallback to existing ads if scrape fails
+const existingAds = await ScrapedAd.find({}).limit(20);
+if (existingAds.length > 0) {
+  return { success: true, ads: existingAds, totalFound: existingAds.length, fromCache: true };
+}
+2. Fix City Filter
+Problem: City dropdown not filtering properly
+
+Fix in app/api/products/winning/route.js:
+
+javascript
+// Validate city against allowlist
+const validCities = ['Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'];
+
+if (city && !validCities.includes(city)) {
+  return Response.json({ success: false, error: 'Invalid city' }, { status: 400 });
+}
+3. Product Hunt – Single Tab with Everything
+Update src/pages/ProductHunt.jsx:
+
+jsx
+// Remove the "Scraper Data" tab. Only keep "Real Ads Today"
+// Rename it to "🔥 Winning Products"
+
+// Auto-refresh every 5 minutes
+useEffect(() => {
+  const interval = setInterval(() => {
+    refetch();
+  }, 5 * 60 * 1000);
+  return () => clearInterval(interval);
+}, [selectedCity]);
+
+// When user clicks a product:
+const handleProductClick = (product) => {
+  setSelectedProduct(product);
+  setShowScoreModal(true);
+};
+4. Score Breakdown + AI Report from Product Hunt
+In src/components/AdWinnerCard.jsx:
+
+jsx
+<div className="flex gap-2 mt-3">
+  <button
+    onClick={() => onViewScore(product)}
+    className="bg-gray-600 hover:bg-gray-700 text-white text-sm px-3 py-1 rounded"
+  >
+    📊 Score Breakdown
+  </button>
+  <button
+    onClick={() => onViewAI(product)}
+    className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-3 py-1 rounded"
+  >
+    🤖 AI Report
+  </button>
+</div>
+5. Add Manual "Scrape Now" Button on Product Hunt
+jsx
+<button
+  onClick={triggerScrape}
+  disabled={scraping}
+  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+>
+  {scraping ? '⏳ Scraping...' : '⚡ Refresh Data'}
+</button>
+6. Fix Empty State
+jsx
+{ads.length === 0 && (
+  <div className="text-center py-12">
+    <p className="text-gray-400 text-lg">No winning products found yet.</p>
+    <p className="text-gray-500 text-sm mt-2">
+      {FB_SESSION_COOKIE ? 'Click "Refresh Data" to scrape latest ads.' : 'Set FB_SESSION_COOKIE in Secrets to enable ad scraping.'}
+    </p>
+  </div>
+)}
+Expected Result
+User opens Product Hunt page:
+
+Sees "🔥 Winning Products" with a list of products
+
+Selects a city from dropdown → products filter
+
+Clicks "Score Breakdown" → sees why product is winning
+
+Clicks "AI Report" → sees profit + ad copy
+
+Clicks "Refresh Data" → manually triggers scraping
+
+All in one tab. Simple workflow.
+
+Now implement all of the above.
