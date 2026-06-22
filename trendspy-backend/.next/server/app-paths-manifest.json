@@ -1,5 +1,1 @@
-{
-  "/api/user/alerts/history/route": "app/api/user/alerts/history/route.js",
-  "/api/ads/route": "app/api/ads/route.js",
-  "/api/alerts/route": "app/api/alerts/route.js"
-}
+{}
