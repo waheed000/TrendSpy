@@ -11,12 +11,10 @@ import ProductHunt from './pages/ProductHunt.jsx'
 import CityExplorer from './pages/CityExplorer.jsx'
 import Trends from './pages/Trends.jsx'
 import AdSpy from './pages/AdSpy.jsx'
-import AIAnalyst from './pages/AIAnalyst.jsx'
 import Alerts from './pages/Alerts.jsx'
 import Seasonal from './pages/Seasonal.jsx'
 import Profile from './pages/Profile.jsx'
 import SchedulerDashboard from './pages/SchedulerDashboard.jsx'
-import TikTokTrends from './pages/TikTokTrends.jsx'
 import Layout from './components/Layout.jsx'
 import useStore from './store/useStore.js'
 
@@ -107,14 +105,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/ai-analyst"
-          element={
-            <ProtectedRoute>
-              <Layout><AIAnalyst /></Layout>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/ai-analyst" element={<Navigate to="/dashboard" replace />} />
         <Route
           path="/alerts"
           element={
@@ -139,14 +130,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/tiktok-trends"
-          element={
-            <ProtectedRoute>
-              <Layout><TikTokTrends /></Layout>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/tiktok-trends" element={<Navigate to="/dashboard" replace />} />
         <Route
           path="/scheduler"
           element={

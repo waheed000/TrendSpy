@@ -1,0 +1,259 @@
+You are an expert full-stack developer. Implement Dashboard and Ad Spy with REAL data, and remove AI Analyst and TikTok Trends tabs. Production-ready code only. NO mock data.
+
+## Goal
+
+1. Remove AI Analyst and TikTok Trends from navigation
+2. Build Dashboard with real-time stats from database
+3. Ensure Ad Spy shows real Facebook ads with all details
+
+---
+
+## PART 1: Remove Tabs
+
+### Update `src/components/Navbar.jsx` or `src/components/Sidebar.jsx`
+
+Remove these navigation items:
+- AI Analyst (`/ai-analyst`)
+- TikTok Trends (`/tiktok-trends`)
+
+Keep only:
+- Dashboard
+- Product Hunt
+- Ad Spy
+- Alerts (optional)
+- Profile
+
+---
+
+## PART 2: Dashboard with Real Data
+
+### Create `app/api/dashboard/stats/route.js`
+
+```javascript
+import { connectDB } from '@/lib/db';
+import Product from '@/models/Product';
+import ScrapedAd from '@/models/ScrapedAd';
+import AlertLog from '@/models/AlertLog';
+
+export async function GET() {
+  try {
+    await connectDB();
+    
+    // Get today's date range
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // 1. Total Products Tracked
+    const totalProducts = await Product.countDocuments();
+    
+    // 2. Today's Winners (Top 5 by winScore)
+    const topWinners = await Product.find({ winScore: { $gte: 60 } })
+      .sort({ winScore: -1 })
+      .limit(5)
+      .select('name winScore imageUrl category');
+    
+    // 3. Hot Alerts Today
+    const hotAlertsToday = await AlertLog.countDocuments({
+      sentAt: { $gte: today, $lt: tomorrow }
+    });
+    
+    // 4. Trending Categories (from ads in last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const trendingCategories = await ScrapedAd.aggregate([
+      { $match: { scrapedAt: { $gte: sevenDaysAgo } } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+    
+    // 5. City Demand (city-wise ad count)
+    const cityDemand = await ScrapedAd.aggregate([
+      { $match: { city: { $exists: true, $ne: null } } },
+      { $group: { _id: '$city', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+    
+    return Response.json({
+      success: true,
+      data: {
+        totalProducts,
+        topWinners,
+        hotAlertsToday,
+        trendingCategories: trendingCategories.map(c => ({ 
+          name: c._id || 'Uncategorized', 
+          count: c.count 
+        })),
+        cityDemand: cityDemand.map(c => ({ 
+          city: c._id || 'Unknown', 
+          count: c.count 
+        })),
+        lastUpdated: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    return Response.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
+Update src/pages/Dashboard.jsx
+Replace with real API data:
+
+jsx
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Link } from 'react-router-dom';
+
+export default function Dashboard() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { token } = useAuthStore();
+  
+  useEffect(() => {
+    fetchStats();
+  }, []);
+  
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/dashboard/stats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setStats(data.data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading dashboard...</div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="min-h-screen bg-gray-900 p-6">
+      <h1 className="text-2xl font-bold text-white mb-6">📊 Dashboard</h1>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Total Products</p>
+          <p className="text-2xl font-bold text-white">{stats?.totalProducts || 0}</p>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Hot Alerts Today</p>
+          <p className="text-2xl font-bold text-white">{stats?.hotAlertsToday || 0}</p>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Trending Categories</p>
+          <p className="text-2xl font-bold text-white">{stats?.trendingCategories?.length || 0}</p>
+        </div>
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <p className="text-gray-400 text-sm">Cities Active</p>
+          <p className="text-2xl font-bold text-white">{stats?.cityDemand?.length || 0}</p>
+        </div>
+      </div>
+      
+      {/* Today's Winners */}
+      <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-6">
+        <h2 className="text-white font-semibold mb-3">🏆 Today's Winners</h2>
+        {stats?.topWinners?.length > 0 ? (
+          <div className="space-y-3">
+            {stats.topWinners.map((product, idx) => (
+              <div key={idx} className="flex items-center justify-between bg-gray-700 p-3 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">#{idx + 1}</span>
+                  <div>
+                    <p className="text-white font-medium">{product.name}</p>
+                    <p className="text-gray-400 text-sm">{product.category}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-green-400 font-bold">{product.winScore}%</span>
+                  <Link to={`/product/${product.slug}`} className="text-blue-400 hover:underline text-sm">
+                    View
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-sm">No winners yet. Scrape ads to find winning products.</p>
+        )}
+      </div>
+      
+      {/* Trending Categories & City Demand */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <h3 className="text-white font-semibold mb-3">📈 Trending Categories</h3>
+          {stats?.trendingCategories?.length > 0 ? (
+            <div className="space-y-2">
+              {stats.trendingCategories.map((cat, idx) => (
+                <div key={idx} className="flex justify-between">
+                  <span className="text-gray-300">{cat.name}</span>
+                  <span className="text-blue-400">{cat.count} ads</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">No category data yet.</p>
+          )}
+        </div>
+        
+        <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+          <h3 className="text-white font-semibold mb-3">🏙️ City Demand</h3>
+          {stats?.cityDemand?.length > 0 ? (
+            <div className="space-y-2">
+              {stats.cityDemand.map((city, idx) => (
+                <div key={idx} className="flex justify-between">
+                  <span className="text-gray-300">{city.city}</span>
+                  <span className="text-green-400">{city.count} ads</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">No city data yet.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+PART 3: Ad Spy – Real Ads
+Ad Spy already works. Just ensure src/pages/AdSpy.jsx is calling /api/ads and displaying:
+
+Ad headline
+
+Advertiser name
+
+Days running
+
+Direct link to Facebook
+
+Creative type
+
+Spend level
+
+Testing Checklist
+AI Analyst tab removed
+
+TikTok Trends tab removed
+
+Dashboard shows real stats
+
+Dashboard top winners from database
+
+Ad Spy shows real Facebook ads
