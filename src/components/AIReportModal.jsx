@@ -1,6 +1,42 @@
 import { useState } from 'react'
-import { FiX, FiTrendingUp, FiDollarSign, FiTarget, FiUsers, FiStar, FiPhone, FiGlobe, FiShield, FiZap } from 'react-icons/fi'
+import {
+  FiX, FiTrendingUp, FiDollarSign, FiTarget, FiUsers, FiStar,
+  FiPhone, FiGlobe, FiShield, FiZap, FiPackage, FiLink, FiMapPin,
+  FiExternalLink, FiClock, FiBarChart2,
+} from 'react-icons/fi'
 import { formatPKR } from '../utils/formatPKR.js'
+
+function getInventoryAdvice(maxDaysRunning = 0, advertiserCount = 0) {
+  let base = 30
+  if (maxDaysRunning >= 30)     base = 100
+  else if (maxDaysRunning >= 14) base = 50
+
+  if (advertiserCount > 20) base = Math.min(Math.round(base * 1.5), 200)
+
+  const reorder = Math.round(base * 0.2)
+  return {
+    recommendedOrder: `${Math.round(base)} units`,
+    reorderWhen:      `${reorder} units remaining`,
+    bulkDiscount:     base > 100
+      ? 'Order 100+ units for ~15% bulk discount from Alibaba'
+      : 'Start with a small test batch to validate demand first',
+  }
+}
+
+function SpendBadge({ highSpendAds }) {
+  if (highSpendAds > 0)
+    return <span className="text-orange-400 font-medium">High (scaled budget detected)</span>
+  return <span className="text-gray-400">Standard</span>
+}
+
+function Row({ label, children }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-1.5 border-b border-white/5 last:border-0">
+      <span className="text-xs text-gray-500 flex-shrink-0">{label}</span>
+      <span className="text-xs text-right text-gray-200">{children}</span>
+    </div>
+  )
+}
 
 export default function AIReportModal({ product, report, onClose }) {
   const [buyPrice, setBuyPrice] = useState(
@@ -17,9 +53,16 @@ export default function AIReportModal({ product, report, onClose }) {
   const margin  = sellPrice > 0 ? Math.round(((sellPrice - buyPrice) / sellPrice) * 100) : 0
   const profit  = sellPrice - buyPrice
 
-  const adCopy       = report?.adCopy       || {}
-  const suppliers    = report?.suppliers    || []
-  const intl         = report?.international || null
+  const adCopy    = report?.adCopy    || {}
+  const suppliers = report?.suppliers || []
+  const intl      = report?.international || null
+
+  const topAdv      = product.topAdvertisers?.[0]
+  const cityFilter  = product.cityFilter  || null
+  const sampleUrl   = product.sampleUrl   || null
+  const inventory   = getInventoryAdvice(product.maxDaysRunning, product.advertiserCount)
+
+  const sourcingQuery = encodeURIComponent(product.name)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -28,7 +71,7 @@ export default function AIReportModal({ product, report, onClose }) {
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-card p-6 animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* ── Header ─────────────────────────────────────────── */}
         <div className="flex items-start justify-between mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -42,8 +85,113 @@ export default function AIReportModal({ product, report, onClose }) {
           </button>
         </div>
 
+        {/* ── A: Product Summary ─────────────────────────────── */}
+        <div className="glass-card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FiBarChart2 className="text-blue-400" size={15} />
+            <span className="text-sm font-medium text-gray-300">Product Summary</span>
+            <span className="ml-auto text-[10px] text-gray-600 px-1.5 py-0.5 bg-blue-500/10 rounded-full">Real Ad Data</span>
+          </div>
+          <div className="space-y-0">
+            <Row label="Product">{product.name}</Row>
+            <Row label="Category">{product.category || 'N/A'}</Row>
+            {cityFilter && (
+              <Row label="City Filter">
+                <span className="flex items-center gap-1 justify-end">
+                  <FiMapPin size={10} className="text-gray-500" />
+                  {cityFilter}
+                </span>
+              </Row>
+            )}
+            <Row label="Top Advertiser">
+              {topAdv?.name || 'Multiple advertisers'}
+            </Row>
+            <Row label="Total Advertisers">{product.advertiserCount || 0} unique sellers</Row>
+            <Row label="Total Active Ads">{product.totalAds || 0}</Row>
+            <Row label="Longest Running">
+              <span className={`flex items-center gap-1 justify-end ${(product.maxDaysRunning || 0) >= 30 ? 'text-green-400' : ''}`}>
+                <FiClock size={10} />
+                {product.maxDaysRunning || 0} days
+                {(product.maxDaysRunning || 0) >= 30 && ' · Proven winner'}
+              </span>
+            </Row>
+            <Row label="Spend Signal">
+              <SpendBadge highSpendAds={product.highSpendAds || 0} />
+            </Row>
+            {sampleUrl && (
+              <div className="pt-2">
+                <a
+                  href={sampleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300 transition-colors"
+                >
+                  <FiExternalLink size={11} />
+                  View original ad on Facebook Ad Library
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── B: Sourcing Links ──────────────────────────────── */}
+        <div className="glass-card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FiLink className="text-green-400" size={15} />
+            <span className="text-sm font-medium text-gray-300">Sourcing Links</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`https://www.alibaba.com/trade/search?SearchText=${sourcingQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-orange-600/20 border border-orange-500/30 hover:bg-orange-600/30 text-orange-300 text-xs font-medium rounded-xl transition-all"
+            >
+              <FiGlobe size={11} />
+              Alibaba Wholesale
+            </a>
+            <a
+              href={`https://www.daraz.pk/catalog/?q=${sourcingQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 text-blue-300 text-xs font-medium rounded-xl transition-all"
+            >
+              <FiGlobe size={11} />
+              Daraz.pk
+            </a>
+            <a
+              href={`https://www.aliexpress.com/wholesale?SearchText=${sourcingQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-600/20 border border-red-500/30 hover:bg-red-600/30 text-red-300 text-xs font-medium rounded-xl transition-all"
+            >
+              <FiGlobe size={11} />
+              AliExpress
+            </a>
+          </div>
+        </div>
+
+        {/* ── C: Inventory Advice ────────────────────────────── */}
+        <div className="glass-card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FiPackage className="text-accent-400" size={15} />
+            <span className="text-sm font-medium text-gray-300">Inventory Advice</span>
+            <span className="ml-auto text-[10px] text-gray-600">based on ad longevity &amp; competitor count</span>
+          </div>
+          <div className="space-y-0">
+            <Row label="Recommended First Order">
+              <span className="text-green-400 font-semibold">{inventory.recommendedOrder}</span>
+            </Row>
+            <Row label="Reorder When">{inventory.reorderWhen}</Row>
+            <Row label="Bulk Strategy">{inventory.bulkDiscount}</Row>
+          </div>
+          <div className="mt-3 text-[10px] text-gray-600 leading-relaxed">
+            Based on {product.maxDaysRunning || 0} days max ad run &amp; {product.advertiserCount || 0} active advertisers
+          </div>
+        </div>
+
+        {/* ── Profit Calculator + Best Platform ─────────────── */}
         <div className="grid grid-cols-2 gap-4 mb-4">
-          {/* Profit Calculator */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-3">
               <FiDollarSign className="text-green-400" size={16} />
@@ -83,18 +231,24 @@ export default function AIReportModal({ product, report, onClose }) {
             </div>
           </div>
 
-          {/* Best Platform */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-3">
               <FiTarget className="text-primary-400" size={16} />
               <span className="text-sm font-medium text-gray-300">Best Platform</span>
             </div>
             <div className="space-y-2">
-              {[
-                { name: 'Daraz',   score: 92, color: 'text-orange-400', rec: 'Best for reach' },
-                { name: 'TikTok',  score: 78, color: 'text-pink-400',   rec: 'Viral potential' },
-                { name: 'OLX',     score: 55, color: 'text-blue-400',   rec: 'Local buyers' },
-              ].map((p) => (
+              {(report?.profitAnalysis
+                ? [
+                    { name: report.profitAnalysis.recommendedPlatform || 'Daraz', score: 92, color: 'text-orange-400', rec: 'Recommended' },
+                    { name: 'TikTok', score: 78, color: 'text-pink-400', rec: 'Viral potential' },
+                    { name: 'OLX',    score: 55, color: 'text-blue-400', rec: 'Local buyers'  },
+                  ]
+                : [
+                    { name: 'Daraz',  score: 92, color: 'text-orange-400', rec: 'Best for reach'  },
+                    { name: 'TikTok', score: 78, color: 'text-pink-400',   rec: 'Viral potential' },
+                    { name: 'OLX',    score: 55, color: 'text-blue-400',   rec: 'Local buyers'    },
+                  ]
+              ).map((p) => (
                 <div key={p.name} className="flex items-center gap-3">
                   <span className={`text-xs font-semibold w-14 ${p.color}`}>{p.name}</span>
                   <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
@@ -104,17 +258,10 @@ export default function AIReportModal({ product, report, onClose }) {
                 </div>
               ))}
             </div>
-            {report?.profitAnalysis?.recommendedPlatform && (
-              <div className="mt-3 p-2.5 bg-primary-600/20 border border-primary-500/30 rounded-lg">
-                <p className="text-xs text-primary-300 font-medium">
-                  {report.profitAnalysis.recommendedPlatform} recommended for highest ROI
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Market Potential */}
+        {/* ── Market Potential ───────────────────────────────── */}
         {report?.marketPotential && (
           <div className="glass-card p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
@@ -125,7 +272,7 @@ export default function AIReportModal({ product, report, onClose }) {
           </div>
         )}
 
-        {/* Ad Copy */}
+        {/* ── Ad Copy ────────────────────────────────────────── */}
         <div className="glass-card p-4 mb-4">
           <div className="flex items-center gap-2 mb-3">
             <FiStar className="text-yellow-400" size={16} />
@@ -147,7 +294,7 @@ export default function AIReportModal({ product, report, onClose }) {
           </div>
         </div>
 
-        {/* Competitor Alert */}
+        {/* ── Competitor Alert ───────────────────────────────── */}
         {report?.competitorAlert ? (
           <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-4">
             <FiUsers className="text-red-400 flex-shrink-0" size={18} />
@@ -157,9 +304,9 @@ export default function AIReportModal({ product, report, onClose }) {
           <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-4">
             <FiUsers className="text-red-400 flex-shrink-0" size={18} />
             <div>
-              <p className="text-sm font-medium text-white">{product.competitorCount || 0} active competitors</p>
+              <p className="text-sm font-medium text-white">{product.competitorCount || product.advertiserCount || 0} active competitors</p>
               <p className="text-xs text-gray-400">
-                {(product.competitorCount || 0) > 20
+                {(product.competitorCount || product.advertiserCount || 0) > 20
                   ? 'High competition — differentiate with price or faster delivery'
                   : 'Moderate competition — good entry opportunity'}
               </p>
@@ -167,7 +314,7 @@ export default function AIReportModal({ product, report, onClose }) {
           </div>
         )}
 
-        {/* International Opportunity Section */}
+        {/* ── International Opportunity ──────────────────────── */}
         {intl && (
           <div className="glass-card p-4 mb-4 border border-primary-500/20">
             <div className="flex items-center justify-between mb-3">
@@ -185,7 +332,6 @@ export default function AIReportModal({ product, report, onClose }) {
                 {intl.opportunityGap} GAP
               </span>
             </div>
-
             <div className="space-y-2 mb-3">
               <p className="text-xs text-gray-400">
                 Selling on <span className="text-white font-medium">{intl.globalStores}</span> Shopify stores globally
@@ -203,7 +349,6 @@ export default function AIReportModal({ product, report, onClose }) {
                 Local availability: <span className="text-white font-medium">{intl.localAvailability}</span> products in PK market
               </p>
             </div>
-
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs text-gray-500">Opportunity Score</span>
@@ -223,7 +368,7 @@ export default function AIReportModal({ product, report, onClose }) {
           </div>
         )}
 
-        {/* Suppliers Section */}
+        {/* ── Local Suppliers ────────────────────────────────── */}
         {suppliers.length > 0 && (
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-3">
