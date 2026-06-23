@@ -1,20 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import {
-  FiGrid,
-  FiSearch,
-  FiMap,
-  FiTrendingUp,
-  FiEye,
-  FiBell,
-} from 'react-icons/fi'
+import { FiGrid, FiSearch, FiEye, FiBell } from 'react-icons/fi'
 
 const NAV_ITEMS = [
-  { to: '/dashboard',     icon: FiGrid,       label: 'Dashboard'    },
-  { to: '/products',      icon: FiSearch,     label: 'Product Hunt' },
-  { to: '/ad-spy',        icon: FiEye,        label: 'Ad Spy'       },
-  { to: '/city-explorer', icon: FiMap,        label: 'City Explorer'},
-  { to: '/trends',        icon: FiTrendingUp, label: 'Trends'       },
-  { to: '/profile',       icon: FiBell,       label: 'Profile'      },
+  { to: '/dashboard', icon: FiGrid,   label: 'Dashboard'    },
+  { to: '/products',  icon: FiSearch, label: 'Product Hunt' },
+  { to: '/ad-spy',    icon: FiEye,    label: 'Ad Spy'       },
+  { to: '/profile',   icon: FiBell,   label: 'Profile'      },
 ]
 
 export default function Sidebar() {

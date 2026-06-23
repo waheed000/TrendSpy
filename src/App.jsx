@@ -110,6 +110,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/city-explorer" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/trends"        element={<Navigate to="/dashboard" replace />} />
         <Route path="/ai-analyst"    element={<Navigate to="/dashboard" replace />} />
         <Route path="/alerts"        element={<Navigate to="/profile"   replace />} />
         <Route path="/seasonal"      element={<Navigate to="/dashboard" replace />} />
