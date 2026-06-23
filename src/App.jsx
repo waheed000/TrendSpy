@@ -11,10 +11,7 @@ import ProductHunt from './pages/ProductHunt.jsx'
 import CityExplorer from './pages/CityExplorer.jsx'
 import Trends from './pages/Trends.jsx'
 import AdSpy from './pages/AdSpy.jsx'
-import Alerts from './pages/Alerts.jsx'
-import Seasonal from './pages/Seasonal.jsx'
 import Profile from './pages/Profile.jsx'
-import SchedulerDashboard from './pages/SchedulerDashboard.jsx'
 import Layout from './components/Layout.jsx'
 import useStore from './store/useStore.js'
 
@@ -105,23 +102,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/ai-analyst" element={<Navigate to="/dashboard" replace />} />
-        <Route
-          path="/alerts"
-          element={
-            <ProtectedRoute>
-              <Layout><Alerts /></Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/seasonal"
-          element={
-            <ProtectedRoute>
-              <Layout><Seasonal /></Layout>
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/profile"
           element={
@@ -130,15 +110,11 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/ai-analyst"    element={<Navigate to="/dashboard" replace />} />
+        <Route path="/alerts"        element={<Navigate to="/profile"   replace />} />
+        <Route path="/seasonal"      element={<Navigate to="/dashboard" replace />} />
+        <Route path="/scheduler"     element={<Navigate to="/dashboard" replace />} />
         <Route path="/tiktok-trends" element={<Navigate to="/dashboard" replace />} />
-        <Route
-          path="/scheduler"
-          element={
-            <ProtectedRoute>
-              <Layout><SchedulerDashboard /></Layout>
-            </ProtectedRoute>
-          }
-        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

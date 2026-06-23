@@ -6,8 +6,6 @@ import {
   FiTrendingUp,
   FiEye,
   FiBell,
-  FiSun,
-  FiActivity,
 } from 'react-icons/fi'
 
 const NAV_ITEMS = [
@@ -16,9 +14,7 @@ const NAV_ITEMS = [
   { to: '/ad-spy',        icon: FiEye,        label: 'Ad Spy'       },
   { to: '/city-explorer', icon: FiMap,        label: 'City Explorer'},
   { to: '/trends',        icon: FiTrendingUp, label: 'Trends'       },
-  { to: '/alerts',        icon: FiBell,       label: 'Alerts'       },
-  { to: '/seasonal',      icon: FiSun,        label: 'Seasonal'     },
-  { to: '/scheduler',     icon: FiActivity,   label: 'Scheduler'    },
+  { to: '/profile',       icon: FiBell,       label: 'Profile'      },
 ]
 
 export default function Sidebar() {

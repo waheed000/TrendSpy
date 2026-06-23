@@ -1,0 +1,262 @@
+You are an expert full-stack developer. Remove Seasonal and Scheduler tabs, and merge Alerts into the Profile page. Production-ready code only. NO mock data.
+
+## Goal
+
+1. Remove Seasonal and Scheduler from navigation
+2. Move Alerts functionality into Profile page as a tab/section
+3. Keep all other functionality intact
+
+---
+
+## PART 1: Remove Tabs
+
+### Update `src/components/Navbar.jsx` or `src/components/Sidebar.jsx`
+
+Remove these navigation items:
+- Seasonal (`/seasonal`)
+- Scheduler (`/scheduler`)
+
+Keep only:
+- Dashboard
+- Product Hunt
+- Ad Spy
+- Profile (now contains Alerts)
+
+---
+
+## PART 2: Merge Alerts into Profile
+
+### Update `src/pages/Profile.jsx`
+
+Add Alerts section inside Profile page:
+
+```jsx
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/useAuthStore';
+
+export default function Profile() {
+  const { token } = useAuthStore();
+  const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'alerts'
+  
+  return (
+    <div className="min-h-screen bg-gray-900 p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold text-white mb-6">👤 Profile</h1>
+        
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-gray-700 mb-6">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-4 py-2 font-medium rounded-t-lg transition ${
+              activeTab === 'profile' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            Profile
+          </button>
+          <button
+            onClick={() => setActiveTab('alerts')}
+            className={`px-4 py-2 font-medium rounded-t-lg transition ${
+              activeTab === 'alerts' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            🔔 Alerts
+          </button>
+        </div>
+        
+        {/* Profile Tab Content */}
+        {activeTab === 'profile' && (
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            {/* Existing profile fields: name, email, phone, city, notifications */}
+          </div>
+        )}
+        
+        {/* Alerts Tab Content */}
+        {activeTab === 'alerts' && (
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <AlertsSection token={token} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+Create src/components/AlertsSection.jsx
+Move existing Alerts page content here:
+
+jsx
+import { useState, useEffect } from 'react';
+
+export default function AlertsSection({ token }) {
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newAlert, setNewAlert] = useState({
+    city: '',
+    category: '',
+    minWinScore: 75,
+    channel: 'email'
+  });
+  
+  // Fetch alerts
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+  
+  const fetchAlerts = async () => {
+    try {
+      const res = await fetch('/api/alerts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setAlerts(data.data);
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const createAlert = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newAlert)
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchAlerts();
+        setNewAlert({ city: '', category: '', minWinScore: 75, channel: 'email' });
+      }
+    } catch (error) {
+      console.error('Failed to create alert:', error);
+    }
+  };
+  
+  const deleteAlert = async (id) => {
+    try {
+      await fetch(`/api/alerts/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      fetchAlerts();
+    } catch (error) {
+      console.error('Failed to delete alert:', error);
+    }
+  };
+  
+  return (
+    <div>
+      <h2 className="text-white text-xl font-semibold mb-4">🔔 Alerts</h2>
+      
+      {/* Create Alert Form */}
+      <form onSubmit={createAlert} className="bg-gray-700 p-4 rounded-lg mb-6">
+        <h3 className="text-white font-medium mb-3">Create New Alert</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <select
+            value={newAlert.city}
+            onChange={(e) => setNewAlert({ ...newAlert, city: e.target.value })}
+            className="bg-gray-600 text-white px-3 py-2 rounded-lg"
+            required
+          >
+            <option value="">Select City</option>
+            <option value="Lahore">Lahore</option>
+            <option value="Karachi">Karachi</option>
+            <option value="Islamabad">Islamabad</option>
+          </select>
+          
+          <select
+            value={newAlert.category}
+            onChange={(e) => setNewAlert({ ...newAlert, category: e.target.value })}
+            className="bg-gray-600 text-white px-3 py-2 rounded-lg"
+            required
+          >
+            <option value="">Select Category</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Beauty">Beauty</option>
+          </select>
+          
+          <input
+            type="number"
+            min="0"
+            max="100"
+            placeholder="Min Score"
+            value={newAlert.minWinScore}
+            onChange={(e) => setNewAlert({ ...newAlert, minWinScore: parseInt(e.target.value) })}
+            className="bg-gray-600 text-white px-3 py-2 rounded-lg"
+          />
+          
+          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+            + Add Alert
+          </button>
+        </div>
+      </form>
+      
+      {/* Alerts List */}
+      {loading ? (
+        <p className="text-gray-400">Loading alerts...</p>
+      ) : alerts.length > 0 ? (
+        <div className="space-y-3">
+          {alerts.map((alert) => (
+            <div key={alert._id} className="bg-gray-700 p-3 rounded-lg flex justify-between items-center">
+              <div>
+                <p className="text-white font-medium">
+                  {alert.city} · {alert.category}
+                </p>
+                <p className="text-gray-400 text-sm">Min Score: {alert.minWinScore} · {alert.channel}</p>
+              </div>
+              <button
+                onClick={() => deleteAlert(alert._id)}
+                className="text-red-400 hover:text-red-300"
+              >
+                ✕ Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-400 text-center py-6">No alerts set. Create one above!</p>
+      )}
+    </div>
+  );
+}
+PART 3: Update Routes
+Update src/App.jsx
+Remove these routes:
+
+/seasonal
+
+/scheduler
+
+Keep only:
+
+/dashboard
+
+/products
+
+/ad-spy
+
+/profile (now contains Alerts)
+
+Testing Checklist
+Seasonal tab removed from navigation
+
+Scheduler tab removed from navigation
+
+Profile page has two tabs: Profile + Alerts
+
+Alerts section shows existing alerts
+
+Can create new alert from Profile page
+
+Can delete alert from Profile page
+
+Now implement all of the above with clean, production-ready code.
