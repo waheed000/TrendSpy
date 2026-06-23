@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { FiLogOut, FiUser } from 'react-icons/fi'
 import AlertBell from './AlertBell.jsx'
+import ThemeToggle from './ThemeToggle.jsx'
 import useStore from '../store/useStore.js'
 
 export default function Navbar() {
@@ -20,10 +21,10 @@ export default function Navbar() {
     <header className="h-16 flex items-center justify-between px-6 border-b border-white/10 bg-gray-950/80 backdrop-blur-md sticky top-0 z-40">
       <Link to="/dashboard" className="flex items-center gap-2">
         <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-sm">TS</span>
+          <span className="text-white font-bold text-sm">HG</span>
         </div>
         <span className="font-bold text-white text-lg tracking-tight">
-          Trend<span className="gradient-text">Spy</span>
+          Hunting<span className="gradient-text"> Goals</span>
         </span>
       </Link>
 
@@ -34,6 +35,8 @@ export default function Navbar() {
         </div>
 
         <AlertBell />
+
+        <ThemeToggle variant="navbar" />
 
         <div className="flex items-center gap-2 pl-3 border-l border-white/10">
           <Link

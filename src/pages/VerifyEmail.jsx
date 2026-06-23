@@ -65,7 +65,7 @@ export default function VerifyEmail() {
       if (data.success) {
         const { user, token } = data.data
         setUser({ ...user, token })
-        toast.success('Email verified! Welcome to TrendSpy.')
+        toast.success('Email verified! Welcome to Hunting Goals.')
         navigate('/onboarding', { replace: true })
       } else {
         toast.error(data.error || 'Verification failed')

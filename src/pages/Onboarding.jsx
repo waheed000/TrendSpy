@@ -78,7 +78,7 @@ export default function Onboarding() {
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Failed to save preferences')
-      toast.success('Setup complete! Welcome to TrendSpy.')
+      toast.success('Setup complete! Welcome to Hunting Goals.')
       navigate('/dashboard')
     } catch (err) {
       toast.error(err.message)

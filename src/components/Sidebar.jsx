@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { FiGrid, FiSearch, FiEye, FiBell } from 'react-icons/fi'
+import ThemeToggle from './ThemeToggle.jsx'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: FiGrid,   label: 'Dashboard'    },
@@ -30,10 +31,11 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-3 mt-4 pt-4 border-t border-white/10">
-        <div className="glass-card p-3">
+      <div className="px-3 mt-4 space-y-1 border-t border-white/10 pt-4">
+        <ThemeToggle variant="sidebar" />
+        <div className="glass-card p-3 mt-2">
           <p className="text-xs font-medium text-white mb-1">Pakistan E-Commerce</p>
-          <p className="text-xs text-gray-500">Data sources: Daraz, OLX, TikTok Shop</p>
+          <p className="text-xs text-gray-500">Data sources: Daraz, OLX, Facebook Ads</p>
         </div>
       </div>
     </aside>

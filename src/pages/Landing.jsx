@@ -65,10 +65,10 @@ export default function Landing() {
       <header className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">TS</span>
+            <span className="text-white font-bold text-sm">HG</span>
           </div>
           <span className="font-bold text-white text-xl tracking-tight">
-            Trend<span className="gradient-text">Spy</span>
+            Hunting<span className="gradient-text"> Goals</span>
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function Landing() {
 
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-3">How TrendSpy Works</h2>
+          <h2 className="text-3xl font-bold text-white mb-3">How Hunting Goals Works</h2>
           <p className="text-gray-400">Three simple steps to find your next winning product</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
@@ -174,7 +174,7 @@ export default function Landing() {
 
       <footer className="border-t border-white/10 py-8 text-center">
         <p className="text-gray-600 text-sm">
-          © 2025 TrendSpy · Pakistan E-Commerce Intelligence Platform
+          © 2025 Hunting Goals · Pakistan E-Commerce Intelligence Platform
         </p>
       </footer>
     </div>

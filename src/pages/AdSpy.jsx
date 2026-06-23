@@ -113,7 +113,7 @@ function FbCookieGuide() {
             Enable Live Facebook Ad Scraping
           </h2>
           <p className="text-sm text-gray-400 leading-relaxed">
-            TrendSpy uses Puppeteer + your Facebook session cookie to read the public
+            Hunting Goals uses Puppeteer + your Facebook session cookie to read the public
             Ad Library. No ads are posted or modified. Setup takes under 2 minutes.
           </p>
         </div>

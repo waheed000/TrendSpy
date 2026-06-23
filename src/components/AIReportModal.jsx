@@ -374,7 +374,7 @@ export default function AIReportModal({ product, report, onClose }) {
             <div className="flex items-center gap-2 mb-3">
               <FiShield className="text-green-400" size={16} />
               <span className="text-sm font-medium text-gray-300">Local Suppliers</span>
-              <span className="ml-auto text-xs text-gray-600">from TrendSpy database</span>
+              <span className="ml-auto text-xs text-gray-600">from Hunting Goals database</span>
             </div>
             <div className="space-y-2">
               {suppliers.map((s, i) => (
