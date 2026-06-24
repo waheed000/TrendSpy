@@ -26,7 +26,17 @@ export default {
           400: '#fb923c',
           500: '#f97316',
           600: '#ea580c',
-        }
+        },
+        'deep-blue': {
+          DEFAULT: '#1e3a5f',
+          light: '#2d5a8f',
+          dark: '#0f2440',
+        },
+        'ocean-teal': {
+          DEFAULT: '#0d9488',
+          light: '#14b8a6',
+          dark: '#0f766e',
+        },
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

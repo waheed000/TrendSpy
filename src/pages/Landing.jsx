@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
-import { FiTrendingUp, FiSearch, FiMap, FiArrowRight, FiStar, FiShield, FiZap } from 'react-icons/fi'
+import { FiArrowRight } from 'react-icons/fi'
 import { useState, useEffect } from 'react'
 
 const COUNTERS = [
-  { label: 'Products Tracked', value: 12430, suffix: '+' },
-  { label: 'Cities Covered', value: 10, suffix: '' },
-  { label: 'Active Sellers', value: 3840, suffix: '+' },
+  { label: 'Live Ads Tracked', value: 230, suffix: '+' },
+  { label: 'Categories Covered', value: 6, suffix: '' },
+  { label: 'Pakistani Cities', value: 10, suffix: '' },
 ]
 
 function AnimatedCounter({ target, suffix }) {
@@ -31,149 +31,212 @@ function AnimatedCounter({ target, suffix }) {
 
 const HOW_IT_WORKS = [
   {
-    icon: FiSearch,
-    title: 'Discover Winning Products',
-    desc: 'Our AI scans Daraz, OLX, and TikTok Shop 24/7 to surface products with high demand and low competition.',
-    color: 'text-primary-400',
-    bg: 'bg-primary-500/10 border-primary-500/20',
+    emoji: '📊',
+    title: '1. Real Ads Analysis',
+    desc: 'We scrape Facebook Ad Library to find products with the most active advertisers right now.',
   },
   {
-    icon: FiMap,
-    title: 'Explore City Demand',
-    desc: 'See exactly which products are hot in Lahore, Karachi, Islamabad and 7 more cities — all on one map.',
-    color: 'text-accent-400',
-    bg: 'bg-accent-500/10 border-accent-500/20',
+    emoji: '🏆',
+    title: '2. Win Score',
+    desc: 'Each product gets a score based on advertiser count, volume, longevity, and estimated spend.',
   },
   {
-    icon: FiTrendingUp,
-    title: 'Act Before Competitors',
-    desc: 'Get real-time alerts when a product\'s Win Score surges. Be first to stock, first to sell.',
-    color: 'text-green-400',
-    bg: 'bg-green-500/10 border-green-500/20',
+    emoji: '🚀',
+    title: '3. Source & Sell',
+    desc: 'Get profit estimates, ad copy, and sourcing links — all ready to go in one dashboard.',
   },
 ]
 
 const FEATURES = [
-  { icon: FiZap, label: 'Real-Time Alerts', desc: 'Telegram & email notifications' },
-  { icon: FiStar, label: 'AI Win Score', desc: 'Proprietary scoring algorithm' },
-  { icon: FiShield, label: 'Ad Spy', desc: 'See what competitors are running' },
+  {
+    emoji: '🎯',
+    title: 'Facebook Ad Intelligence',
+    desc: 'See exactly which products competitors are advertising in Pakistan right now.',
+  },
+  {
+    emoji: '💰',
+    title: 'Profit Calculator',
+    desc: 'Estimate your margin before you invest a single rupee in inventory.',
+  },
+  {
+    emoji: '📢',
+    title: 'Ready-to-Use Ad Copy',
+    desc: 'Get English and Urdu ad copy that is already proven to convert Pakistani buyers.',
+  },
+  {
+    emoji: '🔗',
+    title: 'Direct Sourcing Links',
+    desc: 'One-click search on Alibaba, Daraz, and AliExpress to find your supplier fast.',
+  },
 ]
 
 export default function Landing() {
   return (
     <div className="min-h-screen gradient-bg">
+      {/* ── Header ── */}
       <header className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d9488)' }}>
             <span className="text-white font-bold text-sm">HG</span>
           </div>
-          <span className="font-bold text-white text-xl tracking-tight">
-            Hunting<span className="gradient-text"> Goals</span>
+          <span className="font-bold text-white text-xl tracking-tight landing-hero-title">
+            Hunting<span className="gradient-text-teal"> Goals</span>
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/login" className="text-gray-400 hover:text-white text-sm transition-colors">Sign In</Link>
-          <Link to="/login" className="btn-primary text-sm py-2 px-5">Get Started Free</Link>
+          <Link
+            to="/login"
+            className="text-gray-400 hover:text-white text-sm transition-colors landing-nav-link"
+          >
+            Sign In
+          </Link>
+          <Link
+            to="/login"
+            className="btn-teal text-sm py-2 px-5"
+          >
+            Get Started Free
+          </Link>
         </div>
       </header>
 
+      {/* ── Hero ── */}
       <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm text-primary-300">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm landing-pill">
           <div className="live-dot" />
-          <span>Tracking 12,430+ products across Pakistan right now</span>
+          <span>Tracking 230+ live Facebook ads across Pakistan right now</span>
         </div>
 
-        <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6 text-balance">
+        <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
           Find Winning Products
           <br />
-          <span className="gradient-text">Before Your Competitors</span>
+          <span className="gradient-text-teal">Before Your Competitors</span>
         </h1>
 
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Pakistan's #1 product hunting tool for e-commerce sellers on Daraz, OLX & TikTok. 
-          Discover trending products by city with AI-powered Win Scores.
+        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed landing-hero-sub">
+          Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
+          with proven demand. See what's trending, who's selling, and how much they're
+          spending — all in one dashboard.
         </p>
 
         <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
           <Link
             to="/login"
-            className="btn-primary text-base px-8 py-3.5 flex items-center gap-2 shadow-lg shadow-primary-500/25"
+            className="btn-teal text-base px-8 py-3.5 flex items-center gap-2 shadow-lg"
+            style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
           >
-            Sign up free
+            Get Started Free
             <FiArrowRight size={18} />
           </Link>
-          <Link to="/login" className="btn-secondary text-base px-8 py-3.5">
-            Watch demo
+          <Link
+            to="/login"
+            className="btn-secondary text-base px-8 py-3.5"
+          >
+            Watch Demo
           </Link>
         </div>
 
+        {/* Counters */}
         <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto">
           {COUNTERS.map((c) => (
             <div key={c.label} className="text-center">
-              <div className="text-3xl font-black text-white mb-1">
+              <div className="text-3xl font-black text-white mb-1 landing-counter-val">
                 <AnimatedCounter target={c.value} suffix={c.suffix} />
               </div>
-              <div className="text-xs text-gray-500">{c.label}</div>
+              <div className="text-xs text-gray-500 landing-counter-lbl">{c.label}</div>
             </div>
           ))}
         </div>
       </section>
 
+      {/* ── How It Works ── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-3">How Hunting Goals Works</h2>
-          <p className="text-gray-400">Three simple steps to find your next winning product</p>
+          <h2 className="text-3xl font-bold text-white mb-3 landing-section-head">
+            How Hunting Goals Works
+          </h2>
+          <p className="text-gray-400 landing-section-sub">
+            Three simple steps from discovery to profit
+          </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {HOW_IT_WORKS.map((item, i) => (
             <div key={i} className="glass-card-hover p-6 text-center">
-              <div className={`w-14 h-14 rounded-2xl border ${item.bg} flex items-center justify-center mx-auto mb-4`}>
-                <item.icon className={item.color} size={24} />
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 landing-step-icon-bg"
+                style={{ background: 'rgba(13,148,136,0.12)' }}
+              >
+                <span className="text-2xl">{item.emoji}</span>
               </div>
-              <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3 text-xs font-bold text-gray-400">
-                {i + 1}
-              </div>
-              <h3 className="text-white font-bold text-lg mb-2">{item.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
+              <h3 className="text-white font-bold text-lg mb-2 landing-step-title">{item.title}</h3>
+              <p className="text-gray-400 text-sm leading-relaxed landing-step-desc">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* ── Features Grid ── */}
       <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="glass-card p-8 md:p-12">
-          <div className="grid md:grid-cols-3 gap-8 mb-10">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-primary-500/20 border border-primary-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <f.icon className="text-primary-400" size={18} />
-                </div>
-                <div>
-                  <h4 className="text-white font-semibold text-sm mb-0.5">{f.label}</h4>
-                  <p className="text-gray-500 text-xs">{f.desc}</p>
-                </div>
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-3 landing-section-head">
+            Everything You Need to Win
+          </h2>
+          <p className="text-gray-400 landing-section-sub">
+            Built specifically for Pakistani e-commerce sellers
+          </p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {FEATURES.map((f, i) => (
+            <div key={i} className="landing-feature-card glass-card-hover p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">{f.emoji}</span>
+                <h4 className="font-semibold text-white landing-feat-title">{f.title}</h4>
               </div>
-            ))}
-          </div>
-          <div className="text-center">
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
-              Ready to find your next{' '}
-              <span className="gradient-text">winning product?</span>
-            </h2>
-            <Link
-              to="/login"
-              className="btn-accent inline-flex items-center gap-2 px-8 py-3.5 text-base"
-            >
-              Start for Free
-              <FiArrowRight size={18} />
-            </Link>
-            <p className="text-gray-500 text-sm mt-3">No credit card required · Free forever plan</p>
-          </div>
+              <p className="text-gray-400 text-sm landing-feat-desc">{f.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
+      {/* ── Testimonial ── */}
+      <section className="max-w-7xl mx-auto px-6 py-10">
+        <div className="landing-testimonial-card glass-card text-center">
+          <p className="text-gray-400 italic text-base leading-relaxed landing-quote-text">
+            "I found my best-selling product using Hunting Goals. The ad data helped me make
+            a confident decision without guessing."
+          </p>
+          <p className="text-white font-semibold mt-4 landing-quote-author">
+            — Seller from Lahore
+          </p>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="glass-card p-8 md:p-12 text-center">
+          <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 landing-cta-title">
+            Ready to Find Your Next{' '}
+            <span className="gradient-text-teal">Winning Product?</span>
+          </h2>
+          <p className="text-gray-400 mb-8 landing-cta-sub">
+            Join hundreds of Pakistani sellers using Hunting Goals to stay ahead of the competition.
+          </p>
+          <Link
+            to="/login"
+            className="btn-teal inline-flex items-center gap-2 px-8 py-3.5 text-base"
+            style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
+          >
+            Get Started Free
+            <FiArrowRight size={18} />
+          </Link>
+          <p className="text-gray-500 text-sm mt-3 landing-cta-sub">
+            No credit card required · Free forever plan
+          </p>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
       <footer className="border-t border-white/10 py-8 text-center">
-        <p className="text-gray-600 text-sm">
+        <p className="text-gray-600 text-sm landing-footer-text">
           © 2025 Hunting Goals · Pakistan E-Commerce Intelligence Platform
         </p>
       </footer>
