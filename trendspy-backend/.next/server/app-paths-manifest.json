@@ -1,4 +1,4 @@
 {
-  "/api/ads/refresh/route": "app/api/ads/refresh/route.js",
-  "/api/auth/me/route": "app/api/auth/me/route.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }
