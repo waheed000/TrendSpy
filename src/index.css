@@ -103,6 +103,14 @@
   .landing-testimonial-card {
     @apply bg-white/5 border border-white/10 rounded-2xl p-6 max-w-lg mx-auto;
   }
+  /* Premium card — glassmorphism lift; overridden in light mode below */
+  .card-premium {
+    transition: box-shadow 0.2s ease;
+  }
+  /* Background decoration layer — hidden in dark mode by default */
+  .landing-bg-layer {
+    display: none;
+  }
 }
 
 @layer utilities {

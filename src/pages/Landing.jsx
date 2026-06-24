@@ -70,176 +70,223 @@ const FEATURES = [
   },
 ]
 
+/* Inline SVG grid pattern — encoded for use as a CSS background */
+const GRID_SVG = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231e3a5f' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+
 export default function Landing() {
   return (
-    <div className="min-h-screen gradient-bg">
-      {/* ── Header ── */}
-      <header className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d9488)' }}>
-            <span className="text-white font-bold text-sm">HG</span>
+    <div className="relative min-h-screen overflow-hidden gradient-bg">
+
+      {/* ── Background Decorations — light mode only, CSS-only, no images ── */}
+      <div className="landing-bg-layer absolute inset-0 pointer-events-none" aria-hidden="true">
+        {/* Large gradient blob — top right */}
+        <div
+          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(13,148,136,0.10) 0%, rgba(30,58,95,0.06) 60%, transparent 100%)',
+            filter: 'blur(60px)',
+          }}
+        />
+        {/* Medium blob — bottom left */}
+        <div
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(30,58,95,0.07) 0%, rgba(13,148,136,0.05) 60%, transparent 100%)',
+            filter: 'blur(60px)',
+          }}
+        />
+        {/* Small accent circle — near hero */}
+        <div
+          className="absolute top-1/3 left-1/4 w-14 h-14 rounded-full"
+          style={{
+            background: 'rgba(13,148,136,0.12)',
+            filter: 'blur(20px)',
+          }}
+        />
+        {/* Another small accent — lower right */}
+        <div
+          className="absolute bottom-1/4 right-1/3 w-10 h-10 rounded-full"
+          style={{
+            background: 'rgba(30,58,95,0.09)',
+            filter: 'blur(16px)',
+          }}
+        />
+        {/* Subtle grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{ backgroundImage: GRID_SVG, backgroundRepeat: 'repeat' }}
+        />
+      </div>
+
+      {/* ── All content sits above the background ── */}
+      <div className="relative z-10">
+
+        {/* ── Header ── */}
+        <header className="flex items-center justify-between px-6 py-5 max-w-7xl mx-auto">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d9488)' }}
+            >
+              <span className="text-white font-bold text-sm">HG</span>
+            </div>
+            <span className="font-bold text-white text-xl tracking-tight landing-hero-title">
+              Hunting<span className="gradient-text-teal"> Goals</span>
+            </span>
           </div>
-          <span className="font-bold text-white text-xl tracking-tight landing-hero-title">
-            Hunting<span className="gradient-text-teal"> Goals</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/login"
-            className="text-gray-400 hover:text-white text-sm transition-colors landing-nav-link"
-          >
-            Sign In
-          </Link>
-          <Link
-            to="/login"
-            className="btn-teal text-sm py-2 px-5"
-          >
-            Get Started Free
-          </Link>
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/login"
+              className="text-gray-400 hover:text-white text-sm transition-colors landing-nav-link"
+            >
+              Sign In
+            </Link>
+            <Link to="/login" className="btn-teal text-sm py-2 px-5">
+              Get Started Free
+            </Link>
+          </div>
+        </header>
 
-      {/* ── Hero ── */}
-      <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm landing-pill">
-          <div className="live-dot" />
-          <span>Tracking 230+ live Facebook ads across Pakistan right now</span>
-        </div>
+        {/* ── Hero ── */}
+        <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm landing-pill">
+            <div className="live-dot" />
+            <span>Tracking 230+ live Facebook ads across Pakistan right now</span>
+          </div>
 
-        <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
-          Find Winning Products
-          <br />
-          <span className="gradient-text-teal">Before Your Competitors</span>
-        </h1>
+          <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
+            Find Winning Products
+            <br />
+            <span className="gradient-text-teal">Before Your Competitors</span>
+          </h1>
 
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed landing-hero-sub">
-          Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
-          with proven demand. See what's trending, who's selling, and how much they're
-          spending — all in one dashboard.
-        </p>
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed landing-hero-sub">
+            Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
+            with proven demand. See what's trending, who's selling, and how much they're
+            spending — all in one dashboard.
+          </p>
 
-        <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
-          <Link
-            to="/login"
-            className="btn-teal text-base px-8 py-3.5 flex items-center gap-2 shadow-lg"
-            style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
-          >
-            Get Started Free
-            <FiArrowRight size={18} />
-          </Link>
-          <Link
-            to="/login"
-            className="btn-secondary text-base px-8 py-3.5"
-          >
-            Watch Demo
-          </Link>
-        </div>
+          <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
+            <Link
+              to="/login"
+              className="btn-teal text-base px-8 py-3.5 flex items-center gap-2"
+              style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
+            >
+              Get Started Free
+              <FiArrowRight size={18} />
+            </Link>
+            <Link to="/login" className="btn-secondary text-base px-8 py-3.5">
+              Watch Demo
+            </Link>
+          </div>
 
-        {/* Counters */}
-        <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto">
-          {COUNTERS.map((c) => (
-            <div key={c.label} className="text-center">
-              <div className="text-3xl font-black text-white mb-1 landing-counter-val">
-                <AnimatedCounter target={c.value} suffix={c.suffix} />
+          {/* Counters */}
+          <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto">
+            {COUNTERS.map((c) => (
+              <div key={c.label} className="text-center">
+                <div className="text-3xl font-black text-white mb-1 landing-counter-val">
+                  <AnimatedCounter target={c.value} suffix={c.suffix} />
+                </div>
+                <div className="text-xs text-gray-500 landing-counter-lbl">{c.label}</div>
               </div>
-              <div className="text-xs text-gray-500 landing-counter-lbl">{c.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
 
-      {/* ── How It Works ── */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-3 landing-section-head">
-            How Hunting Goals Works
-          </h2>
-          <p className="text-gray-400 landing-section-sub">
-            Three simple steps from discovery to profit
-          </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {HOW_IT_WORKS.map((item, i) => (
-            <div key={i} className="glass-card-hover p-6 text-center">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 landing-step-icon-bg"
-                style={{ background: 'rgba(13,148,136,0.12)' }}
-              >
-                <span className="text-2xl">{item.emoji}</span>
+        {/* ── How It Works ── */}
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-3 landing-section-head">
+              How Hunting Goals Works
+            </h2>
+            <p className="text-gray-400 landing-section-sub">
+              Three simple steps from discovery to profit
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {HOW_IT_WORKS.map((item, i) => (
+              <div key={i} className="card-premium glass-card-hover p-6 text-center">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ background: 'rgba(13,148,136,0.12)' }}
+                >
+                  <span className="text-2xl">{item.emoji}</span>
+                </div>
+                <h3 className="text-white font-bold text-lg mb-2 landing-step-title">{item.title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed landing-step-desc">{item.desc}</p>
               </div>
-              <h3 className="text-white font-bold text-lg mb-2 landing-step-title">{item.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed landing-step-desc">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
 
-      {/* ── Features Grid ── */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-3 landing-section-head">
-            Everything You Need to Win
-          </h2>
-          <p className="text-gray-400 landing-section-sub">
-            Built specifically for Pakistani e-commerce sellers
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {FEATURES.map((f, i) => (
-            <div key={i} className="landing-feature-card glass-card-hover p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">{f.emoji}</span>
-                <h4 className="font-semibold text-white landing-feat-title">{f.title}</h4>
+        {/* ── Features Grid ── */}
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-3 landing-section-head">
+              Everything You Need to Win
+            </h2>
+            <p className="text-gray-400 landing-section-sub">
+              Built specifically for Pakistani e-commerce sellers
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {FEATURES.map((f, i) => (
+              <div key={i} className="card-premium landing-feature-card glass-card-hover p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">{f.emoji}</span>
+                  <h4 className="font-semibold text-white landing-feat-title">{f.title}</h4>
+                </div>
+                <p className="text-gray-400 text-sm landing-feat-desc">{f.desc}</p>
               </div>
-              <p className="text-gray-400 text-sm landing-feat-desc">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
 
-      {/* ── Testimonial ── */}
-      <section className="max-w-7xl mx-auto px-6 py-10">
-        <div className="landing-testimonial-card glass-card text-center">
-          <p className="text-gray-400 italic text-base leading-relaxed landing-quote-text">
-            "I found my best-selling product using Hunting Goals. The ad data helped me make
-            a confident decision without guessing."
-          </p>
-          <p className="text-white font-semibold mt-4 landing-quote-author">
-            — Seller from Lahore
-          </p>
-        </div>
-      </section>
+        {/* ── Testimonial ── */}
+        <section className="max-w-7xl mx-auto px-6 py-10">
+          <div className="card-premium landing-testimonial-card glass-card text-center">
+            <p className="text-gray-400 italic text-base leading-relaxed landing-quote-text">
+              "I found my best-selling product using Hunting Goals. The ad data helped me make
+              a confident decision without guessing."
+            </p>
+            <p className="text-white font-semibold mt-4 landing-quote-author">
+              — Seller from Lahore
+            </p>
+          </div>
+        </section>
 
-      {/* ── CTA ── */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="glass-card p-8 md:p-12 text-center">
-          <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 landing-cta-title">
-            Ready to Find Your Next{' '}
-            <span className="gradient-text-teal">Winning Product?</span>
-          </h2>
-          <p className="text-gray-400 mb-8 landing-cta-sub">
-            Join hundreds of Pakistani sellers using Hunting Goals to stay ahead of the competition.
-          </p>
-          <Link
-            to="/login"
-            className="btn-teal inline-flex items-center gap-2 px-8 py-3.5 text-base"
-            style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
-          >
-            Get Started Free
-            <FiArrowRight size={18} />
-          </Link>
-          <p className="text-gray-500 text-sm mt-3 landing-cta-sub">
-            No credit card required · Free forever plan
-          </p>
-        </div>
-      </section>
+        {/* ── CTA ── */}
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <div className="card-premium glass-card p-8 md:p-12 text-center">
+            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 landing-cta-title">
+              Ready to Find Your Next{' '}
+              <span className="gradient-text-teal">Winning Product?</span>
+            </h2>
+            <p className="text-gray-400 mb-8 landing-cta-sub">
+              Join hundreds of Pakistani sellers using Hunting Goals to stay ahead of the competition.
+            </p>
+            <Link
+              to="/login"
+              className="btn-teal inline-flex items-center gap-2 px-8 py-3.5 text-base"
+              style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
+            >
+              Get Started Free
+              <FiArrowRight size={18} />
+            </Link>
+            <p className="text-gray-500 text-sm mt-3 landing-cta-sub">
+              No credit card required · Free forever plan
+            </p>
+          </div>
+        </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-white/10 py-8 text-center">
-        <p className="text-gray-600 text-sm landing-footer-text">
-          © 2025 Hunting Goals · Pakistan E-Commerce Intelligence Platform
-        </p>
-      </footer>
+        {/* ── Footer ── */}
+        <footer className="border-t border-white/10 py-8 text-center">
+          <p className="text-gray-600 text-sm landing-footer-text">
+            © 2025 Hunting Goals · Pakistan E-Commerce Intelligence Platform
+          </p>
+        </footer>
+
+      </div>
     </div>
   )
 }
