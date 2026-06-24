@@ -33,6 +33,14 @@ async function main() {
     process.on('SIGINT',  stop);
   }
 
+  // Seed all collections (products, suppliers, ads) if empty
+  try {
+    const { seedAll } = await import('./lib/seedAll.js');
+    await seedAll();
+  } catch (err) {
+    console.warn('[server] Seed warning:', err.message);
+  }
+
   const app = next({ dev, dir: new URL('.', import.meta.url).pathname });
   const handle = app.getRequestHandler();
 

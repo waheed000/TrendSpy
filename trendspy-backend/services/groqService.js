@@ -31,10 +31,54 @@ export async function getSuppliersForProduct(productName, category, city = null)
 
 function getClient() {
   const key = process.env.GROQ_API_KEY;
-  if (!key) {
-    throw new Error('❌ GROQ_API_KEY missing. Get it from https://console.groq.com');
-  }
+  if (!key) return null;
   return new Groq({ apiKey: key });
+}
+
+/**
+ * Local (non-AI) fallback analysis computed from product data.
+ * Returns the same shape as normalizeAnalysis() so callers are unaffected.
+ */
+function localAnalysis(productName, productData = {}) {
+  const buyPrice  = Math.round((productData.priceMin || 1500) * 0.45);
+  const sellPrice = productData.priceMax  || productData.priceMin * 1.8 || 3000;
+  const score     = productData.winScore  || 65;
+  const cat       = productData.category  || 'General';
+
+  const trend = productData.trend === 'rising'  ? 'showing strong upward momentum'
+              : productData.trend === 'falling' ? 'in seasonal decline right now'
+              : 'holding steady in the market';
+
+  const summary = `${productName} is ${trend} in Pakistan's ${cat} category — ${
+    score >= 70 ? 'a strong opportunity with good demand signals'
+    : score >= 50 ? 'a moderate opportunity worth testing with small stock'
+    : 'a niche opportunity, validate demand before stocking heavily'
+  }.`;
+
+  const darazScore  = Math.min(95, 55 + Math.round((productData.darazOrders  || 5000) / 1000));
+  const tiktokScore = Math.min(95, 45 + Math.round((productData.tiktokViews  || 1000000) / 500000));
+  const olxScore    = Math.min(85, 40 + Math.round((productData.olxViews     || 30000) / 5000));
+
+  const margin = sellPrice - buyPrice;
+  const adCopyEN = `Discover the best ${productName} in Pakistan — Rs ${sellPrice.toLocaleString()} with free delivery! ` +
+    `High quality, trusted by thousands of Pakistani buyers. Order now via Daraz or WhatsApp — Cash on Delivery available!`;
+  const adCopyUR = `${productName} ab Pakistan mein available! Behtareen quality aur mast price pe order karo. ` +
+    `Free delivery ghar tak — abhi order karo!`;
+
+  return {
+    summary,
+    score,
+    buyPrice,
+    sellPrice,
+    platforms: [
+      { name: 'Daraz',  score: darazScore,  reason: 'Largest Pakistani marketplace with built-in buyer trust' },
+      { name: 'TikTok', score: tiktokScore, reason: 'High viral potential for product demos and unboxings' },
+      { name: 'OLX',    score: olxScore,    reason: 'Good for local deals and quick cash-on-delivery sales' },
+    ],
+    adCopyEN,
+    adCopyUR,
+    competitors: productData.competitorCount || null,
+  };
 }
 
 /**
@@ -45,6 +89,7 @@ function getClient() {
  */
 async function callGroq(systemPrompt, userPrompt) {
   const groq = getClient();
+  if (!groq) throw new Error('GROQ_API_KEY not configured');
   const completion = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [
@@ -144,10 +189,14 @@ Return a JSON object with EXACTLY this structure (all fields required):
   "competitors": <integer — estimated number of active sellers currently selling this product on Pakistani platforms>
 }`;
 
-  const aiResult = await callGroq(systemPrompt, userPrompt);
-
-  // Normalize the result to guarantee the frontend-expected shape
-  const normalized = normalizeAnalysis(aiResult, productData);
+  // Use local fallback when GROQ_API_KEY is not configured
+  let normalized;
+  if (!process.env.GROQ_API_KEY) {
+    normalized = localAnalysis(productName, productData);
+  } else {
+    const aiResult = await callGroq(systemPrompt, userPrompt);
+    normalized = normalizeAnalysis(aiResult, productData);
+  }
 
   // Enrich with real DB suppliers + international opportunity data (fail silently)
   const [suppliers, opportunity] = await Promise.all([
