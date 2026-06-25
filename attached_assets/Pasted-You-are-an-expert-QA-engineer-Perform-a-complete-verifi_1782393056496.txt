@@ -1,0 +1,84 @@
+You are an expert QA engineer. Perform a complete verification of the Hunting Goals platform to ensure:
+
+1. Winning product system works with REAL data (Facebook + Instagram ads)
+2. Dashboard shows the SAME real data as Product Hunt
+3. NO dummy/mock data anywhere
+4. All features are production-ready
+
+## Verification Checklist
+
+### 1. Check Real Ads Data
+```bash
+# Check total ads in database
+curl -s http://localhost:3001/api/ads | jq '.data.ads | length'
+
+# Check ads have real data (not placeholder)
+curl -s http://localhost:3001/api/ads | jq '.data.ads[0] | {advertiserName, headline, daysRunning, platform, directUrl}'
+Expected: advertiserName is real (not "Test" or "Demo"), daysRunning > 0, platform is "facebook" or "instagram"
+
+2. Check Winning Products
+bash
+# Check winning products API
+curl -s http://localhost:3001/api/products/winning | jq '.data.products[0]'
+
+# Check win score calculation
+curl -s http://localhost:3001/api/products/winning | jq '.data.products[] | {name, winScore, advertiserCount, totalAds, maxDaysRunning}'
+Expected: winScore >= 60, advertiserCount > 0, totalAds > 0
+
+3. Check Dashboard Stats
+bash
+# Check dashboard stats
+curl -s http://localhost:3001/api/dashboard/stats | jq '.data'
+
+# Verify stats match Product Hunt
+curl -s http://localhost:3001/api/products/winning | jq '.data.products | length'
+Expected: Dashboard stats (totalProducts, adsLast7Days, topProducts) match the winning products data
+
+4. Check No Dummy Data
+bash
+# Check for placeholder text in ads
+curl -s http://localhost:3001/api/ads | jq '.data.ads[] | select(.headline | contains("Test") or contains("Demo") or contains("placeholder"))'
+
+# Check for placeholder text in products
+curl -s http://localhost:3001/api/products | jq '.data.products[] | select(.name | contains("Test") or contains("Demo"))'
+Expected: No results (no dummy data found)
+
+5. Check Frontend (Manual)
+Open Webview on port 5000
+
+Login
+
+Go to Dashboard → Compare stats with Product Hunt
+
+Go to Product Hunt → Check winning products have real data
+
+Go to Ad Spy → Check ads have real advertiser names and directUrl
+
+Go to Profile → Check alerts section works
+
+Fix If Issues Found
+If Ads Empty
+javascript
+// Trigger live scrape
+curl -X POST http://localhost:3001/api/ads/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"searchTerm":"trending pakistan","platform":"all"}'
+If Winning Products Empty
+javascript
+// Recalculate win scores
+// Check adWinningService.js is running
+If Dashboard Stats Don't Match Product Hunt
+javascript
+// Check dashboard/stats/route.js uses same data source as winning products
+Expected Final Result
+Ads are REAL (no placeholder)
+
+Winning products have REAL win scores (>= 60)
+
+Dashboard stats match Product Hunt
+
+No dummy data anywhere
+
+All features production-ready
+
+Now run ALL checks and provide a detailed report.

@@ -19,10 +19,29 @@ import { extractCity } from '../lib/extractCity.js';
 const WINDOW_DAYS = 7;
 
 // ── Noise phrases stripped before keyword extraction ─────────────────────────
-const NOISE_RE = /limited\s*time|flash\s*sale|sale|offer|buy\s*now|shop\s*now|free\s*shipping|order\s*now|discount|off|get\s*yours|hurry|don['']t\s*miss|check\s*out|click\s*here|learn\s*more|\d+%|rs\.?\s*\d+|pkr\s*\d+|pk|pakistan/gi;
+const NOISE_RE = /limited\s*time|flash\s*sale|sale|offer|buy\s*now|shop\s*now|free\s*shipping|order\s*now|discount|off|get\s*yours|hurry|don['']t\s*miss|check\s*out|click\s*here|learn\s*more|whatsapp|whats\s*app|cod\s*available|cash\s*on\s*delivery|nationwide\s*delivery|same\s*day|home\s*delivery|\d+%|rs\.?\s*\d+|pkr\s*\d+|pk|pakistan/gi;
+
+// Single words that are too generic to form a meaningful product name
+const GENERIC_WORDS = new Set([
+  // English marketing filler
+  'love','our','you','know','non','stop','get','new','best','top','the','for',
+  'and','with','your','this','that','more','all','now','buy','fast','good',
+  'great','big','just','only','very','much','also','some','come','want','need',
+  'give','take','make','like','look','see','use','can','has','had','not','but',
+  'are','was','were','will','have','been','its','any','one','two','how','why',
+  'who','day','time','way','may','per','yet','via','get','free','cod','home',
+  'order','shop','price','brand','original','quality','latest','new','sale',
+  'collection','made','style','designs','design','color','colors','size','sizes',
+  'stock','available','delivery','shipping','nationwide','introducing','meet',
+  'smart','smartness','amazing','awesome','perfect','ideal','ultimate','premium',
+  // Roman Urdu common words
+  'nayi','wali','purani','jadoo','karo','hai','mein','kar','kal','aaj',
+  'sirf','abhi','hain','nahi','bhi','toh','se','ki','ka','ko','ne','par',
+  'agar','phir','kuch','yeh','woh','aur','lekin','kyun','jab','sab',
+]);
 
 /** Strip noise, collapse whitespace, take first N words. */
-function cleanHeadline(headline, words = 4) {
+function cleanHeadline(headline, words = 6) {
   if (!headline) return '';
   return headline
     .replace(NOISE_RE, ' ')
@@ -109,20 +128,50 @@ function scoreCategory({ advCount, totalAds, maxDays, spendSum }) {
   return Math.min(100, s);
 }
 
-/** Extract the most frequent 2-gram keyword from an array of headlines. */
+/**
+ * Extract the most frequent meaningful 2-gram from ad headlines.
+ * Filters out generic marketing words and Roman Urdu filler.
+ * Falls back to the category name when no good bigram is found.
+ */
 function extractTopKeyword(headlines, category) {
   const freq = {};
   for (const h of headlines) {
-    const words = cleanHeadline(h, 6).split(' ').filter((w) => w.length > 2);
+    const words = cleanHeadline(h, 8)
+      .split(' ')
+      .filter((w) => w.length > 2 && !GENERIC_WORDS.has(w));
     for (let i = 0; i < words.length - 1; i++) {
+      // Only count bigrams where BOTH words are product-relevant
+      if (GENERIC_WORDS.has(words[i]) || GENERIC_WORDS.has(words[i + 1])) continue;
       const bigram = `${words[i]} ${words[i + 1]}`;
       freq[bigram] = (freq[bigram] || 0) + 1;
     }
   }
-  const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
-  return top
-    ? top[0].replace(/\b\w/g, (c) => c.toUpperCase())
-    : category;
+
+  // Require the bigram to appear in at least 2 ads to be considered real signal
+  const candidates = Object.entries(freq)
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1]);
+
+  if (candidates.length > 0) {
+    return candidates[0][0].replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  // Fall back to best single word (ignoring generics)
+  const wordFreq = {};
+  for (const h of headlines) {
+    const words = cleanHeadline(h, 8)
+      .split(' ')
+      .filter((w) => w.length > 3 && !GENERIC_WORDS.has(w));
+    for (const w of words) wordFreq[w] = (wordFreq[w] || 0) + 1;
+  }
+  const topWord = Object.entries(wordFreq)
+    .filter(([, c]) => c >= 2)
+    .sort((a, b) => b[1] - a[1])[0];
+
+  if (topWord) return topWord[0].replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Final fallback: use the category name itself
+  return category || 'Trending Products';
 }
 
 // ── Backfill city field on existing ads ──────────────────────────────────────

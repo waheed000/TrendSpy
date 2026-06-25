@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom'
 import { FiArrowRight } from 'react-icons/fi'
 import { useState, useEffect } from 'react'
 
-const COUNTERS = [
-  { label: 'Live Ads Tracked', value: 230, suffix: '+' },
+const DEFAULT_COUNTERS = [
+  { label: 'Live Ads Tracked', value: 261, suffix: '+' },
   { label: 'Categories Covered', value: 6, suffix: '' },
   { label: 'Pakistani Cities', value: 10, suffix: '' },
 ]
@@ -151,7 +151,7 @@ export default function Landing() {
         <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm landing-pill">
             <div className="live-dot" />
-            <span>Tracking 230+ live Facebook ads across Pakistan right now</span>
+            <span>Tracking 261+ live Facebook ads across Pakistan right now</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
@@ -182,7 +182,7 @@ export default function Landing() {
 
           {/* Counters */}
           <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto">
-            {COUNTERS.map((c) => (
+            {DEFAULT_COUNTERS.map((c) => (
               <div key={c.label} className="text-center">
                 <div className="text-3xl font-black text-white mb-1 landing-counter-val">
                   <AnimatedCounter target={c.value} suffix={c.suffix} />

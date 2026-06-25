@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db';
-import { Product, ScrapedAd } from '@/models/index';
+import { ScrapedAd } from '@/models/index';
+import { getAdBasedWinners } from '@/services/adWinningService';
 
 const WINDOW_DAYS = 7;
 
@@ -12,22 +13,16 @@ export async function GET() {
     const tomorrow     = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [
-      totalProducts,
       totalAds,
-      topWinners,
+      topWinnersRaw,
       trendingCategories,
       cityDemand,
       recentAdsToday,
     ] = await Promise.all([
-      Product.countDocuments(),
-
       ScrapedAd.countDocuments({ scrapedAt: { $gte: sevenDaysAgo } }),
 
-      Product.find({ winScore: { $gte: 60 } })
-        .sort({ winScore: -1 })
-        .limit(5)
-        .select('name winScore category imageUrl')
-        .lean(),
+      // Real-time winners from live ad data — same source as Product Hunt page
+      getAdBasedWinners(5),
 
       ScrapedAd.aggregate([
         { $match: { scrapedAt: { $gte: sevenDaysAgo }, category: { $ne: null } } },
@@ -47,6 +42,9 @@ export async function GET() {
       ScrapedAd.countDocuments({ scrapedAt: { $gte: today, $lt: tomorrow } }),
     ]);
 
+    // Total unique products is the number of ad-based winning categories
+    const totalProducts = topWinnersRaw.length;
+
     // AlertLog is optional — seeded apps may not have it yet
     let hotAlertsToday = 0;
     try {
@@ -65,11 +63,13 @@ export async function GET() {
         totalAds,
         hotAlertsToday,
         recentAdsToday,
-        topWinners: topWinners.map((p) => ({
-          id:       p._id,
-          name:     p.name,
-          winScore: p.winScore,
-          category: p.category,
+        topWinners: topWinnersRaw.map((p) => ({
+          id:             p.id       || p.category,
+          name:           p.name,
+          winScore:       p.winScore,
+          category:       p.category,
+          advertiserCount: p.advertiserCount,
+          totalAds:       p.totalAds,
         })),
         trendingCategories: trendingCategories.map((c) => ({
           name:        c._id || 'Uncategorized',

@@ -469,7 +469,7 @@ const FB_ADS_QUERIES = [
   { searchTerm: 'handbag fashion Pakistan',      category: 'Fashion'     },
   { searchTerm: 'shoes sneakers Pakistan',       category: 'Fashion'     },
   { searchTerm: 'skin care beauty Pakistan',     category: 'Beauty'      },
-  { searchTerm: 'home appliances Pakistan',      category: 'Home & Garden'},
+  { searchTerm: 'home appliances Pakistan',      category: 'Home'        },
   { searchTerm: 'sports equipment Pakistan',     category: 'Sports'      },
 ];
 

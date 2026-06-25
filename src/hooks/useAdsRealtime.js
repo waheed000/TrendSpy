@@ -4,7 +4,18 @@ import { io } from 'socket.io-client'
 import toast from 'react-hot-toast'
 import useStore from '../store/useStore.js'
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:3002`
+// In Replit the preview is proxied — ports are served as subdomains like "3002-xxx.replit.dev"
+// rather than direct "hostname:3002". Detect and rewrite accordingly.
+function buildSocketUrl() {
+  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL
+  const { protocol, hostname } = window.location
+  // Replit pattern: "<port>-<id>.replit.dev"  →  replace the leading port prefix
+  const replitMatch = hostname.match(/^(\d+)-(.+)$/)
+  if (replitMatch) return `${protocol}//3002-${replitMatch[2]}`
+  // Local dev: use direct port
+  return `${protocol}//${hostname}:3002`
+}
+const SOCKET_URL = buildSocketUrl()
 
 export function useAdsRealtime({ onSchedulerRan } = {}) {
   const user        = useStore((s) => s.user)
