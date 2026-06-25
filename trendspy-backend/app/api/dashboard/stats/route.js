@@ -1,6 +1,5 @@
 import { connectDB } from '@/lib/db';
 import { ScrapedAd } from '@/models/index';
-import { getAdBasedWinners } from '@/services/adWinningService';
 
 const WINDOW_DAYS = 7;
 
@@ -19,10 +18,52 @@ export async function GET() {
       cityDemand,
       recentAdsToday,
     ] = await Promise.all([
+
       ScrapedAd.countDocuments({ scrapedAt: { $gte: sevenDaysAgo } }),
 
-      // Real-time winners from live ad data — same source as Product Hunt page
-      getAdBasedWinners(5),
+      // Winners: top advertisers by ad count in window, with real ad details
+      ScrapedAd.aggregate([
+        {
+          $match: {
+            scrapedAt:  { $gte: sevenDaysAgo },
+            isActive:   true,
+            advertiserName: { $ne: null, $exists: true },
+            headline:   { $ne: null, $exists: true },
+          },
+        },
+        {
+          $group: {
+            _id:            '$advertiserName',
+            headline:       { $first: '$headline' },
+            daysRunning:    { $max:   '$daysRunning' },
+            spendLevel:     { $first: '$spendLevel' },
+            platform:       { $first: '$platform' },
+            category:       { $first: '$category' },
+            directUrl:      { $first: '$directUrl' },
+            totalAds:       { $sum:   1 },
+            advertisers:    { $addToSet: '$advertiserName' },
+          },
+        },
+        {
+          $addFields: {
+            winScore: {
+              $min: [
+                100,
+                {
+                  $add: [
+                    { $multiply: [{ $size: '$advertisers' }, 4] },
+                    { $min: [30, { $divide: ['$totalAds', 2] }] },
+                    { $cond: [{ $gte: ['$daysRunning', 30] }, 20, { $cond: [{ $gte: ['$daysRunning', 14] }, 10, 5] }] },
+                    { $cond: [{ $eq: ['$spendLevel', 'High'] }, 10, { $cond: [{ $eq: ['$spendLevel', 'Medium'] }, 5, 0] }] },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        { $sort: { daysRunning: -1, totalAds: -1, winScore: -1 } },
+        { $limit: 10 },
+      ]),
 
       ScrapedAd.aggregate([
         { $match: { scrapedAt: { $gte: sevenDaysAgo }, category: { $ne: null } } },
@@ -42,10 +83,6 @@ export async function GET() {
       ScrapedAd.countDocuments({ scrapedAt: { $gte: today, $lt: tomorrow } }),
     ]);
 
-    // Total unique products is the number of ad-based winning categories
-    const totalProducts = topWinnersRaw.length;
-
-    // AlertLog is optional — seeded apps may not have it yet
     let hotAlertsToday = 0;
     try {
       const { AlertLog } = await import('@/models/index');
@@ -53,24 +90,33 @@ export async function GET() {
         sentAt: { $gte: today, $lt: tomorrow },
       });
     } catch {
-      // AlertLog model not available — leave as 0
+      // AlertLog model not available
     }
 
     return Response.json({
       success: true,
       data: {
-        totalProducts,
+        totalProducts:  topWinnersRaw.length,
         totalAds,
         hotAlertsToday,
         recentAdsToday,
-        topWinners: topWinnersRaw.map((p) => ({
-          id:             p.id       || p.category,
-          name:           p.name,
-          winScore:       p.winScore,
-          category:       p.category,
-          advertiserCount: p.advertiserCount,
-          totalAds:       p.totalAds,
-        })),
+        topWinners: topWinnersRaw.map((w) => {
+          // Normalise spend level to Title Case for frontend badge styles
+          const rawSpend  = (w.spendLevel || '').toLowerCase();
+          const spendLevel = rawSpend === 'high' ? 'High' : rawSpend === 'medium' ? 'Medium' : 'Low';
+          return {
+            id:             w._id,
+            name:           (w.headline || '').slice(0, 70).trim() || w._id,
+            advertiserName: w._id,
+            daysRunning:    Math.round(w.daysRunning || 0),
+            spendLevel,
+            platform:       w.platform    || 'facebook',
+            category:       w.category    || 'General',
+            directUrl:      w.directUrl   || null,
+            totalAds:       w.totalAds    || 1,
+            winScore:       Math.round(w.winScore || 0),
+          };
+        }),
         trendingCategories: trendingCategories.map((c) => ({
           name:        c._id || 'Uncategorized',
           count:       c.count,

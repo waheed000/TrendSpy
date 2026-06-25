@@ -42,19 +42,54 @@ function StatCard({ icon: Icon, label, value, sub, color, bg }) {
   )
 }
 
+const SPEND_STYLE = {
+  High:   'bg-green-500/15 text-green-400 border border-green-500/25',
+  Medium: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25',
+  Low:    'bg-gray-500/15 text-gray-400 border border-gray-500/25',
+}
+
 function WinnerRow({ product, rank }) {
   const scoreColor =
     product.winScore >= 75 ? 'text-green-400' :
-    product.winScore >= 60 ? 'text-yellow-400' : 'text-gray-400'
+    product.winScore >= 50 ? 'text-yellow-400' : 'text-gray-400'
+
+  const spendStyle = SPEND_STYLE[product.spendLevel] || SPEND_STYLE.Low
+  const isIg       = product.platform === 'instagram'
 
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-      <span className="text-xs text-gray-600 w-5 text-center flex-shrink-0">#{rank}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-white font-medium truncate">{product.name}</p>
-        <p className="text-xs text-gray-500">{product.category}</p>
+    <div className="py-2.5 border-b border-white/5 last:border-0">
+      <div className="flex items-start gap-2">
+        <span className="text-xs text-gray-600 w-5 text-center flex-shrink-0 mt-0.5">#{rank}</span>
+        <div className="flex-1 min-w-0">
+          {/* Headline */}
+          <p className="text-sm text-white font-medium leading-snug line-clamp-2 mb-1">
+            {product.name}
+          </p>
+          {/* Meta row */}
+          <div className="flex items-center flex-wrap gap-1.5">
+            <span className="text-xs text-gray-500 truncate max-w-[120px]" title={product.advertiserName}>
+              {product.advertiserName}
+            </span>
+            <span className="text-gray-700">·</span>
+            <span className="text-xs text-gray-500">{product.daysRunning}d</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${spendStyle}`}>
+              {product.spendLevel}
+            </span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+              isIg
+                ? 'bg-pink-500/15 text-pink-400 border border-pink-500/25'
+                : 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
+            }`}>
+              {isIg ? 'IG' : 'FB'}
+            </span>
+          </div>
+        </div>
+        {/* Win Score */}
+        <div className="flex-shrink-0 text-right">
+          <span className={`text-sm font-bold ${scoreColor}`}>{product.winScore}</span>
+          <p className="text-[10px] text-gray-600 leading-none mt-0.5">score</p>
+        </div>
       </div>
-      <span className={`text-sm font-bold flex-shrink-0 ${scoreColor}`}>{product.winScore}</span>
     </div>
   )
 }
@@ -160,15 +195,15 @@ export default function Dashboard() {
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-3">
               <FiBarChart2 size={15} className="text-primary-400" />
-              <span className="text-sm font-medium text-gray-300">Top Products</span>
-              <span className="ml-auto text-[10px] text-gray-600">by Win Score</span>
+              <span className="text-sm font-medium text-gray-300">Today's Winners</span>
+              <span className="ml-auto text-[10px] text-gray-600">advertiser · days · spend</span>
             </div>
             {stats.topWinners.length > 0 ? (
               stats.topWinners.map((p, i) => (
-                <WinnerRow key={p.id} product={p} rank={i + 1} />
+                <WinnerRow key={p.id || i} product={p} rank={i + 1} />
               ))
             ) : (
-              <p className="text-xs text-gray-600 py-4 text-center">No products yet — scrape ads to detect winners</p>
+              <p className="text-xs text-gray-600 py-4 text-center">No winners yet — ads are scraped every 6 hours</p>
             )}
           </div>
 

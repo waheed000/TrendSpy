@@ -1,0 +1,167 @@
+You are an expert full-stack developer. Update the Dashboard to show winning products with REAL ad details (advertiser name, days running, spend level, platform). NO dummy data.
+
+## Goal
+
+Dashboard winning products should display:
+- Product Name (from ad headline)
+- Advertiser Name (who is running the ad)
+- Days Running (how long ad has been active)
+- Spend Level (High/Medium/Low)
+- Platform (Facebook/Instagram)
+- Win Score
+
+If no ads are scraped → empty state (no dummy data).
+
+## Implementation
+
+### 1. Update `app/api/dashboard/stats/route.js`
+
+Add winning products with ad details:
+
+```javascript
+// Get winning products with ad details
+const sevenDaysAgo = new Date();
+sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+const winners = await ScrapedAd.aggregate([
+  { $match: { scrapedAt: { $gte: sevenDaysAgo } } },
+  { 
+    $group: { 
+      _id: { $toLower: '$headline' }, // group by normalized headline
+      advertiserName: { $first: '$advertiserName' },
+      daysRunning: { $max: '$daysRunning' },
+      spendLevel: { $first: '$spendLevel' },
+      platform: { $first: '$platform' },
+      totalAds: { $sum: 1 },
+      advertisers: { $addToSet: '$advertiserName' }
+    }
+  },
+  { 
+    $project: {
+      name: '$_id',
+      advertiserName: 1,
+      daysRunning: 1,
+      spendLevel: 1,
+      platform: 1,
+      totalAds: 1,
+      advertiserCount: { $size: '$advertisers' },
+      winScore: {
+        $min: [
+          100,
+          {
+            $add: [
+              { $multiply: [{ $size: '$advertisers' }, 4] },
+              { $divide: ['$totalAds', 2] },
+              { $cond: [{ $gte: ['$daysRunning', 30] }, 20, 0] },
+              { $cond: [{ $eq: ['$spendLevel', 'High'] }, 10, 0] }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  { $sort: { winScore: -1 } },
+  { $limit: 10 }
+]);
+
+// Return winners in dashboard response
+return Response.json({
+  success: true,
+  data: {
+    totalProducts,
+    adsLast7Days,
+    adsToday,
+    topCategory,
+    citiesActive,
+    mostActiveCity,
+    topWinners: winners.map(w => ({
+      name: w.name || 'Unknown Product',
+      advertiserName: w.advertiserName || 'Unknown Advertiser',
+      daysRunning: w.daysRunning || 0,
+      spendLevel: w.spendLevel || 'N/A',
+      platform: w.platform || 'facebook',
+      winScore: Math.round(w.winScore || 0),
+      totalAds: w.totalAds || 0,
+      advertiserCount: w.advertiserCount || 0
+    })),
+    trendingCategories,
+    cityDemand
+  }
+});
+2. Update src/pages/Dashboard.jsx
+Display winners with ad details:
+
+jsx
+{/* Today's Winners */}
+<div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 mb-6">
+  <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">🏆 Today's Winners</h2>
+  
+  {stats?.topWinners?.length > 0 ? (
+    <div className="space-y-3">
+      {stats.topWinners.map((product, idx) => (
+        <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-900 dark:text-white">#{idx + 1}</span>
+              <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
+              <span className="text-sm font-bold text-teal-600 dark:text-teal-400">{product.winScore}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <span>👤 {product.advertiserName}</span>
+              <span>📅 {product.daysRunning} days</span>
+              <span className={`px-2 py-0.5 rounded text-xs ${
+                product.spendLevel === 'High' ? 'bg-green-100 text-green-700' :
+                product.spendLevel === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                'bg-gray-100 text-gray-700'
+              }`}>
+                {product.spendLevel}
+              </span>
+              <span className={`text-xs px-2 py-0.5 rounded ${
+                product.platform === 'instagram' 
+                  ? 'bg-pink-100 text-pink-700' 
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {product.platform === 'instagram' ? '📸 Instagram' : '📱 Facebook'}
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-lg font-bold text-teal-600 dark:text-teal-400">{product.winScore}</span>
+            <p className="text-xs text-gray-400">Win Score</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <p>No winning products found yet.</p>
+      <p className="text-sm mt-1">Ads are scraped every 6 hours. Check back soon.</p>
+    </div>
+  )}
+</div>
+3. Ensure stats query includes topWinners
+In the Dashboard component, ensure the stats fetch includes topWinners:
+
+javascript
+const { data: stats, isLoading } = useQuery({
+  queryKey: ['dashboardStats'],
+  queryFn: async () => {
+    const res = await fetch('/api/dashboard/stats', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const result = await res.json();
+    if (result.success) return result.data;
+    throw new Error(result.error);
+  }
+});
+
+// Destructure topWinners
+const { topWinners = [] } = stats || {};
+Expected Result
+Dashboard shows winning products with: product name, advertiser name, days running, spend level, platform, win score
+
+No dummy data
+
+Empty state when no ads
+
+Now implement all of the above with clean, production-ready code.

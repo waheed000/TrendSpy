@@ -1,7 +1,5 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/ads/route": "app/api/ads/route.js",
-  "/api/ai/analyze/route": "app/api/ai/analyze/route.js",
-  "/api/products/winning/route": "app/api/products/winning/route.js",
-  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js"
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js"
 }
