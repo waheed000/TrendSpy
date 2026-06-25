@@ -153,7 +153,7 @@ async function saveAds(ads) {
  * Main scraper — tries socket server (Puppeteer + cookie) then JSON API fallback.
  * If both return nothing, returns existing ads from DB so the page stays populated.
  */
-async function fbAdsScraper({ searchTerm, category } = {}) {
+async function fbAdsScraper({ searchTerm, category, platform = 'all' } = {}) {
   await connectDB();
 
   const targets = searchTerm
@@ -164,13 +164,22 @@ async function fbAdsScraper({ searchTerm, category } = {}) {
   let totalSaved = 0;
 
   for (const target of targets) {
-    console.log(`[FB Ads] Processing: "${target.term}"`);
+    console.log(`[FB Ads] Processing: "${target.term}" platform="${platform}"`);
 
     let ads = await scrapeViaSockerServer(target.term, target.category);
+
+    // Filter by platform if specified (socket server returns tagged ads)
+    if (platform !== 'all' && ads.length > 0) {
+      ads = ads.filter((a) => a.platform === platform);
+    }
 
     if (ads.length === 0) {
       await delay(500, 1000);
       ads = await tryJsonApi(target.term, target.category);
+      // Tag JSON API ads with platform (FB Ad Library URL includes both FB + IG)
+      if (platform !== 'all') {
+        ads = ads.map((a) => ({ ...a, platform }));
+      }
     }
 
     console.log(`[FB Ads] Found ${ads.length} ads for "${target.term}"`);
@@ -207,8 +216,8 @@ async function fbAdsScraper({ searchTerm, category } = {}) {
   return { success: true, ads: allAds, totalFound: allAds.length, savedNew: totalSaved };
 }
 
-export async function scrapeFacebookAds(searchTerm, category = null) {
-  return fbAdsScraper({ searchTerm, category });
+export async function scrapeFacebookAds(searchTerm, category = null, platform = 'all') {
+  return fbAdsScraper({ searchTerm, category, platform });
 }
 
 export async function countCompetitors(productName, city) {

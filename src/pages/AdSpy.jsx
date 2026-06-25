@@ -21,9 +21,10 @@ const SPEND_COLORS = {
 
 async function fetchAdsFromAPI(filters) {
   const params = new URLSearchParams()
-  if (filters.category && filters.category !== 'All') params.set('category', filters.category)
-  if (filters.city     && filters.city     !== 'All') params.set('city',     filters.city)
-  if (filters.creative && filters.creative !== 'All') params.set('creative', filters.creative)
+  if (filters.category && filters.category !== 'All')  params.set('category', filters.category)
+  if (filters.city     && filters.city     !== 'All')  params.set('city',     filters.city)
+  if (filters.creative && filters.creative !== 'All')  params.set('creative', filters.creative)
+  if (filters.platform && filters.platform !== 'all')  params.set('platform', filters.platform)
   if (filters.minDuration > 0) params.set('minDuration', filters.minDuration)
   params.set('limit', '30')
 
@@ -151,15 +152,22 @@ function FbCookieGuide() {
 
 // ─── Default filters (for detecting "truly empty" vs "filtered empty") ────────
 
-const DEFAULT_FILTERS = { category: 'All', city: 'All', creative: 'All', minDuration: 0 }
+const DEFAULT_FILTERS = { category: 'All', city: 'All', creative: 'All', platform: 'all', minDuration: 0 }
 
 function filtersAreDefault(f) {
   return (
     f.category    === DEFAULT_FILTERS.category &&
     f.city        === DEFAULT_FILTERS.city &&
     f.creative    === DEFAULT_FILTERS.creative &&
+    f.platform    === DEFAULT_FILTERS.platform &&
     f.minDuration === DEFAULT_FILTERS.minDuration
   )
+}
+
+const PLATFORM_STYLES = {
+  facebook:  { bg: 'bg-blue-500/20 border-blue-500/30',  text: 'text-blue-400',  icon: 'f',  label: 'Facebook'  },
+  instagram: { bg: 'bg-pink-500/20 border-pink-500/30',  text: 'text-pink-400',  icon: '✦', label: 'Instagram' },
+  tiktok:    { bg: 'bg-purple-500/20 border-purple-500/30', text: 'text-purple-400', icon: '♪', label: 'TikTok' },
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -171,6 +179,7 @@ export default function AdSpy() {
     category:    'All',
     city:        'All',
     creative:    'All',
+    platform:    'all',
     minDuration: 0,
   })
   const [durationInput, setDurationInput] = useState(0)
@@ -305,6 +314,15 @@ export default function AdSpy() {
               </option>
             ))}
           </select>
+          <select
+            value={filters.platform}
+            onChange={(e) => updateFilter('platform', e.target.value)}
+            className="select-field text-sm py-2 w-auto min-w-36"
+          >
+            <option value="all">All Platforms</option>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+          </select>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500 whitespace-nowrap">Min days running:</span>
             <input
@@ -361,16 +379,17 @@ export default function AdSpy() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {ads.map((ad) => {
             const CreativeIcon = CREATIVE_ICONS[ad.creative] || FiEye
+            const plt = PLATFORM_STYLES[ad.platform] || PLATFORM_STYLES.facebook
             return (
               <div key={ad.id || ad.adId} className="glass-card-hover p-5 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-600/20 border border-blue-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-blue-400 text-xs font-bold">f</span>
+                    <div className={`w-8 h-8 ${plt.bg} border rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <span className={`${plt.text} text-xs font-bold`}>{plt.icon}</span>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500 capitalize">{ad.platform}</span>
-                      <div className="flex items-center gap-1.5">
+                      <span className={`text-xs font-medium ${plt.text}`}>{plt.label}</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SPEND_COLORS[ad.spend] || SPEND_COLORS.Low}`}>
                           {ad.spend} spend
                         </span>
@@ -384,8 +403,8 @@ export default function AdSpy() {
                         href={ad.directUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1 text-blue-400 hover:text-blue-300 bg-blue-500/10 rounded-lg transition-all"
-                        title="View ad on Facebook"
+                        className={`p-1 ${plt.text} hover:opacity-80 ${plt.bg} rounded-lg transition-all`}
+                        title={`View ad on ${plt.label}`}
                       >
                         <FiExternalLink size={12} />
                       </a>

@@ -1,12 +1,27 @@
 /**
- * Groq AI Service
- * Uses llama-3.3-70b-versatile (free tier) for product analysis and ad copy.
+ * Groq AI Service — production-ready with module-level client init and local fallback.
+ * Works with or without GROQ_API_KEY. Real AI when key is set, computed analysis when not.
  */
 
 import Groq from 'groq-sdk';
 import { connectDB } from '../lib/db.js';
 import Supplier from '../models/Supplier.js';
 import { calculateOpportunityScore } from './opportunityService.js';
+
+// ── Module-level Groq client init (once at startup) ──────────────────────────
+let groqClient = null;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+if (GROQ_API_KEY && GROQ_API_KEY !== 'your_groq_api_key_here') {
+  try {
+    groqClient = new Groq({ apiKey: GROQ_API_KEY });
+    console.log('✅ Groq AI initialized — real analysis enabled');
+  } catch (err) {
+    console.warn('⚠️  Groq init failed:', err.message, '— using local fallback');
+  }
+} else {
+  console.log('ℹ️  GROQ_API_KEY not set — AI analysis will use local fallback (add key to Replit Secrets to enable real AI)');
+}
 
 /**
  * Query DB for suppliers relevant to a product category + city.
@@ -29,21 +44,14 @@ export async function getSuppliersForProduct(productName, category, city = null)
   } catch { return []; }
 }
 
-function getClient() {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) return null;
-  return new Groq({ apiKey: key });
-}
-
 /**
- * Local (non-AI) fallback analysis computed from product data.
- * Returns the same shape as normalizeAnalysis() so callers are unaffected.
+ * Local (non-AI) analysis computed from product data — always works, no API key needed.
  */
 function localAnalysis(productName, productData = {}) {
-  const buyPrice  = Math.round((productData.priceMin || 1500) * 0.45);
-  const sellPrice = productData.priceMax  || productData.priceMin * 1.8 || 3000;
-  const score     = productData.winScore  || 65;
-  const cat       = productData.category  || 'General';
+  const buyPrice  = Math.round((productData.priceMin  || 1500) * 0.45);
+  const sellPrice = productData.priceMax || Math.round((productData.priceMin || 1500) * 1.8);
+  const score     = productData.winScore || 65;
+  const cat       = productData.category || 'General';
 
   const trend = productData.trend === 'rising'  ? 'showing strong upward momentum'
               : productData.trend === 'falling' ? 'in seasonal decline right now'
@@ -52,20 +60,20 @@ function localAnalysis(productName, productData = {}) {
   const summary = `${productName} is ${trend} in Pakistan's ${cat} category — ${
     score >= 70 ? 'a strong opportunity with good demand signals'
     : score >= 50 ? 'a moderate opportunity worth testing with small stock'
-    : 'a niche opportunity, validate demand before stocking heavily'
+    : 'a niche opportunity; validate demand before stocking heavily'
   }.`;
 
-  const darazScore  = Math.min(95, 55 + Math.round((productData.darazOrders  || 5000) / 1000));
-  const tiktokScore = Math.min(95, 45 + Math.round((productData.tiktokViews  || 1000000) / 500000));
-  const olxScore    = Math.min(85, 40 + Math.round((productData.olxViews     || 30000) / 5000));
+  const darazScore  = Math.min(95, 55 + Math.round((productData.darazOrders || 5000)     / 1000));
+  const tiktokScore = Math.min(95, 45 + Math.round((productData.tiktokViews || 1_000_000) / 500_000));
+  const olxScore    = Math.min(85, 40 + Math.round((productData.olxViews    || 30_000)    / 5_000));
 
-  const margin = sellPrice - buyPrice;
   const adCopyEN = `Discover the best ${productName} in Pakistan — Rs ${sellPrice.toLocaleString()} with free delivery! ` +
-    `High quality, trusted by thousands of Pakistani buyers. Order now via Daraz or WhatsApp — Cash on Delivery available!`;
-  const adCopyUR = `${productName} ab Pakistan mein available! Behtareen quality aur mast price pe order karo. ` +
-    `Free delivery ghar tak — abhi order karo!`;
+    `High quality, trusted by thousands of buyers. Order now via Daraz or WhatsApp — Cash on Delivery available!`;
+  const adCopyUR = `${productName} ab Pakistan mein available! Behtareen quality, mast price pe order karo. ` +
+    `Ghar tak free delivery — abhi order karo!`;
 
   return {
+    source: 'local',
     summary,
     score,
     buyPrice,
@@ -78,19 +86,30 @@ function localAnalysis(productName, productData = {}) {
     adCopyEN,
     adCopyUR,
     competitors: productData.competitorCount || null,
+    profitCalculator: {
+      buyPrice,
+      sellPrice,
+      margin:        `${Math.round(((sellPrice - buyPrice) / sellPrice) * 100)}%`,
+      profitPerUnit: `Rs. ${(sellPrice - buyPrice).toLocaleString()}`,
+    },
+    inventoryAdvice: {
+      recommendedOrder: score >= 70 ? '100 units' : '50 units',
+      reorderWhen:      '20 units left',
+      bulkDiscount:     score >= 70 ? 'Order 100+ units for 15% off' : 'Start with a small test batch',
+    },
+    sourcingLinks: {
+      alibaba:    `https://www.alibaba.com/trade/search?SearchText=${encodeURIComponent(productName)}`,
+      daraz:      `https://www.daraz.pk/catalog/?q=${encodeURIComponent(productName)}`,
+      aliexpress: `https://www.aliexpress.com/wholesale?SearchText=${encodeURIComponent(productName)}`,
+    },
   };
 }
 
 /**
  * Send a prompt to Groq and parse the JSON response.
- * @param {string} systemPrompt
- * @param {string} userPrompt
- * @returns {Promise<Object>}
  */
 async function callGroq(systemPrompt, userPrompt) {
-  const groq = getClient();
-  if (!groq) throw new Error('GROQ_API_KEY not configured');
-  const completion = await groq.chat.completions.create({
+  const completion = await groqClient.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [
       { role: 'system', content: systemPrompt },
@@ -189,13 +208,19 @@ Return a JSON object with EXACTLY this structure (all fields required):
   "competitors": <integer — estimated number of active sellers currently selling this product on Pakistani platforms>
 }`;
 
-  // Use local fallback when GROQ_API_KEY is not configured
+  // Use real Groq AI if client is initialized, otherwise local fallback
   let normalized;
-  if (!process.env.GROQ_API_KEY) {
-    normalized = localAnalysis(productName, productData);
+  if (groqClient) {
+    try {
+      const aiResult = await callGroq(systemPrompt, userPrompt);
+      normalized = normalizeAnalysis(aiResult, productData);
+      normalized.source = 'groq';
+    } catch (err) {
+      console.warn('[Groq] API call failed, falling back to local analysis:', err.message);
+      normalized = localAnalysis(productName, productData);
+    }
   } else {
-    const aiResult = await callGroq(systemPrompt, userPrompt);
-    normalized = normalizeAnalysis(aiResult, productData);
+    normalized = localAnalysis(productName, productData);
   }
 
   // Enrich with real DB suppliers + international opportunity data (fail silently)

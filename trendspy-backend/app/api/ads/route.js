@@ -9,6 +9,7 @@ export async function GET(request) {
     const category    = searchParams.get('category');
     const city        = searchParams.get('city');
     const creative    = searchParams.get('creative');
+    const platform    = searchParams.get('platform');
     const minDuration = parseInt(searchParams.get('minDuration') || '0', 10);
     const lastFetch   = searchParams.get('lastFetch');
     const page        = Math.max(1, parseInt(searchParams.get('page')  || '1', 10));
@@ -17,11 +18,12 @@ export async function GET(request) {
 
     const filter = { isActive: true };
 
-    if (category && category !== 'All') filter.category = category;
-    if (city     && city     !== 'All') filter.city = city;
-    if (creative && creative !== 'All') filter.creativeType = creative;
-    if (minDuration > 0)               filter.daysRunning = { $gte: minDuration };
-    if (lastFetch)                     filter.scrapedAt   = { $gt: new Date(lastFetch) };
+    if (category && category !== 'All')  filter.category    = category;
+    if (city     && city     !== 'All')  filter.city        = city;
+    if (creative && creative !== 'All')  filter.creativeType = creative;
+    if (platform && platform !== 'all')  filter.platform    = platform;
+    if (minDuration > 0)                 filter.daysRunning = { $gte: minDuration };
+    if (lastFetch)                       filter.scrapedAt   = { $gt: new Date(lastFetch) };
 
     const [ads, total] = await Promise.all([
       ScrapedAd.find(filter)

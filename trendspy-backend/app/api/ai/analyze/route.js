@@ -65,7 +65,6 @@ export const POST = withAuth(async (request, context, user) => {
     });
   } catch (err) {
     console.error('[POST /api/ai/analyze]', err);
-    const status = err.message?.includes('GROQ_API_KEY') ? 503 : 500;
-    return Response.json({ success: false, error: err.message }, { status });
+    return Response.json({ success: false, error: err.message }, { status: 500 });
   }
 });

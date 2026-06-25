@@ -19,11 +19,11 @@ export async function POST(request) {
     await connectDB();
 
     const body = await request.json().catch(() => ({}));
-    const { searchTerm = 'smart watch Pakistan', category = 'Electronics' } = body;
+    const { searchTerm = 'smart watch Pakistan', category = 'Electronics', platform = 'all' } = body;
 
-    console.log(`[POST /api/ads/refresh] Scraping: "${searchTerm}" category="${category}"`);
+    console.log(`[POST /api/ads/refresh] Scraping: "${searchTerm}" category="${category}" platform="${platform}"`);
 
-    const result = await callScraperOnSocketServer(searchTerm, category);
+    const result = await callScraperOnSocketServer(searchTerm, category, platform);
     const ads    = result.ads || [];
 
     // Upsert ads into MongoDB
