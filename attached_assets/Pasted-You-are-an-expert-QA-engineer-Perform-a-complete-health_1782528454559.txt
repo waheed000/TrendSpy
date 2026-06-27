@@ -1,0 +1,166 @@
+You are an expert QA engineer. Perform a complete health check of the Hunting Goals (TrendSpy) project on this new Replit instance. Ensure EVERYTHING is production-ready — so that ANYONE (recruiter, HR, developer) can clone, install dependencies, connect MongoDB, and run the app WITHOUT ANY manual fixes.
+
+## Goal
+
+The project must be 100% self-contained and runnable after:
+1. `git clone <repo>`
+2. `npm install` (frontend + backend)
+3. Set `MONGODB_URI` (or use in-memory)
+4. `npm run dev`
+
+NO extra steps. NO manual fixes. Everything should work out of the box.
+
+---
+
+## PART 1: Environment Setup Check
+
+### Check Required Environment Variables
+- [ ] `JWT_SECRET` — set in Replit Secrets OR `.env.local` fallback
+- [ ] `GROQ_API_KEY` — set (or graceful fallback)
+- [ ] `FB_SESSION_COOKIE` — set (or graceful fallback)
+- [ ] `MONGODB_URI` — set (or in-memory fallback)
+- [ ] `ADMIN_API_KEY` — set (or auto-generated)
+
+### Fix: Create `.env.local` template (if missing)
+```env
+# Required for auth
+JWT_SECRET=your_super_secret_key_here
+
+# Optional (graceful fallback)
+GROQ_API_KEY=gsk_your_groq_key_here
+FB_SESSION_COOKIE=c_user=...; xs=...
+MONGODB_URI=mongodb+srv://...
+ADMIN_API_KEY=your_admin_key_here
+PART 2: Backend Health Check
+1. Server Startup
+Backend starts without errors (npm run dev in trendspy-backend/)
+
+Port 3001 is listening
+
+No MODULE_NOT_FOUND errors
+
+2. Database Connection
+GET /api/health returns { "status": "ok" }
+
+MongoDB connects (Atlas OR in-memory)
+
+Models load without errors
+
+3. API Endpoints
+Endpoint	Status	Expected
+GET /api/health	[ ]	{ status: "ok" }
+GET /api/products	[ ]	Array of products
+GET /api/products/winning	[ ]	Array with winScore >= 75
+GET /api/ads	[ ]	Array of ads
+GET /api/dashboard/stats	[ ]	Stats object
+GET /api/scraper/health	[ ]	{ healthy: true }
+POST /api/auth/register	[ ]	Creates user
+POST /api/auth/login	[ ]	Returns JWT token
+POST /api/ai/analyze	[ ]	Returns AI analysis
+POST /api/alerts	[ ]	Creates alert
+GET /api/user/profile	[ ]	Returns user profile
+GET /api/suppliers/match	[ ]	Returns suppliers
+PART 3: Frontend Health Check
+1. Server Startup
+Frontend starts without errors (npm run dev in root)
+
+Port 5000 is listening
+
+2. Pages (Manual Check)
+Landing page loads
+
+Login page loads
+
+Signup page loads
+
+Dashboard loads (after login)
+
+Product Hunt loads (after login)
+
+Ad Spy loads (after login)
+
+Profile loads (after login)
+
+3. Features (After Login)
+Dashboard shows real stats (not dummy)
+
+Product Hunt shows winning products from ads
+
+Ad Spy shows real Facebook/Instagram ads
+
+AI Report shows profit + ad copy
+
+Score Breakdown shows signals
+
+City filter works
+
+Platform filter (Facebook/Instagram) works
+
+Theme toggle works (light/dark)
+
+Logout works
+
+PART 4: Production-Ready Checklist
+1. No Dummy Data
+Dashboard stats are from real database
+
+Product Hunt products are from ad data
+
+Ad Spy ads are real (not placeholder)
+
+No "Test", "Demo", or placeholder text in any API response
+
+2. Graceful Fallbacks
+GROQ_API_KEY missing → local AI fallback (no crash)
+
+FB_SESSION_COOKIE missing → cached ads (no crash)
+
+MONGODB_URI missing → in-memory DB (no crash)
+
+No ads in DB → empty state (no crash)
+
+3. Code Quality
+No console.log noise (remove debug logs)
+
+Proper error handling in all APIs
+
+Proper HTTP status codes (200, 400, 401, 404, 500)
+
+Clean folder structure (frontend/backend separation)
+
+4. Dependencies
+package.json has all dependencies (frontend + backend)
+
+package-lock.json exists
+
+No missing packages on npm install
+
+PART 5: Fix Any Issues Found
+If any test fails, fix it immediately:
+
+Add missing env variable
+
+Install missing package
+
+Fix broken API route
+
+Update frontend component
+
+Add graceful fallback
+
+Expected Final State
+Backend starts cleanly (port 3001)
+
+Frontend starts cleanly (port 5000)
+
+All 12+ APIs return correct data
+
+All frontend pages load and function
+
+No dummy data anywhere
+
+Graceful fallbacks for missing secrets
+
+Anyone can clone, install, and run the project
+
+Now run ALL checks, fix EVERY issue, and confirm the project is 100% production-ready.
