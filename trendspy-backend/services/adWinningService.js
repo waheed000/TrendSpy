@@ -8,22 +8,19 @@
  *   - Longevity             (20 pts)  — 30+ days running = proven winner
  *   - Spend level           (10 pts)  — high spend = profitable product
  *
- * Supports optional city filter — only ads with that city tag are counted.
- * Uses MongoDB aggregation — never loads all docs into memory.
+ * Supports optional city and season filters.
  */
 
 import { connectDB }   from '../lib/db.js';
 import { ScrapedAd }   from '../models/index.js';
 import { extractCity } from '../lib/extractCity.js';
 
-const WINDOW_DAYS = 7;
+const WINDOW_DAYS   = 7;
+const VALID_SEASONS = new Set(['winter', 'summer', 'ramadan', 'wedding', 'backToSchool', 'general']);
 
-// ── Noise phrases stripped before keyword extraction ─────────────────────────
 const NOISE_RE = /limited\s*time|flash\s*sale|sale|offer|buy\s*now|shop\s*now|free\s*shipping|order\s*now|discount|off|get\s*yours|hurry|don['']t\s*miss|check\s*out|click\s*here|learn\s*more|whatsapp|whats\s*app|cod\s*available|cash\s*on\s*delivery|nationwide\s*delivery|same\s*day|home\s*delivery|\d+%|rs\.?\s*\d+|pkr\s*\d+|pk|pakistan/gi;
 
-// Single words that are too generic to form a meaningful product name
 const GENERIC_WORDS = new Set([
-  // English marketing filler
   'love','our','you','know','non','stop','get','new','best','top','the','for',
   'and','with','your','this','that','more','all','now','buy','fast','good',
   'great','big','just','only','very','much','also','some','come','want','need',
@@ -34,13 +31,11 @@ const GENERIC_WORDS = new Set([
   'collection','made','style','designs','design','color','colors','size','sizes',
   'stock','available','delivery','shipping','nationwide','introducing','meet',
   'smart','smartness','amazing','awesome','perfect','ideal','ultimate','premium',
-  // Roman Urdu common words
   'nayi','wali','purani','jadoo','karo','hai','mein','kar','kal','aaj',
   'sirf','abhi','hain','nahi','bhi','toh','se','ki','ka','ko','ne','par',
   'agar','phir','kuch','yeh','woh','aur','lekin','kyun','jab','sab',
 ]);
 
-/** Strip noise, collapse whitespace, take first N words. */
 function cleanHeadline(headline, words = 6) {
   if (!headline) return '';
   return headline
@@ -55,26 +50,21 @@ function cleanHeadline(headline, words = 6) {
     .toLowerCase();
 }
 
-// ── Base match filter ─────────────────────────────────────────────────────────
-
-function baseMatch(since, city) {
+function baseMatch(since, city, season) {
   const m = {
-    scrapedAt:  { $gte: since },
-    isActive:   true,
-    category:   { $ne: null, $exists: true },
-    headline:   { $ne: null, $exists: true },
+    scrapedAt: { $gte: since },
+    isActive:  true,
+    category:  { $ne: null, $exists: true },
+    headline:  { $ne: null, $exists: true },
   };
-  // When city is provided, filter to ads that mention that city.
-  // Ads where city is null are national-scope (not excluded from "All Cities").
-  if (city) m.city = city;
+  if (city)                              m.city   = city;
+  if (season && season !== 'general' && VALID_SEASONS.has(season)) m.season = season;
   return m;
 }
 
-// ── Stage 1: per-category aggregation ────────────────────────────────────────
-
-async function getCategorySignals(since, city) {
+async function getCategorySignals(since, city, season) {
   return ScrapedAd.aggregate([
-    { $match: baseMatch(since, city) },
+    { $match: baseMatch(since, city, season) },
     {
       $group: {
         _id:              '$category',
@@ -86,20 +76,17 @@ async function getCategorySignals(since, city) {
         headlines:        { $push: '$headline' },
         platforms:        { $addToSet: '$platform' },
         sampleDirectUrls: { $push: '$directUrl' },
+        seasons:          { $push: '$season' },
       },
     },
-    {
-      $addFields: { advCount: { $size: '$uniqueAdv' } },
-    },
+    { $addFields: { advCount: { $size: '$uniqueAdv' } } },
     { $sort: { advCount: -1, totalAds: -1 } },
     { $limit: 30 },
   ]);
 }
 
-// ── Stage 2: top advertisers per category ─────────────────────────────────────
-
-async function getTopAdvertisers(category, since, city, limit = 3) {
-  const m = { ...baseMatch(since, city), category };
+async function getTopAdvertisers(category, since, city, season, limit = 3) {
+  const m = { ...baseMatch(since, city, season), category };
   return ScrapedAd.aggregate([
     { $match: m },
     {
@@ -117,22 +104,15 @@ async function getTopAdvertisers(category, since, city, limit = 3) {
   ]);
 }
 
-// ── Scoring ────────────────────────────────────────────────────────────────────
-
 function scoreCategory({ advCount, totalAds, maxDays, spendSum }) {
   let s = 0;
-  s += Math.min(40, advCount * 8);             // advertiser diversity (max 40)
-  s += Math.min(30, Math.round(totalAds / 2)); // volume (max 30)
-  s += maxDays >= 30 ? 20 : maxDays >= 14 ? 10 : maxDays >= 7 ? 5 : 0; // longevity (max 20)
-  s += Math.min(10, spendSum * 2);             // high-spend signal (max 10)
+  s += Math.min(40, advCount * 8);
+  s += Math.min(30, Math.round(totalAds / 2));
+  s += maxDays >= 30 ? 20 : maxDays >= 14 ? 10 : maxDays >= 7 ? 5 : 0;
+  s += Math.min(10, spendSum * 2);
   return Math.min(100, s);
 }
 
-/**
- * Extract the most frequent meaningful 2-gram from ad headlines.
- * Filters out generic marketing words and Roman Urdu filler.
- * Falls back to the category name when no good bigram is found.
- */
 function extractTopKeyword(headlines, category) {
   const freq = {};
   for (const h of headlines) {
@@ -140,14 +120,12 @@ function extractTopKeyword(headlines, category) {
       .split(' ')
       .filter((w) => w.length > 2 && !GENERIC_WORDS.has(w));
     for (let i = 0; i < words.length - 1; i++) {
-      // Only count bigrams where BOTH words are product-relevant
       if (GENERIC_WORDS.has(words[i]) || GENERIC_WORDS.has(words[i + 1])) continue;
       const bigram = `${words[i]} ${words[i + 1]}`;
       freq[bigram] = (freq[bigram] || 0) + 1;
     }
   }
 
-  // Require the bigram to appear in at least 2 ads to be considered real signal
   const candidates = Object.entries(freq)
     .filter(([, count]) => count >= 2)
     .sort((a, b) => b[1] - a[1]);
@@ -156,7 +134,6 @@ function extractTopKeyword(headlines, category) {
     return candidates[0][0].replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
-  // Fall back to best single word (ignoring generics)
   const wordFreq = {};
   for (const h of headlines) {
     const words = cleanHeadline(h, 8)
@@ -169,24 +146,64 @@ function extractTopKeyword(headlines, category) {
     .sort((a, b) => b[1] - a[1])[0];
 
   if (topWord) return topWord[0].replace(/\b\w/g, (c) => c.toUpperCase());
-
-  // Final fallback: use the category name itself
   return category || 'Trending Products';
+}
+
+/** Pick the most frequent season label from an array of season strings. */
+function dominantSeason(seasons) {
+  if (!seasons || seasons.length === 0) return 'general';
+  const freq = {};
+  for (const s of seasons) freq[s] = (freq[s] || 0) + 1;
+  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+// ── Backfill season field on existing ads ─────────────────────────────────────
+
+let _seasonBackfillDone = false;
+
+export async function backfillSeasons() {
+  if (_seasonBackfillDone) return;
+  _seasonBackfillDone = true;
+  await connectDB();
+
+  // Only backfill ads that still carry the default 'general' and have a headline to analyse
+  const ads = await ScrapedAd.find(
+    { season: 'general', headline: { $exists: true, $ne: '' } },
+    { _id: 1, headline: 1, description: 1, productName: 1, advertiserName: 1 }
+  ).limit(5000).lean();
+
+  if (ads.length === 0) return;
+
+  // Lazy-import to avoid circular deps (seasonalKeywords → nothing)
+  const { detectSeason } = await import('../data/seasonalKeywords.js');
+
+  const ops = [];
+  let tagged = 0;
+
+  for (const ad of ads) {
+    const text   = [ad.headline, ad.description, ad.productName, ad.advertiserName].filter(Boolean).join(' ');
+    const season = detectSeason(text);
+    if (season !== 'general') {
+      ops.push({ updateOne: { filter: { _id: ad._id }, update: { $set: { season } } } });
+      tagged++;
+    }
+  }
+
+  if (ops.length > 0) {
+    await ScrapedAd.bulkWrite(ops, { ordered: false });
+    console.log(`[adWinningService] Backfilled season on ${tagged}/${ads.length} ads`);
+  } else {
+    console.log(`[adWinningService] Season backfill: ${ads.length} ads remain general (no keyword match)`);
+  }
 }
 
 // ── Backfill city field on existing ads ──────────────────────────────────────
 
 let _backfillDone = false;
 
-/**
- * One-time in-process backfill.
- * Reads all ads where city is null, extracts city from text fields,
- * and bulk-writes the matches back. No-ops if already done this process.
- */
 export async function backfillCities() {
   if (_backfillDone) return;
-  _backfillDone = true;           // prevent concurrent runs
-
+  _backfillDone = true;
   await connectDB();
 
   const ads = await ScrapedAd.find(
@@ -210,53 +227,59 @@ export async function backfillCities() {
   if (ops.length > 0) {
     await ScrapedAd.bulkWrite(ops, { ordered: false });
     console.log(`[adWinningService] Backfilled city field on ${tagged}/${ads.length} ads`);
-  } else {
-    console.log(`[adWinningService] City backfill: no city mentions found in ${ads.length} ads (all national-scope)`);
   }
 }
 
 // ── City coverage breakdown ───────────────────────────────────────────────────
 
-/**
- * Returns how many ads per city are in the DB for the current window.
- * Used by the frontend to show which cities have data and disable empty ones.
- */
 export async function getCityCoverage() {
   await connectDB();
   const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
-
   const rows = await ScrapedAd.aggregate([
     { $match: { scrapedAt: { $gte: since }, isActive: true, city: { $ne: null } } },
     { $group: { _id: '$city', count: { $sum: 1 } } },
     { $sort: { count: -1 } },
   ]);
-
   return Object.fromEntries(rows.map((r) => [r._id, r.count]));
+}
+
+// ── Season coverage breakdown ─────────────────────────────────────────────────
+
+export async function getSeasonCoverage() {
+  await connectDB();
+  const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const rows = await ScrapedAd.aggregate([
+    { $match: { scrapedAt: { $gte: since }, isActive: true } },
+    { $group: { _id: '$season', count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
+  return Object.fromEntries(rows.map((r) => [r._id || 'general', r.count]));
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────
 
 /**
- * Return winning "product clusters" derived from real Facebook Ad Library data.
- * @param {number}      limit  Max results (default 20)
- * @param {string|null} city   Optional city filter (e.g. "Lahore")
- * @returns {Promise<Array>}
+ * Return winning product clusters from real Facebook Ad Library data.
+ * @param {number}      limit   Max results
+ * @param {string|null} city    Optional city filter
+ * @param {string|null} season  Optional season filter (winter|summer|ramadan|wedding|backToSchool)
  */
-export async function getAdBasedWinners(limit = 20, city = null) {
+export async function getAdBasedWinners(limit = 20, city = null, season = null) {
   await connectDB();
 
   const since      = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const categories = await getCategorySignals(since, city);
+  const categories = await getCategorySignals(since, city, season);
 
   if (categories.length === 0) return [];
 
   const results = await Promise.all(
     categories.map(async (cat) => {
-      const topAdvs = await getTopAdvertisers(cat._id, since, city, 3);
+      const topAdvs = await getTopAdvertisers(cat._id, since, city, season, 3);
 
       const winScore    = scoreCategory(cat);
       const productName = extractTopKeyword(cat.headlines || [], cat._id);
       const sampleUrl   = (cat.sampleDirectUrls || []).find(Boolean) || null;
+      const catSeason   = dominantSeason(cat.seasons || []);
 
       const topAdvertisers = topAdvs.map((a) => ({
         name:        a._id || 'Unknown',
@@ -278,12 +301,14 @@ export async function getAdBasedWinners(limit = 20, city = null) {
         avgDaysRunning:  Math.round(cat.avgDays || 0),
         highSpendAds:    cat.spendSum,
         platforms:       cat.platforms || ['facebook'],
+        season:          catSeason,
         topAdvertisers,
         sampleUrl,
         source:          'facebook_ads',
         windowDays:      WINDOW_DAYS,
         isProvenWinner:  (cat.maxDays || 0) >= 30,
-        cityFilter:      city || null,
+        cityFilter:      city   || null,
+        seasonFilter:    season || null,
       };
     })
   );
@@ -293,26 +318,24 @@ export async function getAdBasedWinners(limit = 20, city = null) {
 
 /**
  * Summary stats for the UI banner.
- * When city is provided, stats reflect only that city's ads.
- * @param {string|null} city
  */
-export async function getAdStats(city = null) {
+export async function getAdStats(city = null, season = null) {
   await connectDB();
   const since = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const match = city
-    ? { scrapedAt: { $gte: since }, isActive: true, city }
-    : { scrapedAt: { $gte: since }, isActive: true };
+  const match = { scrapedAt: { $gte: since }, isActive: true };
+  if (city)                              match.city   = city;
+  if (season && season !== 'general' && VALID_SEASONS.has(season)) match.season = season;
 
   const [row] = await ScrapedAd.aggregate([
     { $match: match },
     {
       $group: {
-        _id:          null,
-        totalAds:     { $sum: 1 },
-        uniqueAdvs:   { $addToSet: '$advertiserName' },
-        categories:   { $addToSet: '$category' },
-        maxDays:      { $max: '$daysRunning' },
-        lastScraped:  { $max: '$scrapedAt' },
+        _id:         null,
+        totalAds:    { $sum: 1 },
+        uniqueAdvs:  { $addToSet: '$advertiserName' },
+        categories:  { $addToSet: '$category' },
+        maxDays:     { $max: '$daysRunning' },
+        lastScraped: { $max: '$scrapedAt' },
       },
     },
   ]);

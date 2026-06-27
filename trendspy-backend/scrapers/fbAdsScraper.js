@@ -13,10 +13,11 @@
  */
 
 import axios from 'axios';
-import { connectDB } from '../lib/db.js';
-import { ScrapedAd } from '../models/index.js';
+import { connectDB }     from '../lib/db.js';
+import { ScrapedAd }     from '../models/index.js';
 import { getRandomUserAgent } from '../lib/fakeUserAgent.js';
-import { extractCity } from '../lib/extractCity.js';
+import { extractCity }   from '../lib/extractCity.js';
+import { detectSeason }  from '../data/seasonalKeywords.js';
 
 const FB_ADS_ASYNC    = 'https://www.facebook.com/ads/library/async/search_ads/';
 const SOCKET_BASE_URL = process.env.SOCKET_INTERNAL_URL || 'http://localhost:3002';
@@ -43,6 +44,12 @@ function spendLevel(days) {
   if (days > 90) return 'high';
   if (days > 30) return 'medium';
   return 'low';
+}
+
+/** Tag an ad object with its detected season based on headline + description. */
+function tagSeason(ad) {
+  const text = [ad.headline, ad.description, ad.productName, ad.advertiserName].filter(Boolean).join(' ');
+  return { ...ad, season: detectSeason(text) };
 }
 
 /**
@@ -106,7 +113,7 @@ async function tryJsonApi(searchTerm, category) {
       const advName  = raw.pageName || raw.page_name || 'Unknown';
       const headline = (snapshot.title || snapshot.body?.text || raw.ad_creative_bodies?.[0] || '').slice(0, 300);
       const desc     = (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500);
-      return {
+      const ad = {
         adId,
         directUrl:      adId ? `https://www.facebook.com/ads/library/?id=${adId}` : '',
         advertiserName: advName,
@@ -121,6 +128,7 @@ async function tryJsonApi(searchTerm, category) {
         city:           extractCity(headline, desc, advName),
         scrapedAt:      new Date(),
       };
+      return tagSeason(ad);
     }).filter((a) => a.adId && a.headline);
   } catch (err) {
     console.log(`[FB Ads JSON] Failed for "${searchTerm}": ${err.message}`);
@@ -129,7 +137,7 @@ async function tryJsonApi(searchTerm, category) {
 }
 
 /**
- * Upsert ads into MongoDB.
+ * Upsert ads into MongoDB — includes season field.
  */
 async function saveAds(ads) {
   let savedNew = 0;
@@ -151,7 +159,7 @@ async function saveAds(ads) {
 
 /**
  * Main scraper — tries socket server (Puppeteer + cookie) then JSON API fallback.
- * If both return nothing, returns existing ads from DB so the page stays populated.
+ * Tags every ad with its detected season before saving to DB.
  */
 async function fbAdsScraper({ searchTerm, category, platform = 'all' } = {}) {
   await connectDB();
@@ -168,7 +176,6 @@ async function fbAdsScraper({ searchTerm, category, platform = 'all' } = {}) {
 
     let ads = await scrapeViaSockerServer(target.term, target.category);
 
-    // Filter by platform if specified (socket server returns tagged ads)
     if (platform !== 'all' && ads.length > 0) {
       ads = ads.filter((a) => a.platform === platform);
     }
@@ -176,11 +183,13 @@ async function fbAdsScraper({ searchTerm, category, platform = 'all' } = {}) {
     if (ads.length === 0) {
       await delay(500, 1000);
       ads = await tryJsonApi(target.term, target.category);
-      // Tag JSON API ads with platform (FB Ad Library URL includes both FB + IG)
       if (platform !== 'all') {
         ads = ads.map((a) => ({ ...a, platform }));
       }
     }
+
+    // Tag every ad with its season before saving
+    ads = ads.map(tagSeason);
 
     console.log(`[FB Ads] Found ${ads.length} ads for "${target.term}"`);
     allAds.push(...ads);
@@ -192,21 +201,13 @@ async function fbAdsScraper({ searchTerm, category, platform = 'all' } = {}) {
     await delay(2000, 4000);
   }
 
-  // ── DB cache fallback ──────────────────────────────────────────────────────
-  // If live scraping returned nothing (FB blocking, no cookie, etc.)
-  // return existing DB ads so the winning products page stays populated.
+  // ── DB cache fallback ───────────────────────────────────────────────────────
   if (allAds.length === 0) {
     console.warn('[FB Ads] No live ads collected — serving from DB cache');
     const cached = await ScrapedAd.find({}).sort({ scrapedAt: -1 }).limit(100).lean();
     if (cached.length > 0) {
       console.log(`[FB Ads] DB cache hit: ${cached.length} stored ads`);
-      return {
-        success:    true,
-        ads:        cached,
-        totalFound: cached.length,
-        savedNew:   0,
-        fromCache:  true,
-      };
+      return { success: true, ads: cached, totalFound: cached.length, savedNew: 0, fromCache: true };
     }
     console.warn('[FB Ads] DB cache empty — no data available');
   } else {

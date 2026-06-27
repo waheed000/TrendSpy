@@ -16,6 +16,15 @@ const TABS = [
   { id: 'opportunities', label: 'Opportunities', flag: '⚡' },
 ]
 
+const SEASONS = [
+  { id: null,            label: 'All Seasons', icon: '🌐' },
+  { id: 'winter',        label: 'Winter',      icon: '❄️' },
+  { id: 'summer',        label: 'Summer',      icon: '☀️' },
+  { id: 'ramadan',       label: 'Ramadan/Eid', icon: '🌙' },
+  { id: 'wedding',       label: 'Wedding',     icon: '💍' },
+  { id: 'backToSchool',  label: 'Back to School', icon: '🎒' },
+]
+
 const STORAGE_KEY = 'trendspy_dashboard_tab'
 
 async function fetchDashboardStats(token) {
@@ -24,6 +33,17 @@ async function fetchDashboardStats(token) {
   })
   const body = await res.json()
   if (!body.success) throw new Error(body.error || 'Failed to load stats')
+  return body.data
+}
+
+async function fetchWinners(season, token) {
+  const params = new URLSearchParams({ limit: '8' })
+  if (season) params.set('season', season)
+  const res  = await fetch(`/api/products/winning?${params}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  const body = await res.json()
+  if (!body.success) throw new Error(body.error || 'Failed to load winners')
   return body.data
 }
 
@@ -43,9 +63,23 @@ function StatCard({ icon: Icon, label, value, sub, color, bg }) {
 }
 
 const SPEND_STYLE = {
-  High:   'bg-green-500/15 text-green-400 border border-green-500/25',
-  Medium: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25',
-  Low:    'bg-gray-500/15 text-gray-400 border border-gray-500/25',
+  high:   'bg-green-500/15 text-green-400 border border-green-500/25',
+  medium: 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/25',
+  low:    'bg-gray-500/15 text-gray-400 border border-gray-500/25',
+}
+
+const SEASON_BADGE = {
+  winter:       'bg-blue-500/15 text-blue-400 border border-blue-500/25',
+  summer:       'bg-orange-500/15 text-orange-400 border border-orange-500/25',
+  ramadan:      'bg-purple-500/15 text-purple-400 border border-purple-500/25',
+  wedding:      'bg-pink-500/15 text-pink-400 border border-pink-500/25',
+  backToSchool: 'bg-teal-500/15 text-teal-400 border border-teal-500/25',
+  general:      'bg-gray-500/15 text-gray-400 border border-gray-500/25',
+}
+
+const SEASON_ICON = {
+  winter: '❄️', summer: '☀️', ramadan: '🌙',
+  wedding: '💍', backToSchool: '🎒', general: '🌐',
 }
 
 function WinnerRow({ product, rank }) {
@@ -53,27 +87,27 @@ function WinnerRow({ product, rank }) {
     product.winScore >= 75 ? 'text-green-400' :
     product.winScore >= 50 ? 'text-yellow-400' : 'text-gray-400'
 
-  const spendStyle = SPEND_STYLE[product.spendLevel] || SPEND_STYLE.Low
-  const isIg       = product.platform === 'instagram'
+  const spendStyle  = SPEND_STYLE[product.spendLevel] || SPEND_STYLE.low
+  const seasonStyle = SEASON_BADGE[product.season]    || SEASON_BADGE.general
+  const seasonIcon  = SEASON_ICON[product.season]     || '🌐'
+  const isIg        = product.platform === 'instagram'
 
   return (
     <div className="py-2.5 border-b border-white/5 last:border-0">
       <div className="flex items-start gap-2">
         <span className="text-xs text-gray-600 w-5 text-center flex-shrink-0 mt-0.5">#{rank}</span>
         <div className="flex-1 min-w-0">
-          {/* Headline */}
           <p className="text-sm text-white font-medium leading-snug line-clamp-2 mb-1">
             {product.name}
           </p>
-          {/* Meta row */}
           <div className="flex items-center flex-wrap gap-1.5">
-            <span className="text-xs text-gray-500 truncate max-w-[120px]" title={product.advertiserName}>
+            <span className="text-xs text-gray-500 truncate max-w-[110px]" title={product.advertiserName}>
               {product.advertiserName}
             </span>
             <span className="text-gray-700">·</span>
-            <span className="text-xs text-gray-500">{product.daysRunning}d</span>
+            <span className="text-xs text-gray-500">{product.maxDaysRunning ?? product.daysRunning ?? 0}d</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${spendStyle}`}>
-              {product.spendLevel}
+              {product.spendLevel || 'low'}
             </span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
               isIg
@@ -82,9 +116,13 @@ function WinnerRow({ product, rank }) {
             }`}>
               {isIg ? 'IG' : 'FB'}
             </span>
+            {product.season && product.season !== 'general' && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${seasonStyle}`}>
+                {seasonIcon}
+              </span>
+            )}
           </div>
         </div>
-        {/* Win Score */}
         <div className="flex-shrink-0 text-right">
           <span className={`text-sm font-bold ${scoreColor}`}>{product.winScore}</span>
           <p className="text-[10px] text-gray-600 leading-none mt-0.5">score</p>
@@ -113,14 +151,20 @@ function CategoryBar({ name, count, max }) {
 }
 
 export default function Dashboard() {
-  const user       = useStore((s) => s.user)
-  const [activeTab, setActiveTab] = useState(
-    () => localStorage.getItem(STORAGE_KEY) || 'local'
-  )
+  const user    = useStore((s) => s.user)
+  const [activeTab, setActiveTab]     = useState(() => localStorage.getItem(STORAGE_KEY) || 'local')
+  const [activeSeason, setActiveSeason] = useState(null)
 
   const { data: stats, isLoading, isFetching, refetch } = useQuery({
     queryKey:  ['dashboard-stats'],
     queryFn:   () => fetchDashboardStats(user?.token),
+    staleTime: 5 * 60 * 1000,
+    retry:     1,
+  })
+
+  const { data: winnersData, isLoading: winnersLoading, isFetching: winnersFetching, refetch: refetchWinners } = useQuery({
+    queryKey:  ['dashboard-winners', activeSeason],
+    queryFn:   () => fetchWinners(activeSeason, user?.token),
     staleTime: 5 * 60 * 1000,
     retry:     1,
   })
@@ -130,8 +174,12 @@ export default function Dashboard() {
     localStorage.setItem(STORAGE_KEY, id)
   }
 
-  const topCategory  = stats?.trendingCategories?.[0]?.name || '—'
-  const maxCatCount  = stats?.trendingCategories?.[0]?.count || 1
+  const winners       = winnersData?.products || stats?.topWinners || []
+  const topCategory   = stats?.trendingCategories?.[0]?.name || '—'
+  const maxCatCount   = stats?.trendingCategories?.[0]?.count || 1
+
+  // Season coverage counts for badge numbers
+  const seasonCoverage = winnersData?.seasonCoverage || {}
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -141,12 +189,12 @@ export default function Dashboard() {
           <p className="section-subtitle">Pakistan e-commerce intelligence — local, global, and opportunity signals</p>
         </div>
         <button
-          onClick={() => refetch()}
-          disabled={isFetching}
+          onClick={() => { refetch(); refetchWinners() }}
+          disabled={isFetching || winnersFetching}
           className="p-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white rounded-lg transition-all disabled:opacity-50"
           title="Refresh stats"
         >
-          <FiRefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          <FiRefreshCw size={14} className={(isFetching || winnersFetching) ? 'animate-spin' : ''} />
         </button>
       </div>
 
@@ -191,19 +239,51 @@ export default function Dashboard() {
       {/* Winners + Categories + Cities row */}
       {!isLoading && stats && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Today's Winners */}
+          {/* Today's Winners with Season Filter */}
           <div className="glass-card p-4">
             <div className="flex items-center gap-2 mb-3">
               <FiBarChart2 size={15} className="text-primary-400" />
-              <span className="text-sm font-medium text-gray-300">Today's Winners</span>
-              <span className="ml-auto text-[10px] text-gray-600">advertiser · days · spend</span>
+              <span className="text-sm font-medium text-gray-300">Winning Products</span>
+              {winnersFetching && <FiRefreshCw size={11} className="text-gray-600 animate-spin ml-auto" />}
             </div>
-            {stats.topWinners.length > 0 ? (
-              stats.topWinners.map((p, i) => (
-                <WinnerRow key={p.id || i} product={p} rank={i + 1} />
+
+            {/* Season filter pills */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {SEASONS.map((s) => {
+                const count = s.id ? (seasonCoverage[s.id] || 0) : null
+                const isActive = activeSeason === s.id
+                return (
+                  <button
+                    key={s.id ?? 'all'}
+                    onClick={() => setActiveSeason(s.id)}
+                    className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full border font-medium transition-all duration-150 ${
+                      isActive
+                        ? 'bg-primary-600/30 border-primary-500/50 text-white'
+                        : 'bg-white/5 border-white/10 text-gray-500 hover:text-gray-300 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <span>{s.icon}</span>
+                    {s.label}
+                    {count > 0 && (
+                      <span className="bg-white/10 rounded-full px-1 text-[9px] leading-none py-0.5">{count}</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {winnersLoading ? (
+              <div className="py-6 flex items-center justify-center">
+                <FiRefreshCw size={14} className="text-gray-600 animate-spin" />
+              </div>
+            ) : winners.length > 0 ? (
+              winners.slice(0, 8).map((p, i) => (
+                <WinnerRow key={p.id || p._id || i} product={p} rank={i + 1} />
               ))
             ) : (
-              <p className="text-xs text-gray-600 py-4 text-center">No winners yet — ads are scraped every 6 hours</p>
+              <p className="text-xs text-gray-600 py-4 text-center">
+                No winners for this season yet — ads are scraped every 6 hours
+              </p>
             )}
           </div>
 
