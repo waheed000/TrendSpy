@@ -11,13 +11,13 @@ function normalisePhone(phoneNumber) {
 
 function buildUrl(path) {
   const instanceId = process.env.GREEN_API_INSTANCE_ID;
-  const token = process.env.GREEN_API_TOKEN;
+  const token      = process.env.GREEN_API_TOKEN;
   return `https://api.green-api.com/waInstance${instanceId}/${path}/${token}`;
 }
 
 function assertCredentials() {
   const instanceId = process.env.GREEN_API_INSTANCE_ID;
-  const token = process.env.GREEN_API_TOKEN;
+  const token      = process.env.GREEN_API_TOKEN;
   if (!instanceId || !token) {
     throw new Error(
       'GREEN_API_INSTANCE_ID and GREEN_API_TOKEN are required. Add them in Replit Secrets.'
@@ -28,60 +28,68 @@ function assertCredentials() {
 function formatProductMessage(product) {
   const priceRange =
     product.priceMin === product.priceMax
-      ? `Rs. ${product.priceMin.toLocaleString('en-PK')}`
-      : `Rs. ${product.priceMin.toLocaleString('en-PK')} - Rs. ${product.priceMax.toLocaleString('en-PK')}`;
+      ? `Rs. ${product.priceMin?.toLocaleString('en-PK') ?? product.priceMin}`
+      : `Rs. ${product.priceMin?.toLocaleString('en-PK') ?? product.priceMin} - Rs. ${product.priceMax?.toLocaleString('en-PK') ?? product.priceMax}`;
 
-  const cities = Array.isArray(product.cities)
-    ? product.cities.join(', ')
-    : product.cities || 'All Cities';
+  const cities     = Array.isArray(product.cities) ? product.cities.join(', ') : product.cities || 'All Cities';
+  const platforms  = Array.isArray(product.platforms) && product.platforms.length
+    ? product.platforms.join(', ')
+    : 'Facebook / Instagram';
+
+  const adLine = product.directUrl ? `🔗 *View Ad:* ${product.directUrl}` : '';
+  const aiLine = product.aiSummary  ? `\n💡 *AI Insight:* ${product.aiSummary}` : '';
 
   return (
     `🚀 *Hunting Goals Alert!*\n\n` +
     `*Product:* ${product.name}\n` +
     `*Win Score:* ${product.winScore}/100 ⭐\n` +
     `*City:* ${cities}\n` +
-    `*Category:* ${product.category}\n` +
-    `*Price:* ${priceRange}\n\n` +
-    `View full report: ${FRONTEND_URL}/products/${product.slug}`
+    `*Category:* ${product.category || 'N/A'}\n` +
+    `*Price:* ${priceRange}\n` +
+    `*Platforms:* ${platforms}\n\n` +
+    `📊 *Ad Signals:*\n` +
+    `• ${product.advertiserCount ?? 0} advertisers\n` +
+    `• ${product.totalAds ?? 0} total ads\n` +
+    `• ${product.maxDaysRunning ?? 0} days running\n\n` +
+    (adLine ? adLine + '\n' : '') +
+    `📋 *Full Report:* ${FRONTEND_URL}/products/${product.slug}` +
+    aiLine
   );
 }
 
 export async function sendWhatsAppRaw(phoneNumber, message) {
   assertCredentials();
 
-  const chatId = normalisePhone(phoneNumber);
-  const url = buildUrl('sendMessage');
-
+  const chatId   = normalisePhone(phoneNumber);
+  const url      = buildUrl('sendMessage');
   const response = await axios.post(
     url,
     { chatId, message },
     { headers: { 'Content-Type': 'application/json' }, timeout: 12000 }
   );
 
-  console.log(`[WhatsApp] Sent raw message to ${phoneNumber} — idMessage: ${response.data?.idMessage}`);
+  console.log(`[WhatsApp] Raw message → ${phoneNumber} | idMessage: ${response.data?.idMessage}`);
   return response.data;
 }
 
 export async function sendWhatsAppAlert(phoneNumber, product) {
   assertCredentials();
 
-  const chatId = normalisePhone(phoneNumber);
-  const message = formatProductMessage(product);
-  const url = buildUrl('sendMessage');
-
+  const chatId   = normalisePhone(phoneNumber);
+  const message  = formatProductMessage(product);
+  const url      = buildUrl('sendMessage');
   const response = await axios.post(
     url,
     { chatId, message },
     { headers: { 'Content-Type': 'application/json' }, timeout: 12000 }
   );
 
-  console.log(`[WhatsApp] Alert for "${product.name}" → ${phoneNumber} — idMessage: ${response.data?.idMessage}`);
+  console.log(`[WhatsApp] Alert "${product.name}" → ${phoneNumber} | idMessage: ${response.data?.idMessage}`);
   return response.data;
 }
 
 export async function getWhatsAppStatus() {
   assertCredentials();
-  const url = buildUrl('getStateInstance');
-  const response = await axios.get(url, { timeout: 8000 });
+  const response = await axios.get(buildUrl('getStateInstance'), { timeout: 8000 });
   return response.data;
 }

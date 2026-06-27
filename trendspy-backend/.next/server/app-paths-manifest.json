@@ -1,5 +1,3 @@
 {
-  "/api/alerts/test-whatsapp/route": "app/api/alerts/test-whatsapp/route.js",
-  "/api/auth/register/route": "app/api/auth/register/route.js",
   "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }

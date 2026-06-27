@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/db';
 import { Alert, Product } from '@/models/index';
+import AlertLog from '@/models/AlertLog.js';
 import { sendEmailAlert } from './emailService.js';
 import { sendWhatsAppAlert } from './whatsappService.js';
 import { emitAlertTriggered } from '@/lib/socketEmitter';
@@ -20,7 +21,7 @@ export async function checkAndTriggerAlerts(product) {
     return scoreOk && cityOk && catOk;
   });
 
-  const results = { whatsapp: 0, email: 0, errors: [] };
+  const results = { triggered: triggered.length, whatsapp: 0, email: 0, errors: [] };
 
   // For high-value products, generate a one-line AI insight
   let aiSummary = '';
@@ -32,50 +33,78 @@ export async function checkAndTriggerAlerts(product) {
     }
   }
 
-  // Attach AI insight to product object for notification services
   const enrichedProduct = aiSummary ? { ...product, aiSummary } : product;
 
   for (const alert of triggered) {
     const user = alert.userId;
     if (!user) continue;
 
-    const sendEmail    = alert.channel === 'email'    || alert.channel === 'both';
-    const sendWhatsApp = alert.channel === 'whatsapp' || alert.channel === 'both';
+    const wantEmail    = alert.channel === 'email'    || alert.channel === 'both';
+    const wantWhatsApp = alert.channel === 'whatsapp' || alert.channel === 'both';
 
-    if (sendEmail && user.email) {
+    // ── Email ──────────────────────────────────────────────────────────────
+    if (wantEmail && user.emailNotifications && user.email) {
+      let delivered = false;
+      let errorMessage = null;
       try {
         await sendEmailAlert(user.email, enrichedProduct);
+        delivered = true;
         results.email++;
       } catch (err) {
+        errorMessage = err.message;
         results.errors.push({ type: 'email', userId: user._id, error: err.message });
         console.error(`[AlertService] Email failed for ${user.email}:`, err.message);
       }
+      await AlertLog.create({
+        userId:      user._id,
+        alertId:     alert._id,
+        productId:   product._id,
+        productName: product.name,
+        winScore:    product.winScore,
+        channel:     'email',
+        sentAt:      new Date(),
+        delivered,
+        errorMessage,
+      }).catch((e) => console.error('[AlertService] AlertLog write failed:', e.message));
     }
 
-    if (sendWhatsApp && user.phoneNumber) {
+    // ── WhatsApp ───────────────────────────────────────────────────────────
+    if (wantWhatsApp && user.whatsappNotifications && user.phoneNumber) {
+      let delivered = false;
+      let errorMessage = null;
       try {
         await sendWhatsAppAlert(user.phoneNumber, enrichedProduct);
+        delivered = true;
         results.whatsapp++;
       } catch (err) {
+        errorMessage = err.message;
         results.errors.push({ type: 'whatsapp', userId: user._id, error: err.message });
         console.error(`[AlertService] WhatsApp failed for ${user.phoneNumber}:`, err.message);
       }
+      await AlertLog.create({
+        userId:      user._id,
+        alertId:     alert._id,
+        productId:   product._id,
+        productName: product.name,
+        winScore:    product.winScore,
+        channel:     'whatsapp',
+        sentAt:      new Date(),
+        delivered,
+        errorMessage,
+      }).catch((e) => console.error('[AlertService] AlertLog write failed:', e.message));
     }
 
-    // Emit real-time socket event to the user
+    // ── Real-time socket push ──────────────────────────────────────────────
     emitAlertTriggered(user._id.toString(), alert, enrichedProduct).catch(() => {});
 
-    try {
-      await Alert.findByIdAndUpdate(alert._id, {
-        $set: { lastTriggeredAt: new Date() },
-        $inc: { triggerCount: 1 },
-      });
-    } catch (err) {
-      console.error(`[AlertService] Failed to update alert ${alert._id}:`, err.message);
-    }
+    // ── Update alert metadata ──────────────────────────────────────────────
+    Alert.findByIdAndUpdate(alert._id, {
+      $set: { lastTriggeredAt: new Date() },
+      $inc: { triggerCount: 1 },
+    }).catch((e) => console.error(`[AlertService] Failed to update alert ${alert._id}:`, e.message));
   }
 
-  return { triggered: triggered.length, ...results };
+  return results;
 }
 
 export async function checkAllProductsForAlerts() {
