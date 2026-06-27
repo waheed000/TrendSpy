@@ -1,7 +1,5 @@
 {
-  "/api/user/alerts/history/route": "app/api/user/alerts/history/route.js",
-  "/api/international/local/route": "app/api/international/local/route.js",
-  "/api/user/profile/route": "app/api/user/profile/route.js",
-  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
-  "/api/alerts/route": "app/api/alerts/route.js"
+  "/api/alerts/test-whatsapp/route": "app/api/alerts/test-whatsapp/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }
