@@ -1,8 +1,10 @@
 {
   "/api/ads/refresh/route": "app/api/ads/refresh/route.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/scraper/health/route": "app/api/scraper/health/route.js",
-  "/api/ai/analyze/route": "app/api/ai/analyze/route.js",
   "/api/auth/register/route": "app/api/auth/register/route.js",
-  "/api/health/route": "app/api/health/route.js"
+  "/api/user/onboarding/route": "app/api/user/onboarding/route.js",
+  "/api/international/local/route": "app/api/international/local/route.js",
+  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
+  "/api/products/winning/route": "app/api/products/winning/route.js",
+  "/api/ai/analyze/route": "app/api/ai/analyze/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js"
 }

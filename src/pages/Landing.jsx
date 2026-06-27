@@ -71,7 +71,7 @@ const FEATURES = [
 ]
 
 /* Inline SVG grid pattern — encoded for use as a CSS background */
-const GRID_SVG = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231e3a5f' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+const GRID_SVG = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230d9488' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
 
 export default function Landing() {
   return (
@@ -83,7 +83,7 @@ export default function Landing() {
         <div
           className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(13,148,136,0.10) 0%, rgba(30,58,95,0.06) 60%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(13,148,136,0.10) 0%, rgba(15,23,42,0.04) 60%, transparent 100%)',
             filter: 'blur(60px)',
           }}
         />
@@ -91,7 +91,7 @@ export default function Landing() {
         <div
           className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(30,58,95,0.07) 0%, rgba(13,148,136,0.05) 60%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(15,23,42,0.05) 0%, rgba(13,148,136,0.04) 60%, transparent 100%)',
             filter: 'blur(60px)',
           }}
         />
@@ -99,7 +99,7 @@ export default function Landing() {
         <div
           className="absolute top-1/3 left-1/4 w-14 h-14 rounded-full"
           style={{
-            background: 'rgba(13,148,136,0.12)',
+            background: 'rgba(13,148,136,0.10)',
             filter: 'blur(20px)',
           }}
         />
@@ -107,7 +107,7 @@ export default function Landing() {
         <div
           className="absolute bottom-1/4 right-1/3 w-10 h-10 rounded-full"
           style={{
-            background: 'rgba(30,58,95,0.09)',
+            background: 'rgba(15,23,42,0.07)',
             filter: 'blur(16px)',
           }}
         />
@@ -126,7 +126,7 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d9488)' }}
+              style={{ background: 'linear-gradient(135deg, #0f172a, #0d9488)' }}
             >
               <span className="text-white font-bold text-sm">HG</span>
             </div>
@@ -147,49 +147,99 @@ export default function Landing() {
           </div>
         </header>
 
-        {/* ── Hero ── */}
-        <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm landing-pill">
-            <div className="live-dot" />
-            <span>Tracking 261+ live Facebook ads across Pakistan right now</span>
-          </div>
+        {/* ── Hero — two-column layout ── */}
+        <section className="max-w-7xl mx-auto px-6 pt-12 pb-16">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
 
-          <h1 className="text-5xl md:text-7xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
-            Find Winning Products
-            <br />
-            <span className="gradient-text-teal">Before Your Competitors</span>
-          </h1>
-
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed landing-hero-sub">
-            Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
-            with proven demand. See what's trending, who's selling, and how much they're
-            spending — all in one dashboard.
-          </p>
-
-          <div className="flex items-center justify-center gap-4 flex-wrap mb-16">
-            <Link
-              to="/login"
-              className="btn-teal text-base px-8 py-3.5 flex items-center gap-2"
-              style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
-            >
-              Get Started Free
-              <FiArrowRight size={18} />
-            </Link>
-            <Link to="/login" className="btn-secondary text-base px-8 py-3.5">
-              Watch Demo
-            </Link>
-          </div>
-
-          {/* Counters */}
-          <div className="grid grid-cols-3 gap-6 max-w-lg mx-auto">
-            {DEFAULT_COUNTERS.map((c) => (
-              <div key={c.label} className="text-center">
-                <div className="text-3xl font-black text-white mb-1 landing-counter-val">
-                  <AnimatedCounter target={c.value} suffix={c.suffix} />
-                </div>
-                <div className="text-xs text-gray-500 landing-counter-lbl">{c.label}</div>
+            {/* Left: text, buttons, counters */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-8 text-sm landing-pill">
+                <div className="live-dot" />
+                <span>Tracking 261+ live Facebook ads across Pakistan right now</span>
               </div>
-            ))}
+
+              <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
+                Find Winning Products
+                <br />
+                <span className="gradient-text-teal">Before Your Competitors</span>
+              </h1>
+
+              <p className="text-xl text-gray-400 mb-10 leading-relaxed landing-hero-sub">
+                Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
+                with proven demand. See what's trending, who's selling, and how much they're
+                spending — all in one dashboard.
+              </p>
+
+              <div className="flex items-center gap-4 flex-wrap mb-12">
+                <Link
+                  to="/login"
+                  className="btn-teal text-base px-8 py-3.5 flex items-center gap-2"
+                  style={{ boxShadow: '0 8px 24px rgba(13,148,136,0.30)' }}
+                >
+                  Get Started Free
+                  <FiArrowRight size={18} />
+                </Link>
+                <Link to="/login" className="btn-secondary text-base px-8 py-3.5">
+                  Watch Demo
+                </Link>
+              </div>
+
+              {/* Counters */}
+              <div className="grid grid-cols-3 gap-6 max-w-sm">
+                {DEFAULT_COUNTERS.map((c) => (
+                  <div key={c.label} className="text-center">
+                    <div className="text-3xl font-black text-white mb-1 landing-counter-val">
+                      <AnimatedCounter target={c.value} suffix={c.suffix} />
+                    </div>
+                    <div className="text-xs text-gray-500 landing-counter-lbl">{c.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: hero image */}
+            <div className="relative hidden md:block">
+              <div
+                className="absolute inset-0 rounded-3xl"
+                style={{
+                  background: 'radial-gradient(circle at 60% 40%, rgba(13,148,136,0.15) 0%, transparent 70%)',
+                  filter: 'blur(30px)',
+                }}
+                aria-hidden="true"
+              />
+              <img
+                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600"
+                alt="E-commerce product hunting dashboard"
+                className="relative rounded-3xl w-full object-cover shadow-2xl"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  maxHeight: '480px',
+                }}
+                loading="eager"
+              />
+              {/* Floating badge overlay */}
+              <div
+                className="absolute -bottom-4 -left-4 glass-card px-4 py-3 flex items-center gap-3"
+                style={{ backdropFilter: 'blur(12px)' }}
+              >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.20)' }}>
+                  <span className="text-sm">📈</span>
+                </div>
+                <div>
+                  <p className="text-white text-xs font-semibold landing-hero-title">Win Score 94</p>
+                  <p className="text-gray-400 text-xs landing-hero-sub">Smart Watch · Electronics</p>
+                </div>
+              </div>
+              {/* Top-right badge */}
+              <div
+                className="absolute -top-4 -right-4 glass-card px-3 py-2 flex items-center gap-2"
+                style={{ backdropFilter: 'blur(12px)' }}
+              >
+                <div className="live-dot" />
+                <span className="text-white text-xs font-medium landing-hero-title">Live Data</span>
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -207,7 +257,7 @@ export default function Landing() {
             {HOW_IT_WORKS.map((item, i) => (
               <div key={i} className="card-premium glass-card-hover p-6 text-center">
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 landing-step-icon-bg"
                   style={{ background: 'rgba(13,148,136,0.12)' }}
                 >
                   <span className="text-2xl">{item.emoji}</span>

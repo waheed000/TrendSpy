@@ -3,26 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --primary: #1e3a5f;
-  --primary-light: #2d5a8f;
-  --primary-dark: #0f2440;
+  --primary: #0f172a;
+  --primary-light: #1e293b;
+  --primary-dark: #020617;
 
   --secondary: #0d9488;
   --secondary-light: #14b8a6;
   --secondary-dark: #0f766e;
 
-  --bg-page: #f8fafc;
+  --bg-page: #f1f5f9;
   --bg-card: #ffffff;
   --bg-input: #f1f5f9;
-  --bg-hover: #eff6ff;
+  --bg-hover: #f0fdfa;
 
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
 
   --border: #e2e8f0;
-  --shadow: 0 4px 24px rgba(30, 58, 95, 0.08);
-  --shadow-hover: 0 8px 32px rgba(30, 58, 95, 0.12);
+  --shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 8px 32px rgba(13, 148, 136, 0.14);
 
   --success: #10b981;
   --warning: #f59e0b;
@@ -186,7 +186,7 @@
 /* ── Backgrounds ── */
 [data-theme="light"] .bg-gray-950       { background-color: #f1f5f9; }
 [data-theme="light"] .bg-gray-950\/50   { background-color: rgba(241,245,249,0.8) !important; }
-[data-theme="light"] .bg-gray-950\/80   { background-color: rgba(248,250,252,0.95) !important; }
+[data-theme="light"] .bg-gray-950\/80   { background-color: rgba(248,250,252,0.97) !important; }
 [data-theme="light"] .bg-gray-900       { background-color: #ffffff; }
 [data-theme="light"] .bg-gray-900\/80   { background-color: rgba(255,255,255,0.8); }
 [data-theme="light"] .bg-gray-800       { background-color: #f8fafc; }
@@ -218,13 +218,13 @@
 [data-theme="light"] .border-white\/20  { border-color: #cbd5e1; }
 [data-theme="light"] .border-white\/30  { border-color: #94a3b8; }
 
-/* ── Hover states ── */
-[data-theme="light"] .hover\:bg-white\/5:hover  { background-color: #f1f5f9; }
-[data-theme="light"] .hover\:bg-white\/10:hover { background-color: #e2e8f0; }
-[data-theme="light"] .hover\:bg-white\/20:hover { background-color: #e2e8f0; }
-[data-theme="light"] .hover\:text-white:hover   { color: #0f172a; }
-[data-theme="light"] .hover\:border-white\/20:hover { border-color: #94a3b8; }
-[data-theme="light"] .hover\:border-white\/30:hover { border-color: #64748b; }
+/* ── Hover states — teal for light mode ── */
+[data-theme="light"] .hover\:bg-white\/5:hover  { background-color: #f0fdfa !important; }
+[data-theme="light"] .hover\:bg-white\/10:hover { background-color: #f0fdfa !important; }
+[data-theme="light"] .hover\:bg-white\/20:hover { background-color: #ccfbf1 !important; }
+[data-theme="light"] .hover\:text-white:hover   { color: #0f766e !important; }
+[data-theme="light"] .hover\:border-white\/20:hover { border-color: #0d9488; }
+[data-theme="light"] .hover\:border-white\/30:hover { border-color: #0f766e; }
 
 /* ── Custom component overrides ── */
 [data-theme="light"] .glass-card {
@@ -234,12 +234,12 @@
   backdrop-filter: none;
 }
 [data-theme="light"] .glass-card-hover:hover {
-  background-color: #f8fafc;
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+  background-color: #f0fdfa;
+  border-color: #99f6e4;
+  box-shadow: 0 4px 12px rgba(13,148,136,0.10);
 }
 [data-theme="light"] .stat-card:hover {
-  background-color: #f8fafc;
+  background-color: #f0fdfa;
 }
 [data-theme="light"] .section-title     { color: #0f172a; }
 [data-theme="light"] .section-subtitle  { color: #64748b; }
@@ -263,7 +263,7 @@
 
 /* ── Gradient background in light mode ── */
 [data-theme="light"] .gradient-bg {
-  background: linear-gradient(135deg, #eff6ff 0%, #f0fdfa 50%, #f8fafc 100%);
+  background: linear-gradient(135deg, #f0fdfa 0%, #f1f5f9 50%, #f8fafc 100%);
 }
 
 /* ── Landing page light mode overrides ── */
@@ -273,8 +273,9 @@
   box-shadow: var(--shadow);
 }
 [data-theme="light"] .landing-feature-card:hover {
+  background-color: #f0fdfa;
+  border-color: #99f6e4;
   box-shadow: var(--shadow-hover);
-  border-color: #cbd5e1;
 }
 [data-theme="light"] .landing-testimonial-card {
   background-color: #ffffff;
@@ -282,29 +283,29 @@
   box-shadow: var(--shadow);
 }
 
-/* Landing hero text in light mode: use Deep Blue */
-[data-theme="light"] .landing-hero-title   { color: #1e3a5f; }
+/* Landing hero text in light mode: use Deep Navy */
+[data-theme="light"] .landing-hero-title   { color: #0f172a; }
 [data-theme="light"] .landing-hero-sub     { color: #475569; }
-[data-theme="light"] .landing-counter-val  { color: #1e3a5f; }
+[data-theme="light"] .landing-counter-val  { color: #0f172a; }
 [data-theme="light"] .landing-counter-lbl  { color: #94a3b8; }
-[data-theme="light"] .landing-section-head { color: #1e3a5f; }
+[data-theme="light"] .landing-section-head { color: #0f172a; }
 [data-theme="light"] .landing-section-sub  { color: #64748b; }
-[data-theme="light"] .landing-step-title   { color: #1e3a5f; }
+[data-theme="light"] .landing-step-title   { color: #0f172a; }
 [data-theme="light"] .landing-step-desc    { color: #64748b; }
-[data-theme="light"] .landing-feat-title   { color: #1e3a5f; }
+[data-theme="light"] .landing-feat-title   { color: #0f172a; }
 [data-theme="light"] .landing-feat-desc    { color: #64748b; }
-[data-theme="light"] .landing-cta-title    { color: #1e3a5f; }
+[data-theme="light"] .landing-cta-title    { color: #0f172a; }
 [data-theme="light"] .landing-cta-sub      { color: #64748b; }
 [data-theme="light"] .landing-quote-text   { color: #475569; }
-[data-theme="light"] .landing-quote-author { color: #1e3a5f; }
+[data-theme="light"] .landing-quote-author { color: #0f172a; }
 [data-theme="light"] .landing-footer-text  { color: #94a3b8; }
 [data-theme="light"] .landing-nav-link     { color: #475569; }
-[data-theme="light"] .landing-nav-link:hover { color: #1e3a5f; }
+[data-theme="light"] .landing-nav-link:hover { color: #0f766e; }
 
 /* Badge pill in light mode */
 [data-theme="light"] .landing-pill {
-  background-color: rgba(13, 148, 136, 0.1);
-  border-color: rgba(13, 148, 136, 0.3);
+  background-color: rgba(13, 148, 136, 0.08);
+  border-color: rgba(13, 148, 136, 0.25);
   color: #0d9488;
 }
 
@@ -328,4 +329,27 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Navbar logout / icon button hover in light mode */
+[data-theme="light"] .hover\:opacity-80:hover {
+  opacity: 1;
+  background-color: #f0fdfa;
+  border-radius: 8px;
+}
+
+/* Sidebar nav link active state in light mode */
+[data-theme="light"] .bg-primary-600\/20 {
+  background-color: rgba(13, 148, 136, 0.12) !important;
+}
+[data-theme="light"] .text-primary-400 {
+  color: #0d9488 !important;
+}
+[data-theme="light"] .border-primary-500\/30 {
+  border-color: rgba(13, 148, 136, 0.30) !important;
+}
+
+/* Background decoration visible in light mode */
+[data-theme="light"] .landing-bg-layer {
+  display: block;
 }
