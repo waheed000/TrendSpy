@@ -1,3 +1,9 @@
 {
-  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/alerts/route": "app/api/alerts/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/products/route": "app/api/products/route.js",
+  "/api/alerts/test/route": "app/api/alerts/test/route.js",
+  "/api/user/alerts/history/route": "app/api/user/alerts/history/route.js"
 }
