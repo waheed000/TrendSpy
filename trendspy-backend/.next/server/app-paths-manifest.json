@@ -1,3 +1,8 @@
 {
-  "/api/auth/me/route": "app/api/auth/me/route.js"
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/scraper/health/route": "app/api/scraper/health/route.js",
+  "/api/ai/analyze/route": "app/api/ai/analyze/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/health/route": "app/api/health/route.js"
 }
