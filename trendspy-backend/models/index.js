@@ -9,3 +9,4 @@ export { default as SeasonalEvent } from './SeasonalEvent.js';
 export { default as Supplier } from './Supplier.js';
 export { default as GoogleShoppingProduct } from './GoogleShoppingProduct.js';
 export { default as ShopifyProduct } from './ShopifyProduct.js';
+export { default as ProductHistory } from './ProductHistory.js';

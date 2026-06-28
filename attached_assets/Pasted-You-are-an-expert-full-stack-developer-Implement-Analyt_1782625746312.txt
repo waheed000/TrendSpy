@@ -1,0 +1,106 @@
+You are an expert full-stack developer. Implement Analytics & Insights for Hunting Goals — production-ready, with real data.
+
+## Goal
+
+Users can:
+1. View product win score history (30/90 days) as a chart
+2. See trend prediction (rising/falling/stable)
+3. Export winning products report as CSV
+
+## Implementation
+
+### 1. Create `models/ProductHistory.js`
+
+```javascript
+import mongoose from 'mongoose';
+
+const productHistorySchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
+  productSlug: { type: String, required: true, index: true },
+  winScore: { type: Number, required: true },
+  advertiserCount: { type: Number, default: 0 },
+  totalAds: { type: Number, default: 0 },
+  maxDaysRunning: { type: Number, default: 0 },
+  recordedAt: { type: Date, default: Date.now, index: true }
+});
+
+productHistorySchema.index({ productSlug: 1, recordedAt: -1 });
+
+export default mongoose.models.ProductHistory || mongoose.model('ProductHistory', productHistorySchema);
+2. Create services/historyService.js
+javascript
+import ProductHistory from '@/models/ProductHistory';
+
+export async function saveProductHistory(product) {
+  await ProductHistory.create({
+    productId: product._id,
+    productSlug: product.slug,
+    winScore: product.winScore || 0,
+    advertiserCount: product.advertiserCount || 0,
+    totalAds: product.totalAds || 0,
+    maxDaysRunning: product.maxDaysRunning || 0,
+    recordedAt: new Date()
+  });
+}
+
+export async function getProductHistory(slug, days = 30) {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  return await ProductHistory.find({
+    productSlug: slug,
+    recordedAt: { $gte: startDate }
+  }).sort({ recordedAt: 1 });
+}
+
+export async function getTrendPrediction(slug) {
+  const history = await getProductHistory(slug, 30);
+  if (history.length < 3) return { trend: 'insufficient_data', direction: 'neutral' };
+  
+  const first = history[0].winScore;
+  const last = history[history.length - 1].winScore;
+  const change = last - first;
+  
+  if (change > 5) return { trend: 'rising', direction: 'up', change };
+  if (change < -5) return { trend: 'falling', direction: 'down', change };
+  return { trend: 'stable', direction: 'neutral', change };
+}
+3. Create app/api/products/[slug]/history/route.js
+javascript
+import { getProductHistory, getTrendPrediction } from '@/services/historyService';
+
+export async function GET(request, { params }) {
+  const { searchParams } = new URL(request.url);
+  const days = parseInt(searchParams.get('days') || '30');
+  const { slug } = await params;
+  
+  const history = await getProductHistory(slug, days);
+  const prediction = await getTrendPrediction(slug);
+  
+  return Response.json({ success: true, data: { history, prediction, days } });
+}
+4. Create app/api/export/report/route.js (CSV Export)
+javascript
+import { getAdBasedWinners } from '@/services/adWinningService';
+
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const season = searchParams.get('season') || 'general';
+  const city = searchParams.get('city') || '';
+  
+  const winners = await getAdBasedWinners(50, city, season);
+  
+  let csv = 'Rank,Product Name,Win Score,Advertisers,Total Ads,Days Running,Season,City\n';
+  winners.forEach((p, i) => {
+    csv += `${i+1},"${p.name}",${p.winScore},${p.advertiserCount},${p.totalAds},${p.maxDaysRunning},"${p.season || 'general'}","${city || 'All'}"\n`;
+  });
+  
+  return new Response(csv, {
+    headers: {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="winning-products-${Date.now()}.csv"`
+    }
+  });
+}
+5. Update services/winScoreService.js
+After calculating win score, call saveProductHistory(product).

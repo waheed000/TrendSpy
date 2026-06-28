@@ -83,10 +83,6 @@ const SEASON_ICON = {
 }
 
 function WinnerRow({ product, rank }) {
-  const scoreColor =
-    product.winScore >= 75 ? 'text-green-400' :
-    product.winScore >= 50 ? 'text-yellow-400' : 'text-gray-400'
-
   const spendStyle  = SPEND_STYLE[product.spendLevel] || SPEND_STYLE.low
   const seasonStyle = SEASON_BADGE[product.season]    || SEASON_BADGE.general
   const seasonIcon  = SEASON_ICON[product.season]     || '🌐'
@@ -122,10 +118,6 @@ function WinnerRow({ product, rank }) {
               </span>
             )}
           </div>
-        </div>
-        <div className="flex-shrink-0 text-right">
-          <span className={`text-sm font-bold ${scoreColor}`}>{product.winScore}</span>
-          <p className="text-[10px] text-gray-600 leading-none mt-0.5">score</p>
         </div>
       </div>
     </div>

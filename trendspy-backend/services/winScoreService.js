@@ -17,6 +17,7 @@ import { connectDB } from '../lib/db.js';
 import { Product } from '../models/index.js';
 import { getSeasonalRelevance } from './seasonalService.js';
 import { emitNewWinningProduct, emitScoreUpdate } from '../lib/socketEmitter.js';
+import { saveProductHistory } from './historyService.js';
 
 // Score weight table (must sum to 100)
 const WEIGHTS = {
@@ -131,6 +132,9 @@ export async function updateAllWinScores({ batchSize = 100 } = {}) {
           update: { $set: { winScore: newScore, isWinning } },
         },
       });
+
+      // Persist history snapshot (fire-and-forget per product)
+      saveProductHistory({ ...product, winScore: newScore }).catch(() => {});
 
       // Emit: newly crossed the winning threshold
       if (isWinning && !wasWinning) {
