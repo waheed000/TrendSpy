@@ -200,35 +200,6 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Right: hero image */}
-            <div className="relative hidden md:block">
-              <div
-                className="absolute inset-0 rounded-3xl"
-                style={{
-                  background: 'radial-gradient(circle at 60% 40%, rgba(13,148,136,0.15) 0%, transparent 70%)',
-                  filter: 'blur(30px)',
-                }}
-                aria-hidden="true"
-              />
-              <img
-                src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600"
-                alt="E-commerce product hunting dashboard"
-                className="relative rounded-3xl w-full object-cover shadow-2xl"
-                style={{
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  maxHeight: '480px',
-                }}
-                loading="eager"
-              />
-              {/* Top-right badge */}
-              <div
-                className="absolute -top-4 -right-4 glass-card px-3 py-2 flex items-center gap-2"
-                style={{ backdropFilter: 'blur(12px)' }}
-              >
-                <div className="live-dot" />
-                <span className="text-white text-xs font-medium landing-hero-title">Live Data</span>
-              </div>
-            </div>
 
           </div>
         </section>
