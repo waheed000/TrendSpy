@@ -82,11 +82,32 @@ const _FLAT = Object.fromEntries(
   Object.entries(SEASONAL_KEYWORDS).map(([season, kws]) => [season, kws.map((k) => k.toLowerCase())])
 );
 
+/**
+ * Detect the dominant season for a piece of text.
+ *
+ * Scoring rules:
+ *   - Count keyword hits per season (multi-word phrases score 2, single words score 1)
+ *   - Return the season with the highest total score
+ *   - If all seasons score 0, return 'general'
+ *   - Tie-break: longer (more specific) keyword phrases win
+ */
 export function detectSeason(text) {
   if (!text) return 'general';
   const lower = text.toLowerCase();
+
+  const scores = {};
   for (const [season, keywords] of Object.entries(_FLAT)) {
-    if (keywords.some((k) => lower.includes(k))) return season;
+    let score = 0;
+    for (const kw of keywords) {
+      if (lower.includes(kw)) {
+        // Multi-word keyword = stronger signal
+        score += kw.includes(' ') ? 2 : 1;
+      }
+    }
+    if (score > 0) scores[season] = score;
   }
-  return 'general';
+
+  if (Object.keys(scores).length === 0) return 'general';
+
+  return Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
 }

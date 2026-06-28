@@ -1,5 +1,5 @@
 import { connectDB }                                                                    from '@/lib/db';
-import { getAdBasedWinners, getAdStats, getCityCoverage, backfillCities, getSeasonCoverage } from '@/services/adWinningService';
+import { getAdBasedWinners, getAdStats, getCityCoverage, backfillCities, backfillSeasons, getSeasonCoverage } from '@/services/adWinningService';
 import { ensureAdsExist }                                                                from '@/services/scraperService';
 
 const PAKISTAN_CITIES = [
@@ -40,6 +40,7 @@ export async function GET(request) {
     // Non-blocking background tasks
     ensureAdsExist();
     backfillCities().catch((e) => console.warn('[backfillCities]', e.message));
+    backfillSeasons().catch((e) => console.warn('[backfillSeasons]', e.message));
 
     const [products, stats, cityCoverage, seasonCoverage] = await Promise.all([
       getAdBasedWinners(50, city, season),
