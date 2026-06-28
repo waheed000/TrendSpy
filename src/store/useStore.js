@@ -13,12 +13,14 @@ const useStore = create(
       profile: null,
       alertHistory: [],
       alertHistoryPagination: { page: 1, limit: 20, total: 0, pages: 1 },
+      notifBumpCount: 0,
 
       setSelectedCity:     (city)     => set({ selectedCity: city }),
       setSelectedCategory: (category) => set({ selectedCategory: category }),
       setMinWinScore:      (score)    => set({ minWinScore: score }),
       setUser:             (user)     => set({ user }),
       setAlertCount:       (count)    => set({ alertCount: count }),
+      bumpNotifCount:      ()         => set((s) => ({ notifBumpCount: s.notifBumpCount + 1 })),
       toggleDarkMode:      ()         => set((s) => ({ darkMode: !s.darkMode })),
 
       logout: async () => {

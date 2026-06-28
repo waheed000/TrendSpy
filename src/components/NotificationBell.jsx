@@ -54,8 +54,9 @@ function NotificationItem({ n, onMarkRead, onDelete }) {
 }
 
 export default function NotificationBell() {
-  const user  = useStore((s) => s.user)
-  const token = user?.token
+  const user           = useStore((s) => s.user)
+  const token          = user?.token
+  const notifBumpCount = useStore((s) => s.notifBumpCount)
 
   const [open,          setOpen]          = useState(false)
   const [unread,        setUnread]        = useState(0)
@@ -93,7 +94,17 @@ export default function NotificationBell() {
     }
   }, [token])
 
-  // Poll for count every 30 s
+  // ── Real-time: bump badge instantly when socket fires alertTriggered ─────────
+  const prevBump = useRef(0)
+  useEffect(() => {
+    if (notifBumpCount > prevBump.current) {
+      prevBump.current = notifBumpCount
+      setUnread((c) => c + 1)
+      if (open) fetchNotifications()
+    }
+  }, [notifBumpCount, open, fetchNotifications])
+
+  // Poll for count every 30 s (fallback / reconciliation)
   useEffect(() => {
     if (!token) return
     fetchCount()
