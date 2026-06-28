@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-teal-950/20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
 
       {/* ── Header ── */}
       <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
@@ -13,14 +13,14 @@ export default function Landing() {
           >
             <span className="text-white font-bold text-sm">HG</span>
           </div>
-          <span className="font-bold text-slate-900 dark:text-white text-xl tracking-tight">
-            Hunting<span className="text-teal-600 dark:text-teal-400"> Goals</span>
+          <span className="font-bold text-slate-900 text-xl tracking-tight">
+            Hunting<span className="text-teal-600"> Goals</span>
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Link
             to="/login"
-            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-sm font-medium transition-colors"
+            className="text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors"
           >
             Sign In
           </Link>
@@ -37,7 +37,7 @@ export default function Landing() {
 
         {/* ── Hero ── */}
         <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 text-sm font-medium px-4 py-1.5 rounded-full border border-teal-200 dark:border-teal-800 mb-6">
+          <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 text-sm font-medium px-4 py-1.5 rounded-full border border-teal-200 mb-6">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
@@ -45,13 +45,13 @@ export default function Landing() {
             Live — Real Facebook &amp; Instagram Ads
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-slate-900 dark:text-white leading-[1.1] tracking-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-slate-900 leading-[1.1] tracking-tight">
             Find Winning Products{' '}
-            <span className="text-teal-600 dark:text-teal-400">Before</span>{' '}
+            <span className="text-teal-600">Before</span>{' '}
             Your Competitors
           </h1>
 
-          <p className="mt-6 text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
             Hunting Goals analyzes real Facebook &amp; Instagram ads to show you exactly what's trending in
             Pakistan — with profit estimates, ad copy, and supplier links.
           </p>
@@ -68,15 +68,15 @@ export default function Landing() {
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center px-8 py-3.5 text-base font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
+              className="inline-flex items-center justify-center px-8 py-3.5 text-base font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all duration-200"
             >
               How It Works
             </a>
           </div>
 
-          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-4 text-sm text-slate-500">
             🎉 All services are{' '}
-            <span className="font-semibold text-teal-600 dark:text-teal-400">completely FREE</span>
+            <span className="font-semibold text-teal-600">completely FREE</span>
             {' '}— no credit card, no limits
           </p>
         </div>
@@ -91,10 +91,10 @@ export default function Landing() {
           ].map(({ value, label }) => (
             <div
               key={label}
-              className="text-center p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200 dark:border-slate-700"
+              className="text-center p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
             >
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+              <p className="text-2xl font-bold text-slate-900">{value}</p>
+              <p className="text-sm text-slate-500">{label}</p>
             </div>
           ))}
         </div>
@@ -102,10 +102,10 @@ export default function Landing() {
         {/* ── How It Works ── */}
         <div id="how-it-works" className="mt-20 scroll-mt-16">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
               How to Find Your Next Winning Product
             </h2>
-            <p className="mt-2 text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-slate-500">
               Three simple steps to start finding winning products today
             </p>
           </div>
@@ -133,18 +133,18 @@ export default function Landing() {
             ].map((item) => (
               <div
                 key={item.step}
-                className="bg-white dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-shadow duration-200"
+                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  <span className="bg-teal-100 text-teal-700 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                     {item.step}
                   </span>
                   <span className="text-2xl">{item.icon}</span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
                   {item.title}
                 </h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                <p className="text-slate-500 text-sm leading-relaxed">
                   {item.description}
                 </p>
               </div>
@@ -153,15 +153,15 @@ export default function Landing() {
         </div>
 
         {/* ── Free Services Banner ── */}
-        <div className="mt-12 bg-gradient-to-r from-teal-50/80 to-blue-50/80 dark:from-teal-900/20 dark:to-blue-900/20 border border-teal-200 dark:border-teal-800 rounded-2xl p-6 text-center">
+        <div className="mt-12 bg-gradient-to-r from-teal-50 to-blue-50 border border-teal-200 rounded-2xl p-6 text-center">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <span className="text-3xl">🎉</span>
             <div>
-              <p className="text-slate-800 dark:text-slate-200 font-medium">
+              <p className="text-slate-800 font-medium">
                 All services are currently{' '}
-                <span className="text-teal-600 dark:text-teal-400 font-bold">100% FREE</span>
+                <span className="text-teal-600 font-bold">100% FREE</span>
               </p>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-500">
                 No limits, no hidden charges. Start finding winning products today.
               </p>
             </div>
@@ -169,7 +169,7 @@ export default function Landing() {
         </div>
 
         {/* ── CTA ── */}
-        <div className="mt-16 text-center bg-slate-900 dark:bg-slate-800 rounded-3xl p-8 md:p-12">
+        <div className="mt-16 text-center bg-slate-900 rounded-3xl p-8 md:p-12">
           <h2 className="text-2xl md:text-3xl font-bold text-white">
             Ready to Find Your Next Winning Product?
           </h2>
@@ -187,8 +187,8 @@ export default function Landing() {
       </div>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 py-8 text-center">
-        <p className="text-slate-400 dark:text-slate-500 text-sm">
+      <footer className="border-t border-slate-200 py-8 text-center">
+        <p className="text-slate-400 text-sm">
           © 2025 Hunting Goals · Pakistan E-Commerce Intelligence Platform
         </p>
       </footer>
