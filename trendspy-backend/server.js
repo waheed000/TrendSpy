@@ -1,13 +1,13 @@
-import { createServer } from 'http';
-import { parse } from 'url';
-import next from 'next';
+import { parse }  from 'url';
+import express    from 'express';
+import next       from 'next';
+import { logRequest, logError }                                   from './middleware/logger.js';
+import { apiLimiter, authLimiter, scraperLimiter, aiLimiter }     from './middleware/rateLimit.js';
 
 async function main() {
   const dev = process.env.NODE_ENV !== 'production';
 
   // ── MongoDB setup ─────────────────────────────────────────────────────────
-  // Priority 1: MONGODB_URI secret (Atlas) — data persists across restarts.
-  // Priority 2: In-memory fallback — dev only, data lost on restart.
   const atlasUri = process.env.MONGODB_URI;
   const isAtlas  = atlasUri &&
     !atlasUri.includes('localhost') &&
@@ -15,7 +15,6 @@ async function main() {
 
   if (isAtlas) {
     console.log('[server] ✅ Using MongoDB Atlas (persistent storage)');
-    // MONGODB_URI is already set — lib/db.js will use it directly.
   } else {
     if (process.env.NODE_ENV === 'production') {
       console.error('[server] ❌ MONGODB_URI not set in production. Set it in Replit Secrets.');
@@ -33,7 +32,7 @@ async function main() {
     process.on('SIGINT',  stop);
   }
 
-  // Seed all collections (products, suppliers, ads) if empty
+  // ── Seed ──────────────────────────────────────────────────────────────────
   try {
     const { seedAll } = await import('./lib/seedAll.js');
     await seedAll();
@@ -41,15 +40,37 @@ async function main() {
     console.warn('[server] Seed warning:', err.message);
   }
 
-  const app = next({ dev, dir: new URL('.', import.meta.url).pathname });
-  const handle = app.getRequestHandler();
+  // ── Next.js ───────────────────────────────────────────────────────────────
+  const nextApp = next({ dev, dir: new URL('.', import.meta.url).pathname });
+  const handle  = nextApp.getRequestHandler();
+  await nextApp.prepare();
 
-  await app.prepare();
+  // ── Express wrapper (rate limiting + structured logging) ──────────────────
+  const server = express();
 
-  createServer((req, res) => {
+  // 1. Structured request logging (all routes)
+  server.use(logRequest);
+
+  // 2. Rate limiters — specific routes before the catch-all /api/ limiter
+  server.use('/api/auth/login',            authLimiter);
+  server.use('/api/auth/register',         authLimiter);
+  server.use('/api/auth/forgot-password',  authLimiter);
+  server.use('/api/ads/refresh',           scraperLimiter);
+  server.use('/api/scraper',               scraperLimiter);
+  server.use('/api/suppliers/scrape',      scraperLimiter);
+  server.use('/api/ai',                    aiLimiter);
+  server.use('/api/',                      apiLimiter);
+
+  // 3. Hand everything off to Next.js
+  server.all('*', (req, res) => {
     const parsedUrl = parse(req.url, true);
     handle(req, res, parsedUrl);
-  }).listen(3001, '0.0.0.0', () => {
+  });
+
+  // 4. Express-level error handler
+  server.use(logError);
+
+  server.listen(3001, '0.0.0.0', () => {
     console.log('[server] ✅ Next.js running on http://localhost:3001');
   });
 }

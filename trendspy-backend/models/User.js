@@ -63,6 +63,10 @@ const userSchema = new mongoose.Schema(
     lastLogin:           { type: Date },
     onboardingCompleted: { type: Boolean, default: false },
     emailVerified:       { type: Boolean, default: false },
+    // GDPR compliance
+    gdprExportedAt:  { type: Date, default: null },
+    gdprRequested:   { type: Boolean, default: false },
+    gdprRequestedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
