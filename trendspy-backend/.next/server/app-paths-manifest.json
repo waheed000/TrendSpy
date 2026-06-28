@@ -1,6 +1,4 @@
 {
-  "/api/products/winning/route": "app/api/products/winning/route.js",
-  "/api/auth/register/route": "app/api/auth/register/route.js",
-  "/api/notifications/route": "app/api/notifications/route.js",
-  "/api/notifications/count/route": "app/api/notifications/count/route.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }
