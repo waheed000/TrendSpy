@@ -158,22 +158,22 @@ export default function Landing() {
                 <span>Tracking 261+ live Facebook ads across Pakistan right now</span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6 text-balance landing-hero-title">
+              <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6 text-balance landing-hero-title text-center">
                 Find Winning Products
                 <br />
                 <span className="gradient-text-teal">Before Your Competitors</span>
               </h1>
 
-              <p className="text-xl text-gray-400 mb-3 leading-relaxed landing-hero-sub">
+              <p className="text-xl text-gray-400 mb-3 leading-relaxed landing-hero-sub text-center">
                 Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
                 with proven demand. See what's trending, who's selling, and how much they're
                 spending — all in one dashboard.
               </p>
-              <p className="text-sm text-teal-400 font-medium mb-10">
+              <p className="text-sm text-teal-400 font-medium mb-10 text-center">
                 Currently FREE for all users — no limits, no credit card required
               </p>
 
-              <div className="flex items-center gap-4 flex-wrap mb-12">
+              <div className="flex items-center gap-4 flex-wrap mb-12 justify-center">
                 <Link
                   to="/login"
                   className="btn-teal text-base px-8 py-3.5 flex items-center gap-2"
@@ -188,7 +188,7 @@ export default function Landing() {
               </div>
 
               {/* Counters */}
-              <div className="grid grid-cols-3 gap-6 max-w-sm">
+              <div className="grid grid-cols-3 gap-6 max-w-sm text-center mx-auto">
                 {DEFAULT_COUNTERS.map((c) => (
                   <div key={c.label} className="text-center">
                     <div className="text-3xl font-black text-white mb-1 landing-counter-val">
