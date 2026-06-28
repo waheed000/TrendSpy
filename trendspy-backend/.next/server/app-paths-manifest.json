@@ -1,7 +1,6 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/api/products/winning/route": "app/api/products/winning/route.js",
-  "/api/export/report/route": "app/api/export/report/route.js",
-  "/api/products/[slug]/history/route": "app/api/products/[slug]/history/route.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js"
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/notifications/route": "app/api/notifications/route.js",
+  "/api/notifications/count/route": "app/api/notifications/count/route.js"
 }

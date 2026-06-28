@@ -12,6 +12,7 @@ import CityExplorer from './pages/CityExplorer.jsx'
 import Trends from './pages/Trends.jsx'
 import AdSpy from './pages/AdSpy.jsx'
 import Profile from './pages/Profile.jsx'
+import Notifications from './pages/Notifications.jsx'
 import Layout from './components/Layout.jsx'
 import useStore from './store/useStore.js'
 
@@ -107,6 +108,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Layout><Profile /></Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Layout><Notifications /></Layout>
             </ProtectedRoute>
           }
         />

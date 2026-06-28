@@ -114,6 +114,22 @@ function createTransporter() {
   });
 }
 
+/**
+ * Generic email helper — used by notificationService for digests and system emails.
+ * Requires EMAIL_USER + EMAIL_PASS in environment.
+ */
+export async function sendEmail(to, subject, html) {
+  const transporter = createTransporter();
+  const info = await transporter.sendMail({
+    from: `"TrendSpy" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+  console.log(`[Email] Sent "${subject}" to ${to} — messageId: ${info.messageId}`);
+  return info;
+}
+
 export async function sendEmailAlert(userEmail, product) {
   const transporter = createTransporter();
 

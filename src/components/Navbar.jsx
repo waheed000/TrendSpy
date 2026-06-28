@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { FiLogOut, FiUser } from 'react-icons/fi'
 import AlertBell from './AlertBell.jsx'
+import NotificationBell from './NotificationBell.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 import useStore from '../store/useStore.js'
 
@@ -35,6 +36,8 @@ export default function Navbar() {
         </div>
 
         <AlertBell />
+
+        <NotificationBell />
 
         <ThemeToggle variant="navbar" />
 

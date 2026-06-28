@@ -7,3 +7,4 @@ export { startInternationalJob } from './internationalJob.js';
 export { startCompetitorJob }    from './competitorJob.js';
 export { startAutoCorrectJob }   from './autoCorrectJob.js';
 export { startTikTokJob }        from './tiktokJob.js';
+export { startDigestJob }        from './digestJob.js';

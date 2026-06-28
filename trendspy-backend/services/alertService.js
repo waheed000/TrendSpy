@@ -5,6 +5,7 @@ import { sendEmailAlert } from './emailService.js';
 import { sendWhatsAppAlert } from './whatsappService.js';
 import { emitAlertTriggered } from '@/lib/socketEmitter';
 import { getAlertInsight } from './groqService.js';
+import { notifyWinningProduct } from './notificationService.js';
 
 export async function checkAndTriggerAlerts(product) {
   await connectDB();
@@ -96,6 +97,11 @@ export async function checkAndTriggerAlerts(product) {
 
     // ── Real-time socket push ──────────────────────────────────────────────
     emitAlertTriggered(user._id.toString(), alert, enrichedProduct).catch(() => {});
+
+    // ── In-app notification ────────────────────────────────────────────────
+    notifyWinningProduct(user._id, enrichedProduct).catch((e) =>
+      console.error('[AlertService] In-app notification failed:', e.message)
+    );
 
     // ── Update alert metadata ──────────────────────────────────────────────
     Alert.findByIdAndUpdate(alert._id, {
