@@ -1,0 +1,98 @@
+You are an expert backend developer. Fix the Facebook Ad Library link issue — ensure EVERY ad link opens the REAL ad on Facebook, not "No ads match".
+
+## Goal
+
+When a user clicks an ad link from Product Hunt or Ad Spy, it MUST open the exact Facebook ad on Meta Ad Library.
+
+## Root Cause
+
+The scraper is saving fake/incorrect adId (e.g., "dom_12345") instead of the real numeric adId from Facebook.
+
+## Solution
+
+### 1. Update `scrapers/fbAdsScraper.js` — Extract Real adId
+
+Replace the fake adId extraction with real extraction:
+
+```javascript
+// In the scraper, when extracting ad data:
+function extractRealAdId(element) {
+  // Method 1: Check data-ad-id attribute (numeric only)
+  const adIdAttr = element.getAttribute('data-ad-id');
+  if (adIdAttr && /^[0-9]+$/.test(adIdAttr)) {
+    return adIdAttr;
+  }
+  
+  // Method 2: Check for ad_archive_id in any data attribute
+  const allAttrs = element.attributes;
+  for (const attr of allAttrs) {
+    if (attr.name.includes('ad') && attr.value && /^[0-9]{10,}$/.test(attr.value)) {
+      return attr.value;
+    }
+  }
+  
+  // Method 3: Extract from internal JSON in the page
+  const pageHTML = document.documentElement.innerHTML;
+  const match = pageHTML.match(/"ad_archive_id":"(\d+)"/);
+  if (match) return match[1];
+  
+  // Method 4: Extract from any link containing numeric ID
+  const links = element.querySelectorAll('a[href*="ads/library"]');
+  for (const link of links) {
+    const match = link.href.match(/id=(\d+)/);
+    if (match && /^[0-9]+$/.test(match[1])) {
+      return match[1];
+    }
+  }
+  
+  return null; // Don't save fake IDs
+}
+2. Validate Before Saving
+javascript
+// Before saving to database:
+function isValidAdId(adId) {
+  return adId && /^[0-9]{10,}$/.test(adId);
+}
+
+// If invalid, skip the ad (don't save fake data)
+if (!isValidAdId(adId)) {
+  console.warn(`⚠️ Skipping ad with invalid ID: ${adId}`);
+  continue;
+}
+3. Backfill Existing Ads
+javascript
+// Run once to fix existing ads
+const invalidAds = await ScrapedAd.find({
+  adId: { $not: /^[0-9]{10,}$/ }
+});
+
+for (const ad of invalidAds) {
+  // Remove fake ads or mark as invalid
+  await ScrapedAd.deleteOne({ _id: ad._id });
+  console.log(`🗑️ Removed invalid ad: ${ad.adId}`);
+}
+4. Update API Response
+Ensure the directUrl is constructed correctly:
+
+javascript
+// In ads API response:
+const directUrl = ad.adId && /^[0-9]+$/.test(ad.adId) 
+  ? `https://www.facebook.com/ads/library/?id=${ad.adId}`
+  : null;
+Testing Checklist
+Scraper extracts REAL numeric adId (e.g., 123456789012345)
+
+No fake IDs (dom_12345, etc.) saved
+
+Clicking link opens exact ad on Facebook
+
+Existing invalid ads removed/backfilled
+
+Expected Result
+Every ad link opens the REAL Facebook ad
+
+No more "No ads match your search criteria"
+
+100% working ad links
+
+Now implement all of the above with clean, production-ready code.

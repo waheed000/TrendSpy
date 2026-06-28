@@ -243,6 +243,30 @@ export async function getCityCoverage() {
   return Object.fromEntries(rows.map((r) => [r._id, r.count]));
 }
 
+// ── Clean up fake / invalid ad IDs ───────────────────────────────────────────
+
+let _cleanFakeAdsDone = false;
+
+/**
+ * One-time in-process cleanup.
+ * Deletes any ScrapedAd whose adId is not a real 10+ digit numeric Facebook ID.
+ * Covers seeded test data, old "dom_XXXXX" entries, and any other synthetic IDs.
+ */
+export async function cleanFakeAds() {
+  if (_cleanFakeAdsDone) return;
+  _cleanFakeAdsDone = true;
+  await connectDB();
+
+  // Match any adId that is NOT a pure numeric string of at least 10 digits
+  const result = await ScrapedAd.deleteMany({
+    adId: { $not: /^[0-9]{10,}$/ },
+  });
+
+  if (result.deletedCount > 0) {
+    console.log(`[adWinningService] Removed ${result.deletedCount} ad(s) with fake/invalid adIds`);
+  }
+}
+
 // ── Season coverage breakdown ─────────────────────────────────────────────────
 
 export async function getSeasonCoverage() {

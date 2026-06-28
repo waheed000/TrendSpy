@@ -46,6 +46,19 @@ function spendLevel(days) {
   return 'low';
 }
 
+/**
+ * Real Facebook ad IDs are 15-digit numeric strings from ad_archive_id.
+ * Anything shorter, non-numeric, or clearly synthetic is rejected.
+ */
+function isValidAdId(id) {
+  return typeof id === 'string' && /^[0-9]{10,}$/.test(id);
+}
+
+/** Build a working Facebook Ads Library deep-link — null when adId is invalid. */
+function buildDirectUrl(adId) {
+  return isValidAdId(adId) ? `https://www.facebook.com/ads/library/?id=${adId}` : null;
+}
+
 /** Tag an ad object with its detected season based on headline + description. */
 function tagSeason(ad) {
   const text = [ad.headline, ad.description, ad.productName, ad.advertiserName].filter(Boolean).join(' ');
@@ -106,7 +119,7 @@ async function tryJsonApi(searchTerm, category) {
     if (!Array.isArray(rawAds) || rawAds.length === 0) return [];
 
     return rawAds.map((raw) => {
-      const adId     = String(raw.adArchiveID || raw.ad_archive_id || raw.id || '');
+      const adId     = String(raw.adArchiveID || raw.ad_archive_id || '');
       const snapshot = raw.snapshot || raw.creative || {};
       const imageUrl = snapshot.images?.[0]?.original_image_url || '';
       const videoUrl = snapshot.videos?.[0]?.video_hd_url || '';
@@ -115,7 +128,7 @@ async function tryJsonApi(searchTerm, category) {
       const desc     = (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500);
       const ad = {
         adId,
-        directUrl:      adId ? `https://www.facebook.com/ads/library/?id=${adId}` : '',
+        directUrl:      buildDirectUrl(adId),
         advertiserName: advName,
         headline,
         description:    desc,
@@ -129,7 +142,8 @@ async function tryJsonApi(searchTerm, category) {
         scrapedAt:      new Date(),
       };
       return tagSeason(ad);
-    }).filter((a) => a.adId && a.headline);
+    // Only keep ads with a real numeric adId AND a headline
+    }).filter((a) => isValidAdId(a.adId) && a.headline);
   } catch (err) {
     console.log(`[FB Ads JSON] Failed for "${searchTerm}": ${err.message}`);
     return [];
@@ -137,16 +151,25 @@ async function tryJsonApi(searchTerm, category) {
 }
 
 /**
- * Upsert ads into MongoDB — includes season field.
+ * Upsert ads into MongoDB.
+ * Guards: adId must be a real Facebook numeric ID (≥10 digits).
+ * Ensures directUrl is always the canonical deep-link.
  */
 async function saveAds(ads) {
   let savedNew = 0;
+  let skipped  = 0;
   for (const ad of ads) {
-    if (!ad.adId) continue;
+    if (!isValidAdId(ad.adId)) {
+      console.warn(`[FB Ads] Skipping ad with invalid ID: "${ad.adId}"`);
+      skipped++;
+      continue;
+    }
+    // Always (re-)compute directUrl so stale/wrong URLs get corrected on upsert
+    const safeAd = { ...ad, directUrl: buildDirectUrl(ad.adId) };
     try {
       const result = await ScrapedAd.findOneAndUpdate(
-        { adId: ad.adId },
-        { $set: { ...ad, scrapedAt: new Date() }, $setOnInsert: { firstSeenAt: new Date() } },
+        { adId: safeAd.adId },
+        { $set: { ...safeAd, scrapedAt: new Date() }, $setOnInsert: { firstSeenAt: new Date() } },
         { upsert: true, new: false }
       );
       if (!result) savedNew++;
@@ -154,6 +177,7 @@ async function saveAds(ads) {
       console.warn(`[FB Ads] Failed to save ad "${ad.adId}": ${err.message}`);
     }
   }
+  if (skipped > 0) console.warn(`[FB Ads] Skipped ${skipped} ad(s) with invalid/fake IDs`);
   return savedNew;
 }
 

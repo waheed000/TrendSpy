@@ -35,6 +35,17 @@ function extractCity(...texts) {
   return null;
 }
 
+// ─── Ad ID validation ─────────────────────────────────────────────────────────
+// Real Facebook ad_archive_id values are 10-20 digit numeric strings.
+// Anything shorter, non-numeric, or clearly synthetic is rejected.
+function isValidAdId(id) {
+  return typeof id === 'string' && /^[0-9]{10,}$/.test(id);
+}
+
+function buildDirectUrl(adId) {
+  return isValidAdId(adId) ? `https://www.facebook.com/ads/library/?id=${adId}` : null;
+}
+
 // ─── Ad Extraction Helper (Node.js, not browser) ─────────────────────────────
 function extractAdsFromHtml(html) {
   const results = [];
@@ -84,7 +95,10 @@ function extractAdsFromHtml(html) {
 
       for (const item of arr) {
         const adId = String(item.ad_archive_id || item.adArchiveID || '');
-        if (!adId || seenIds.has(adId)) continue;
+        if (!isValidAdId(adId) || seenIds.has(adId)) {
+          if (adId && !isValidAdId(adId)) console.warn(`[FB Scraper] Skipping non-numeric adId: "${adId}"`);
+          continue;
+        }
         seenIds.add(adId);
 
         const snap        = item.snapshot || {};
@@ -107,7 +121,7 @@ function extractAdsFromHtml(html) {
 
         results.push({
           adId,
-          directUrl:      `https://www.facebook.com/ads/library/?id=${adId}`,
+          directUrl:      buildDirectUrl(adId),
           advertiserName: page_name,
           headline,
           description:    linkDesc || '',
@@ -357,7 +371,8 @@ async function tryJsonApiFallback(searchTerm, category) {
     if (!Array.isArray(rawAds) || rawAds.length === 0) return [];
 
     return rawAds.map((raw) => {
-      const adId     = String(raw.adArchiveID || raw.ad_archive_id || raw.id || '');
+      // Never use raw.id — it can be a non-numeric internal React key
+      const adId     = String(raw.adArchiveID || raw.ad_archive_id || '');
       const snapshot = raw.snapshot || raw.creative || {};
       const imageUrl = snapshot.images?.[0]?.original_image_url || '';
       const videoUrl = snapshot.videos?.[0]?.video_hd_url || '';
@@ -366,7 +381,7 @@ async function tryJsonApiFallback(searchTerm, category) {
       const desc     = (snapshot.caption || raw.ad_creative_link_descriptions?.[0] || '').slice(0, 500);
       return {
         adId,
-        directUrl:      adId ? `https://www.facebook.com/ads/library/?id=${adId}` : '',
+        directUrl:      buildDirectUrl(adId),
         advertiserName: advName,
         headline,
         description:    desc,
@@ -379,7 +394,8 @@ async function tryJsonApiFallback(searchTerm, category) {
         city:           extractCity(headline, desc, advName),
         scrapedAt:      new Date().toISOString(),
       };
-    }).filter((a) => a.adId && a.headline);
+    // Only keep ads with real 10+ digit numeric adIds AND a headline
+    }).filter((a) => isValidAdId(a.adId) && a.headline);
   } catch {
     return [];
   }
