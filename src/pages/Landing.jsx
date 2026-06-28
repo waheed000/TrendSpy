@@ -164,10 +164,13 @@ export default function Landing() {
                 <span className="gradient-text-teal">Before Your Competitors</span>
               </h1>
 
-              <p className="text-xl text-gray-400 mb-10 leading-relaxed landing-hero-sub">
+              <p className="text-xl text-gray-400 mb-3 leading-relaxed landing-hero-sub">
                 Hunting Goals analyzes Facebook ads in real-time across Pakistan to identify products
                 with proven demand. See what's trending, who's selling, and how much they're
                 spending — all in one dashboard.
+              </p>
+              <p className="text-sm text-teal-400 font-medium mb-10">
+                Currently FREE for all users — no limits, no credit card required
               </p>
 
               <div className="flex items-center gap-4 flex-wrap mb-12">
@@ -217,19 +220,6 @@ export default function Landing() {
                 }}
                 loading="eager"
               />
-              {/* Floating badge overlay */}
-              <div
-                className="absolute -bottom-4 -left-4 glass-card px-4 py-3 flex items-center gap-3"
-                style={{ backdropFilter: 'blur(12px)' }}
-              >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.20)' }}>
-                  <span className="text-sm">📈</span>
-                </div>
-                <div>
-                  <p className="text-white text-xs font-semibold landing-hero-title">Win Score 94</p>
-                  <p className="text-gray-400 text-xs landing-hero-sub">Smart Watch · Electronics</p>
-                </div>
-              </div>
               {/* Top-right badge */}
               <div
                 className="absolute -top-4 -right-4 glass-card px-3 py-2 flex items-center gap-2"
@@ -240,6 +230,71 @@ export default function Landing() {
               </div>
             </div>
 
+          </div>
+        </section>
+
+        {/* ── Welcome Tour Guide ── */}
+        <section className="max-w-7xl mx-auto px-6 pb-4">
+          <div className="bg-gradient-to-r from-teal-900/30 to-blue-900/30 border border-teal-700/40 rounded-2xl p-6 md:p-8">
+            <div className="flex items-start gap-4">
+              <div className="text-4xl flex-shrink-0">🎯</div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Welcome to Hunting Goals — Your Winning Product Finder
+                </h3>
+                <p className="text-gray-400 mb-6">
+                  Here's how to find your next winning product in 3 simple steps:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    {
+                      step: 1,
+                      title: 'Sign Up',
+                      desc: 'Create your free account in 30 seconds. No credit card required.',
+                    },
+                    {
+                      step: 2,
+                      title: 'Discover Products',
+                      desc: 'Browse winning products from real Facebook & Instagram ads. Filter by city, season, or category.',
+                    },
+                    {
+                      step: 3,
+                      title: 'Source & Sell',
+                      desc: 'Get AI-powered profit estimates, ad copy, and supplier links — all in one place.',
+                    },
+                  ].map(({ step, title, desc }) => (
+                    <div
+                      key={step}
+                      className="glass-card rounded-xl p-4 border border-white/10"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-teal-300 bg-teal-900/50 flex-shrink-0">
+                          {step}
+                        </span>
+                        <span className="font-semibold text-white">{title}</span>
+                      </div>
+                      <p className="text-sm text-gray-400 leading-relaxed">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Free Services Banner ── */}
+        <section className="max-w-7xl mx-auto px-6 py-6">
+          <div className="bg-gradient-to-r from-amber-900/25 to-orange-900/25 border border-amber-700/40 rounded-xl p-4 text-center">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <span className="text-2xl">🎉</span>
+              <span className="text-gray-200 font-medium">
+                All services are currently{' '}
+                <strong className="text-teal-400">FREE</strong> to use!
+              </span>
+              <span className="text-sm text-gray-400">
+                No limits, no hidden charges. Start finding winning products today.
+              </span>
+            </div>
           </div>
         </section>
 
