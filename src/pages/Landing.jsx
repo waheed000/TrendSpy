@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import Footer from '../components/Footer.jsx'
 
 export default function Landing() {
   return (
@@ -186,12 +187,7 @@ export default function Landing() {
 
       </div>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-slate-200 py-8 text-center">
-        <p className="text-slate-400 text-sm">
-          © 2025 Hunting Goals · Pakistan E-Commerce Intelligence Platform
-        </p>
-      </footer>
+      <Footer />
 
     </div>
   )
