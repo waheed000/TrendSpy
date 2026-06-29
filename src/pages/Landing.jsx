@@ -5,15 +5,15 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
 
       {/* ── Header ── */}
-      <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
+      <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between bg-[color:var(--border)]">
         <div className="flex items-center gap-2">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{ background: 'linear-gradient(135deg, #0f172a, #0d9488)' }}
           >
-            <span className="text-white font-bold text-sm">HG</span>
+            <span className="font-bold text-sm text-[color:var(--border)]">HG</span>
           </div>
-          <span className="font-bold text-slate-900 text-xl tracking-tight">
+          <span className="font-bold text-slate-900 text-xl tracking-tight bg-[color:var(--border)]">
             Hunting<span className="text-teal-600"> Goals</span>
           </span>
         </div>
@@ -26,7 +26,7 @@ export default function Landing() {
           </Link>
           <Link
             to="/login"
-            className="inline-flex items-center px-5 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-md shadow-teal-600/20 transition-all duration-200"
+            className="inline-flex items-center px-5 py-2 text-sm font-semibold hover:bg-teal-700 rounded-xl shadow-md shadow-teal-600/20 transition-all duration-200 text-[color:var(--border)] bg-[color:var(--secondary-dark)]"
           >
             Get Started Free
           </Link>
@@ -100,7 +100,7 @@ export default function Landing() {
         </div>
 
         {/* ── How It Works ── */}
-        <div id="how-it-works" className="mt-20 scroll-mt-16">
+        <div id="how-it-works" className="mt-20 scroll-mt-16 bg-[color:var(--bg-hover)]">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
               How to Find Your Next Winning Product
@@ -169,8 +169,8 @@ export default function Landing() {
         </div>
 
         {/* ── CTA ── */}
-        <div className="mt-16 text-center bg-slate-900 rounded-3xl p-8 md:p-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--border)]">
+        <div className="mt-16 text-center rounded-3xl p-8 md:p-12 bg-[color:var(--secondary-dark)]">
+          <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--bg-hover)]">
             Ready to Find Your Next Winning Product?
           </h2>
           <p className="mt-3 text-slate-300 max-w-xl mx-auto">
