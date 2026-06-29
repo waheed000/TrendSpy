@@ -1,0 +1,141 @@
+You are an expert full-stack developer. Add a professional footer and all supporting pages to Hunting Goals — Privacy Policy, Terms of Service, About Us, Contact, and FAQ.
+
+## Goal
+
+1. Footer appears on all pages except login/signup
+2. Footer has 3 columns: Brand | Legal | Company
+3. All pages are professional, clean, legally sound
+
+## Implementation
+
+### 1. Create `src/components/Footer.jsx`
+
+```jsx
+import { Link } from 'react-router-dom';
+
+export default function Footer() {
+  return (
+    <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          
+          {/* Column 1: Brand */}
+          <div>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">Hunting Goals</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              Pakistan's #1 Winning Product Hunter
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+              © {new Date().getFullYear()} Hunting Goals. All rights reserved.
+            </p>
+          </div>
+
+          {/* Column 2: Legal */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Legal</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/privacy-policy" className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms-of-service" className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Company */}
+          <div>
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Company</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/about" className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="text-gray-600 dark:text-gray-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors">
+                  FAQ
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </footer>
+  );
+}
+2. Update src/App.jsx
+Add Footer to Layout and routes for all pages:
+
+jsx
+import Footer from './components/Footer';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import FAQ from './pages/FAQ';
+
+// In Layout component:
+<div className="min-h-screen flex flex-col">
+  <Navbar />
+  <main className="flex-grow">
+    <Outlet />
+  </main>
+  <Footer />
+</div>
+
+// Routes (add these):
+<Route path="/privacy-policy" element={<PrivacyPolicy />} />
+<Route path="/terms-of-service" element={<TermsOfService />} />
+<Route path="/about" element={<About />} />
+<Route path="/contact" element={<Contact />} />
+<Route path="/faq" element={<FAQ />} />
+3. Create src/pages/PrivacyPolicy.jsx
+Professional Privacy Policy with sections: Information We Collect, How We Use Your Information, Data Storage & Security, Third-Party Services, Your Rights (GDPR/CCPA), Contact.
+
+4. Create src/pages/TermsOfService.jsx
+Professional Terms of Service with sections: Acceptance of Terms, Description of Service, User Accounts, Acceptable Use, Data Ownership, Intellectual Property, Disclaimer, Limitation of Liability, Termination, Changes to Terms, Contact.
+
+5. Create src/pages/About.jsx
+Brief mission: "Hunting Goals helps Pakistani sellers find winning products using real Facebook and Instagram ad intelligence." Sections: Our Mission, What We Do, Why We Exist, Built in Pakistan.
+
+6. Create src/pages/Contact.jsx
+Email: support@huntinggoals.com, Response Time: Within 24 hours, Location: Pakistan.
+
+7. Create src/pages/FAQ.jsx
+7 questions with accordion expand/collapse:
+
+Is Hunting Goals free?
+
+How do I get alerts?
+
+Where does product data come from?
+
+How is Win Score calculated?
+
+Can I export products?
+
+How do I delete my account?
+
+Who can use Hunting Goals?
+
+Expected Result
+Professional footer on all pages (except login/signup)
+
+5 professional pages (Privacy, Terms, About, Contact, FAQ)
+
+Clean, SaaS-ready design
+
+No social links in footer
+
+Now implement all of the above with clean, production-ready code.

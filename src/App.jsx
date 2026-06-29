@@ -15,6 +15,11 @@ import Profile from './pages/Profile.jsx'
 import Notifications from './pages/Notifications.jsx'
 import Layout from './components/Layout.jsx'
 import useStore from './store/useStore.js'
+import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
+import TermsOfService from './pages/TermsOfService.jsx'
+import About from './pages/About.jsx'
+import Contact from './pages/Contact.jsx'
+import FAQ from './pages/FAQ.jsx'
 
 function ProtectedRoute({ children }) {
   const user = useStore((s) => s.user)
@@ -119,6 +124,13 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        {/* Public info pages */}
+        <Route path="/privacy-policy"  element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/about"           element={<About />} />
+        <Route path="/contact"         element={<Contact />} />
+        <Route path="/faq"             element={<FAQ />} />
+
         <Route path="/city-explorer" element={<Navigate to="/dashboard" replace />} />
         <Route path="/trends"        element={<Navigate to="/dashboard" replace />} />
         <Route path="/ai-analyst"    element={<Navigate to="/dashboard" replace />} />

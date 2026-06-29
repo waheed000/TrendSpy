@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { FiGrid, FiSearch, FiEye, FiUser } from 'react-icons/fi'
 import Navbar from './Navbar.jsx'
 import Sidebar from './Sidebar.jsx'
+import Footer from './Footer.jsx'
 import { useSocket } from '../hooks/useSocket.js'
 
 const BOTTOM_NAV = [
@@ -19,8 +20,9 @@ export default function Layout({ children }) {
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
-          {children}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 flex flex-col">
+          <div className="flex-1">{children}</div>
+          <Footer />
         </main>
       </div>
 
