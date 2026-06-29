@@ -5,7 +5,7 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
 
       {/* ── Header ── */}
-      <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between bg-[color:var(--border)]">
+      <header className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between bg-[color:var(--tw-gradient-to)]">
         <div className="flex items-center gap-2">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -13,14 +13,14 @@ export default function Landing() {
           >
             <span className="font-bold text-sm text-[color:var(--border)]">HG</span>
           </div>
-          <span className="font-bold text-slate-900 text-xl tracking-tight bg-[color:var(--border)]">
+          <span className="font-bold text-slate-900 text-xl tracking-tight bg-[color:var(--tw-gradient-to)]">
             Hunting<span className="text-teal-600"> Goals</span>
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Link
             to="/login"
-            className="text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors"
+            className="text-slate-600 hover:text-slate-900 text-sm font-medium transition-colors bg-[color:var(--tw-gradient-to)]"
           >
             Sign In
           </Link>
@@ -82,7 +82,7 @@ export default function Landing() {
         </div>
 
         {/* ── Stats Bar ── */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto bg-[color:var(--tw-gradient-to)]">
           {[
             { value: '261+', label: 'Live Ads Tracked' },
             { value: '6',    label: 'Categories' },
