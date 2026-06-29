@@ -1,0 +1,332 @@
+You are an expert full-stack developer and UI/UX designer. Complete the authentication system and overhaul the entire UI for Hunting Goals — production-ready, highly responsive, with professional color scheme.
+
+## Goal
+
+1. Authentication: Google OAuth, session persistence, password reset, password change
+2. UI: Professional color scheme across all pages, highly responsive (mobile + tablet)
+3. Every text is perfectly visible, professional, and consistent
+
+---
+
+## PART 1: Authentication System
+
+### 1.1 Install Required Packages
+
+```bash
+npm install next-auth @auth/mongodb-adapter bcryptjs
+1.2 Environment Variables
+Add to Replit Secrets and .env.local:
+
+env
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# NextAuth
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:5000
+
+# JWT (existing)
+JWT_SECRET=your_jwt_secret
+1.3 Create app/api/auth/[...nextauth]/route.js
+javascript
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import { MongoDBAdapter } from '@auth/mongodb-adapter';
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
+
+const client = await connectDB();
+
+export const authOptions = {
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      authorization: { params: { prompt: "select_account" } },
+    }),
+  ],
+  adapter: MongoDBAdapter(client),
+  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
+  callbacks: {
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.sub;
+        session.user.role = token.role || 'user';
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) token.role = user.role || 'user';
+      return token;
+    },
+    async signIn({ user, account, profile }) {
+      if (account.provider === 'google') {
+        const existingUser = await User.findOne({ email: profile.email });
+        if (existingUser) {
+          if (!existingUser.googleId) {
+            existingUser.googleId = profile.sub;
+            existingUser.authProvider = 'google';
+            await existingUser.save();
+          }
+          return true;
+        }
+        await User.create({
+          name: profile.name,
+          email: profile.email,
+          googleId: profile.sub,
+          googleEmail: profile.email,
+          authProvider: 'google',
+          emailVerified: true,
+        });
+        return true;
+      }
+      return true;
+    },
+  },
+  pages: { signIn: '/login', error: '/login' },
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
+1.4 Update models/User.js
+Add these fields:
+
+javascript
+googleId: { type: String, unique: true, sparse: true },
+googleEmail: { type: String, sparse: true },
+authProvider: { type: String, enum: ['email', 'google'], default: 'email' },
+resetPasswordToken: { type: String },
+resetPasswordExpires: { type: Date },
+1.5 Create app/api/auth/reset-password/route.js
+javascript
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
+import bcryptjs from 'bcryptjs';
+import crypto from 'crypto';
+import { sendEmail } from '@/services/emailService';
+
+// POST /api/auth/forgot-password — Send reset email
+export async function POST(request) {
+  const { email } = await request.json();
+  await connectDB();
+  
+  const user = await User.findOne({ email });
+  if (!user) {
+    return Response.json({ success: false, error: 'Email not found' }, { status: 404 });
+  }
+  
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = Date.now() + 3600000; // 1 hour
+  
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = expires;
+  await user.save();
+  
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+  const html = `
+    <h2>Reset Your Password</h2>
+    <p>Click the link below to reset your password (valid for 1 hour):</p>
+    <a href="${resetUrl}">${resetUrl}</a>
+  `;
+  await sendEmail(email, 'Reset Your Password — Hunting Goals', html);
+  
+  return Response.json({ success: true, message: 'Reset email sent' });
+}
+
+// PUT /api/auth/reset-password — Actually reset password
+export async function PUT(request) {
+  const { token, newPassword } = await request.json();
+  await connectDB();
+  
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+  
+  if (!user) {
+    return Response.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });
+  }
+  
+  user.password = await bcryptjs.hash(newPassword, 10);
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+  
+  return Response.json({ success: true, message: 'Password reset successful' });
+}
+1.6 Create app/api/auth/change-password/route.js
+javascript
+import { withAuth } from '@/middleware/auth';
+import { connectDB } from '@/lib/db';
+import User from '@/models/User';
+import bcryptjs from 'bcryptjs';
+
+async function changePassword(request, { user }) {
+  const { currentPassword, newPassword } = await request.json();
+  await connectDB();
+  
+  const userDoc = await User.findById(user._id);
+  const isMatch = await bcryptjs.compare(currentPassword, userDoc.password);
+  if (!isMatch) {
+    return Response.json({ success: false, error: 'Current password is incorrect' }, { status: 400 });
+  }
+  
+  userDoc.password = await bcryptjs.hash(newPassword, 10);
+  await userDoc.save();
+  
+  return Response.json({ success: true, message: 'Password changed successfully' });
+}
+
+export const PUT = withAuth(changePassword);
+1.7 Update src/pages/Login.jsx
+Add Google Sign-In button and professional design:
+
+jsx
+<div className="mt-6">
+  <button
+    onClick={() => window.location.href = '/api/auth/signin/google'}
+    className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200"
+  >
+    <svg className="w-5 h-5" viewBox="0 0 48 48">
+      <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+      <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+      <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+      <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+    </svg>
+    Continue with Google
+  </button>
+</div>
+1.8 Create src/pages/ResetPassword.jsx and src/pages/ForgotPassword.jsx
+Standard password reset flow with token validation and new password form.
+
+PART 2: UI/UX Overhaul — Professional Color Scheme
+2.1 Global Color Scheme
+css
+/* In index.css or tailwind.config.js */
+:root {
+  --color-primary: #0f172a;      /* Deep Navy */
+  --color-secondary: #0d9488;    /* Teal */
+  --color-accent: #f59e0b;       /* Amber (for highlights) */
+  --color-bg: #f8fafc;           /* Light gray */
+  --color-card: #ffffff;         /* White */
+  --color-text: #0f172a;         /* Dark text */
+  --color-text-secondary: #475569; /* Slate text */
+  --color-border: #e2e8f0;       /* Light border */
+  --color-hover: #f0fdfa;        /* Teal hover */
+}
+
+.dark {
+  --color-primary: #f8fafc;
+  --color-secondary: #14b8a6;
+  --color-bg: #0f172a;
+  --color-card: #1e293b;
+  --color-text: #f8fafc;
+  --color-text-secondary: #94a3b8;
+  --color-border: #334155;
+  --color-hover: #1e293b;
+}
+2.2 Apply to All Pages
+Ensure every page uses these variables:
+
+Background: bg-[var(--color-bg)]
+
+Cards: bg-[var(--color-card)]
+
+Text: text-[var(--color-text)]
+
+Secondary text: text-[var(--color-text-secondary)]
+
+Borders: border-[var(--color-border)]
+
+Hover: hover:bg-[var(--color-hover)]
+
+2.3 Typography System
+css
+h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 2rem; font-weight: 600; letter-spacing: -0.01em; }
+h3 { font-size: 1.5rem; font-weight: 600; }
+h4 { font-size: 1.25rem; font-weight: 500; }
+body { font-size: 1rem; line-height: 1.6; color: var(--color-text); }
+PART 3: Highly Responsive Design (Mobile + Tablet)
+3.1 Mobile-First Approach
+All components must be mobile-first:
+
+Stack layout on mobile (flex-col)
+
+Single column on mobile
+
+Proper touch targets (min 44px height for buttons)
+
+3.2 Breakpoints
+Breakpoint	Width	Layout
+Mobile	< 640px	Single column, stacked
+Tablet	640px - 1024px	2 columns
+Desktop	> 1024px	3-4 columns
+3.3 Example: Dashboard Grid
+jsx
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  {/* Cards will auto-adjust */}
+</div>
+3.4 Example: Product Card
+jsx
+<div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4">
+  {/* Mobile: stacked, Tablet+: horizontal */}
+</div>
+3.5 Mobile Navigation
+Add hamburger menu for mobile:
+
+jsx
+const [isOpen, setIsOpen] = useState(false);
+<button onClick={() => setIsOpen(!isOpen)} className="md:hidden">
+  <FiMenu className="w-6 h-6" />
+</button>
+{isOpen && (
+  <div className="absolute top-16 left-0 right-0 bg-card border-b border-border p-4 md:hidden">
+    {/* Mobile nav links */}
+  </div>
+)}
+PART 4: Professional Text Visibility
+4.1 Contrast Requirements
+Text on background: WCAG AA (contrast ratio ≥ 4.5:1)
+
+Large text: WCAG AA (contrast ratio ≥ 3:1)
+
+Use text-gray-900 dark:text-white for primary text
+
+Use text-gray-600 dark:text-gray-300 for secondary text
+
+4.2 Button Styles
+jsx
+// Primary button
+<button className="bg-teal-600 hover:bg-teal-700 text-white font-medium px-6 py-3 rounded-xl shadow-lg shadow-teal-600/25 transition-all duration-200">
+  Get Started
+</button>
+
+// Secondary button
+<button className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 px-6 py-3 rounded-xl transition-all duration-200">
+  Learn More
+</button>
+Testing Checklist
+Google OAuth login works
+
+Session persists after browser restart
+
+Forgot password sends email with reset link
+
+Password reset link works (1 hour expiry)
+
+Change password works from profile
+
+All pages use consistent color scheme
+
+Site is fully responsive (mobile, tablet, desktop)
+
+All text is clearly visible (good contrast)
+
+Buttons have proper hover states
+
+Mobile hamburger menu works
+
+Now implement all of the above with clean, production-ready code.

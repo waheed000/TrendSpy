@@ -21,7 +21,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function () { return this.authProvider !== 'google'; },
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
@@ -63,6 +63,13 @@ const userSchema = new mongoose.Schema(
     lastLogin:           { type: Date },
     onboardingCompleted: { type: Boolean, default: false },
     emailVerified:       { type: Boolean, default: false },
+    // Google OAuth
+    googleId:       { type: String, unique: true, sparse: true },
+    googleEmail:    { type: String, sparse: true },
+    authProvider:   { type: String, enum: ['email', 'google'], default: 'email' },
+    // Password reset tokens (token-based, separate from OTP flow)
+    resetPasswordToken:   { type: String },
+    resetPasswordExpires: { type: Date },
     // GDPR compliance
     gdprExportedAt:  { type: Date, default: null },
     gdprRequested:   { type: Boolean, default: false },

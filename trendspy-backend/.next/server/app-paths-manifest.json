@@ -1,4 +1,3 @@
 {
-  "/api/auth/logout/route": "app/api/auth/logout/route.js",
   "/api/notifications/count/route": "app/api/notifications/count/route.js"
 }
