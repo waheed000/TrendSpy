@@ -253,6 +253,8 @@ export default function ProductHunt() {
           : null,
         suppliers:        a.suppliers    || [],
         international:    a.international || null,
+        adGuide:          a.adGuide      || null,
+        adGuideSource:    a.adGuideSource || 'local',
       })
     } catch (err) {
       toast.error(err.message || 'AI analysis failed')

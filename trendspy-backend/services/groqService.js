@@ -330,4 +330,134 @@ export async function getAlertInsight(productName, winScore, category) {
   }
 }
 
-export default { analyzeProduct, generateAdCopy, getSeasonalRecommendation, getAlertInsight };
+// ── City area data for local ad guide fallback ────────────────────────────────
+function getCityData(city) {
+  const cities = {
+    'Lahore':     { areas: ['DHA', 'Gulberg', 'Johar Town', 'Model Town', 'Bahria Town'] },
+    'Karachi':    { areas: ['Clifton', 'Defence', 'Gulshan', 'Saddar', 'North Nazimabad'] },
+    'Islamabad':  { areas: ['F-7', 'F-8', 'G-10', 'E-11', 'I-8'] },
+    'Rawalpindi': { areas: ['Saddar', 'Commercial Market', 'Westridge', 'Gulraiz'] },
+    'Faisalabad': { areas: ['Clock Tower', 'Madina Town', 'Gulberg', 'Samanabad'] },
+    'Multan':     { areas: ['Kachehri Bazaar', 'Cantt', 'Shah Rukn-e-Alam', 'Bosan Road'] },
+    'Peshawar':   { areas: ['Saddar', 'University Road', 'Hayatabad', 'Faqirabad'] },
+    'Quetta':     { areas: ['Jinnah Road', 'Cantt', 'Satellite Town', 'Brewery Road'] },
+  };
+  return cities[city] || { areas: ['Main City'] };
+}
+
+function generateLocalAdGuide(productName, productData, city) {
+  const cityData = getCityData(city);
+  const isHighScore   = (productData.winScore || 0) > 75;
+  const hasLongRunning = (productData.maxDaysRunning || 0) > 30;
+
+  return {
+    targetAudience: {
+      locations:  cityData.areas,
+      ageRange:   isHighScore ? '25-55' : '18-45',
+      gender:     'All',
+      interests:  ['Online Shopping', 'Daraz.pk', 'OLX', 'Facebook Marketplace'],
+      behaviors:  ['Online Shoppers', 'Home Owners'],
+    },
+    budget: {
+      dailyBudget:  isHighScore ? 'Rs. 1,200' : 'Rs. 800',
+      totalBudget:  isHighScore ? 'Rs. 36,000' : 'Rs. 24,000',
+      strategy:     `Start with Rs. 800/day and scale to ${isHighScore ? 'Rs. 1,500' : 'Rs. 1,200'}/day after 7 days`,
+    },
+    bestTime: {
+      hours: '6 PM - 10 PM',
+      days:  ['Thursday', 'Friday', 'Saturday'],
+      avoid: 'Monday mornings',
+    },
+    adCopyVariations: [
+      {
+        headline:    `🔥 ${productName} — Limited Time Offer!`,
+        description: `Best ${productName} in ${city || 'Pakistan'}. Free delivery on all orders. Order now!`,
+        cta:         'Shop Now',
+      },
+      {
+        headline:    `${productName} — Premium Quality at Best Price!`,
+        description: `Get the best ${productName} in ${city || 'Pakistan'}. COD available. Limited stock!`,
+        cta:         'Order Now',
+      },
+      {
+        headline:    `🎯 ${productName} — Don't Miss Out!`,
+        description: `${hasLongRunning ? 'Trusted by 1000+ customers' : 'New arrival'}. Best ${productName} in ${city || 'Pakistan'}.`,
+        cta:         'Learn More',
+      },
+    ],
+    visualRecommendations: {
+      creativeType: 'video',
+      duration:     '15-30 seconds',
+      colors:       ['Warm Orange', 'White', 'Teal'],
+      textOverlay:  `${productName} — ${isHighScore ? 'Best Seller' : 'New Arrival'}`,
+    },
+    estimatedResults: {
+      reach:              isHighScore ? '50,000 - 70,000' : '30,000 - 50,000',
+      conversions:        isHighScore ? '200 - 300' : '100 - 200',
+      roas:               isHighScore ? '4x - 6x' : '3x - 4x',
+      costPerConversion:  isHighScore ? 'Rs. 150 - 200' : 'Rs. 200 - 300',
+    },
+  };
+}
+
+/**
+ * Generate an ad running guide for a product using Groq AI (with local fallback).
+ */
+export async function generateAdGuide(productName, productData = {}, city = null) {
+  const advertiserCount = productData.advertiserCount || 0;
+  const totalAds        = productData.totalAds        || 0;
+  const maxDaysRunning  = productData.maxDaysRunning   || 0;
+  const platforms       = productData.platforms        || ['Facebook'];
+  const category        = productData.category         || 'General';
+
+  if (groqClient) {
+    try {
+      const completion = await groqClient.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert Facebook & Instagram Ads strategist for the Pakistani market. Respond only with valid JSON.',
+          },
+          {
+            role: 'user',
+            content: `Create a complete ad running guide for:
+Product: ${productName}
+Category: ${category}
+City: ${city || 'Lahore'}
+Active advertisers: ${advertiserCount}
+Total ads running: ${totalAds}
+Longest running ad: ${maxDaysRunning} days
+Platforms: ${platforms.join(', ')}
+
+Return JSON:
+{
+  "targetAudience": { "locations": [], "ageRange": "", "gender": "", "interests": [], "behaviors": [] },
+  "budget": { "dailyBudget": "", "totalBudget": "", "strategy": "" },
+  "bestTime": { "hours": "", "days": [], "avoid": "" },
+  "adCopyVariations": [{ "headline": "", "description": "", "cta": "" }],
+  "visualRecommendations": { "creativeType": "", "duration": "", "colors": [], "textOverlay": "" },
+  "estimatedResults": { "reach": "", "conversions": "", "roas": "", "costPerConversion": "" }
+}`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+        response_format: { type: 'json_object' },
+      });
+
+      const guide = JSON.parse(completion.choices[0].message.content);
+      return { success: true, source: 'groq', guide };
+    } catch (err) {
+      console.warn('[Groq] ad guide failed, using local fallback:', err.message);
+    }
+  }
+
+  return {
+    success: true,
+    source:  'local',
+    guide:   generateLocalAdGuide(productName, productData, city),
+  };
+}
+
+export default { analyzeProduct, generateAdCopy, getSeasonalRecommendation, getAlertInsight, generateAdGuide };

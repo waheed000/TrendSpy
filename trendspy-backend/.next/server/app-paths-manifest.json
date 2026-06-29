@@ -1,3 +1,4 @@
 {
-  "/api/trends/[productId]/route": "app/api/trends/[productId]/route.js"
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
+  "/api/notifications/count/route": "app/api/notifications/count/route.js"
 }

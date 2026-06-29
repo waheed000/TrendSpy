@@ -56,6 +56,7 @@ export default function AIReportModal({ product, report, onClose }) {
   const adCopy    = report?.adCopy    || {}
   const suppliers = report?.suppliers || []
   const intl      = report?.international || null
+  const adGuide   = report?.adGuide   || null
 
   const topAdv      = product.topAdvertisers?.[0]
   const cityFilter  = product.cityFilter  || null
@@ -364,6 +365,117 @@ export default function AIReportModal({ product, report, onClose }) {
                   style={{ width: `${intl.opportunityScore}%` }}
                 />
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Ad Running Guide ───────────────────────────────── */}
+        {adGuide && (
+          <div className="glass-card p-4 mb-4 border border-primary-500/20">
+            <div className="flex items-center gap-2 mb-4">
+              <FiTarget className="text-primary-400" size={16} />
+              <span className="text-sm font-medium text-gray-300">Ad Running Guide</span>
+              <span className="ml-auto text-[10px] text-gray-600 px-1.5 py-0.5 bg-primary-500/10 rounded-full">
+                {report?.adGuideSource === 'groq' ? 'Real-time AI' : 'Local Analysis'}
+              </span>
+            </div>
+
+            {/* Target Audience */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 font-medium mb-2">Target Audience</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-white/5 rounded-lg px-3 py-2">
+                  <span className="text-gray-500 block mb-0.5">Locations</span>
+                  <span className="text-gray-200">{adGuide.targetAudience?.locations?.slice(0, 3).join(', ') || 'All City'}</span>
+                </div>
+                <div className="bg-white/5 rounded-lg px-3 py-2">
+                  <span className="text-gray-500 block mb-0.5">Age Range</span>
+                  <span className="text-gray-200">{adGuide.targetAudience?.ageRange || '18-55'}</span>
+                </div>
+                <div className="bg-white/5 rounded-lg px-3 py-2">
+                  <span className="text-gray-500 block mb-0.5">Gender</span>
+                  <span className="text-gray-200">{adGuide.targetAudience?.gender || 'All'}</span>
+                </div>
+                <div className="bg-white/5 rounded-lg px-3 py-2">
+                  <span className="text-gray-500 block mb-0.5">Interests</span>
+                  <span className="text-gray-200">{adGuide.targetAudience?.interests?.slice(0, 2).join(', ') || 'Online Shoppers'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Budget + Best Time */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-[10px] text-gray-500 mb-1">Daily Budget</p>
+                <p className="text-xs font-semibold text-primary-400">{adGuide.budget?.dailyBudget || 'Rs. 1,000'}</p>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-[10px] text-gray-500 mb-1">Total Campaign</p>
+                <p className="text-xs font-semibold text-primary-400">{adGuide.budget?.totalBudget || 'Rs. 30,000'}</p>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-[10px] text-gray-500 mb-1">Best Time</p>
+                <p className="text-xs font-semibold text-primary-400">{adGuide.bestTime?.hours || '6 PM - 10 PM'}</p>
+              </div>
+            </div>
+
+            {/* Best Days + Budget Strategy */}
+            <div className="bg-white/5 rounded-lg px-3 py-2 mb-4 text-xs">
+              <span className="text-gray-500">Best days: </span>
+              <span className="text-gray-200">{adGuide.bestTime?.days?.join(', ') || 'Thu, Fri, Sat'}</span>
+              <span className="text-gray-500 ml-3">Avoid: </span>
+              <span className="text-gray-200">{adGuide.bestTime?.avoid || 'Monday mornings'}</span>
+            </div>
+
+            {/* Ad Copy Variations */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 font-medium mb-2">Ad Copy Variations</p>
+              <div className="space-y-2">
+                {adGuide.adCopyVariations?.map((copy, idx) => (
+                  <div key={idx} className="bg-white/5 rounded-lg p-3">
+                    <p className="text-xs font-medium text-white mb-1">{copy.headline}</p>
+                    <p className="text-xs text-gray-400 leading-relaxed">{copy.description}</p>
+                    <span className="inline-block mt-1.5 text-[10px] bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded-full">
+                      {copy.cta || 'Shop Now'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Visual Recommendation */}
+            {adGuide.visualRecommendations && (
+              <div className="bg-white/5 rounded-lg px-3 py-2 mb-4 text-xs">
+                <span className="text-gray-500">Creative: </span>
+                <span className="text-gray-200 capitalize">{adGuide.visualRecommendations.creativeType}</span>
+                {adGuide.visualRecommendations.duration && (
+                  <><span className="text-gray-500 ml-3">Duration: </span><span className="text-gray-200">{adGuide.visualRecommendations.duration}</span></>
+                )}
+                {adGuide.visualRecommendations.textOverlay && (
+                  <p className="mt-1"><span className="text-gray-500">Overlay: </span><span className="text-gray-200">{adGuide.visualRecommendations.textOverlay}</span></p>
+                )}
+              </div>
+            )}
+
+            {/* Estimated Results */}
+            <div>
+              <p className="text-xs text-gray-500 font-medium mb-2">Estimated Results</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Reach',            value: adGuide.estimatedResults?.reach },
+                  { label: 'Conversions',      value: adGuide.estimatedResults?.conversions },
+                  { label: 'ROAS',             value: adGuide.estimatedResults?.roas },
+                  { label: 'Cost/Conversion',  value: adGuide.estimatedResults?.costPerConversion },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-white/5 rounded-lg p-2 text-center">
+                    <p className="text-[10px] text-gray-500 mb-0.5">{label}</p>
+                    <p className="text-xs font-semibold text-green-400">{value || '—'}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-600 mt-2">
+                Based on {product.advertiserCount || 0} advertisers &amp; {product.totalAds || 0} active ads
+              </p>
             </div>
           </div>
         )}

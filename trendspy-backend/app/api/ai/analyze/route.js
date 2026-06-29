@@ -1,7 +1,7 @@
 import { connectDB } from '@/lib/db';
 import { Product } from '@/models/index';
 import { withAuth } from '@/middleware/auth';
-import { analyzeProduct } from '@/services/groqService';
+import { analyzeProduct, generateAdGuide } from '@/services/groqService';
 
 const RATE_LIMIT_MAP = new Map();
 const WINDOW_MS = 60 * 60 * 1000;
@@ -53,13 +53,19 @@ export const POST = withAuth(async (request, context, user) => {
       name = product.name;
     }
 
-    const analysis = await analyzeProduct(name, product || {});
+    const productData = product || {};
+    const city        = productData.cities?.[0] || body.city || null;
+
+    const [analysis, adGuideResult] = await Promise.all([
+      analyzeProduct(name, productData),
+      generateAdGuide(name, productData, city),
+    ]);
 
     return Response.json({
       success: true,
       data: {
         productName: name,
-        analysis,
+        analysis:    { ...analysis, adGuide: adGuideResult.guide, adGuideSource: adGuideResult.source },
         generatedAt: new Date().toISOString(),
       },
     });
