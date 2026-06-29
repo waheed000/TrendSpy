@@ -36,7 +36,7 @@ export default function Landing() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
 
         {/* ── Hero ── */}
-        <div className="text-center max-w-3xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto bg-[color:var(--tw-gradient-to)] opacity-[0.99] border-t-[0px] border-r-[0px] border-b-[0px] border-l-[0px] rounded-tl-[40px] rounded-tr-[40px] rounded-br-[40px] rounded-bl-[40px]">
           <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 text-sm font-medium px-4 py-1.5 rounded-full border border-teal-200 mb-6">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
@@ -170,7 +170,7 @@ export default function Landing() {
 
         {/* ── CTA ── */}
         <div className="mt-16 text-center bg-slate-900 rounded-3xl p-8 md:p-12">
-          <h2 className="text-2xl md:text-3xl font-bold text-white">
+          <h2 className="text-2xl md:text-3xl font-bold text-[color:var(--border)]">
             Ready to Find Your Next Winning Product?
           </h2>
           <p className="mt-3 text-slate-300 max-w-xl mx-auto">
