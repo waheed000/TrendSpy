@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-gray-950/60 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-[color:var(--bg-hover)] bg-[color:var(--border)] opacity-[1]">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
 
           {/* Brand */}
@@ -19,13 +19,13 @@ export default function Footer() {
             <p className="text-sm text-gray-400">
               Pakistan's #1 Winning Product Hunter
             </p>
-            <p className="text-xs text-gray-600 mt-3">
+            <p className="text-xs mt-3 text-[color:var(--text-secondary)]">
               © {new Date().getFullYear()} Hunting Goals. All rights reserved.
             </p>
           </div>
 
           {/* Legal */}
-          <div>
+          <div className="text-[color:var(--primary-dark)]">
             <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
@@ -42,7 +42,7 @@ export default function Footer() {
           </div>
 
           {/* Company */}
-          <div>
+          <div className="text-[color:var(--text-secondary)]">
             <h4 className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Company</h4>
             <ul className="space-y-2 text-sm">
               <li>
