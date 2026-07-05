@@ -1,13 +1,3 @@
 {
-  "/api/notifications/count/route": "app/api/notifications/count/route.js",
-  "/api/user/alerts/history/route": "app/api/user/alerts/history/route.js",
-  "/api/alerts/route": "app/api/alerts/route.js",
-  "/api/products/winning/route": "app/api/products/winning/route.js",
-  "/api/user/profile/route": "app/api/user/profile/route.js",
-  "/api/dashboard/stats/route": "app/api/dashboard/stats/route.js",
-  "/api/international/local/route": "app/api/international/local/route.js",
-  "/api/auth/me/route": "app/api/auth/me/route.js",
-  "/api/auth/logout/route": "app/api/auth/logout/route.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/user/onboarding/status/route": "app/api/user/onboarding/status/route.js"
+  "/api/ads/refresh/route": "app/api/ads/refresh/route.js"
 }

@@ -144,7 +144,15 @@ app.use(express.json());
 const httpServer = createServer(app);
 
 const SOCKET_PORT   = parseInt(process.env.SOCKET_PORT || '3002', 10);
-const SOCKET_SECRET = process.env.SOCKET_INTERNAL_SECRET || 'trendspy-socket-internal';
+const SOCKET_SECRET = (() => {
+  if (process.env.SOCKET_INTERNAL_SECRET) return process.env.SOCKET_INTERNAL_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[socket] ❌ SOCKET_INTERNAL_SECRET must be set in production. Add it to Replit Secrets.');
+    process.exit(1);
+  }
+  console.warn('[socket] ⚠️  SOCKET_INTERNAL_SECRET not set — using dev default. Set it in Replit Secrets for production.');
+  return 'trendspy-socket-internal';
+})();
 
 // In-memory map: socketId → { userId, socketId, connectedAt }
 const connectedUsers = new Map();
@@ -462,7 +470,7 @@ export function getConnectedUsers() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const NEXT_API  = process.env.NEXT_INTERNAL_URL  || 'http://localhost:3001';
-const INT_SEC   = process.env.SOCKET_INTERNAL_SECRET || 'trendspy-socket-internal';
+const INT_SEC   = SOCKET_SECRET;
 
 // ── Status tracking ──────────────────────────────────────────────────────────
 const schedulerStatus = {
