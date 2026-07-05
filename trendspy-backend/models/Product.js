@@ -77,6 +77,7 @@ const productSchema = new mongoose.Schema(
     lastCompetitorCheck: { type: Date, default: null },
 
     isVerified:       { type: Boolean, default: false },
+    confidence:       { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
     confidenceScore:  { type: Number, min: 0, max: 100, default: 0 },
     imageMismatchFlag:{ type: Boolean, default: false },
     lastScrapedAt:    { type: Date, default: null },

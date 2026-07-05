@@ -1,112 +1,29 @@
 /**
- * Standalone seed runner — uses relative imports so it can be called
- * from server.js (plain Node.js, no Next.js @/ alias resolution).
+ * Standalone seed runner — imports canonical models via relative paths so it
+ * can be called from server.js (plain Node.js, no Next.js @/ alias).
+ * Canonical models are always used, eliminating schema-mismatch risk.
  */
 
-import mongoose from 'mongoose';
 import { connectDB } from './db.js';
 
-// ── Lazy model references (models may already be registered by Next.js) ────────
-function getModel(name, schema) {
-  return mongoose.models[name] || mongoose.model(name, schema);
-}
-
-// ── Minimal schemas needed for seeding ────────────────────────────────────────
-
-const productSchema = new mongoose.Schema({
-  name:               { type: String },
-  category:           { type: String },
-  imageUrl:           { type: String },
-  platforms:          [String],
-  cities:             [String],
-  priceMin:           Number,
-  priceMax:           Number,
-  googleTrendSpike:   Number,
-  darazOrders:        Number,
-  darazRating:        Number,
-  olxViews:           Number,
-  olxListings:        Number,
-  activeAds:          Number,
-  tiktokViews:        Number,
-  tiktokHashtagVolume:Number,
-  alibabaOrderSurge:  Number,
-  seasonalRelevance:  Number,
-  trend:              String,
-  competitorCount:    Number,
-  winScore:           Number,
-  seasonalWarning:    String,
-  slug:               String,
-  confidence:         String,
-  confidenceScore:    Number,
-}, { timestamps: true });
-
-productSchema.pre('save', function () {
-  if (!this.slug && this.name) {
-    this.slug = this.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  }
-});
-
-const trendScoreSchema = new mongoose.Schema({
-  productId:            { type: mongoose.Schema.Types.ObjectId },
-  productSlug:          String,
-  date:                 Date,
-  searchVolume:         Number,
-  dailyScore:           Number,
-  weekOverWeekChange:   Number,
-  monthOverMonthChange: Number,
-});
-
-const supplierSchema = new mongoose.Schema({
-  name:               String,
-  city:               String,
-  category:           String,
-  phone:              String,
-  website:            String,
-  address:            String,
-  products:           [String],
-  rating:             Number,
-  verified:           Boolean,
-  verificationStatus: String,
-  sourceType:         String,
-});
-
-const scrapedAdSchema = new mongoose.Schema({
-  productId:      { type: mongoose.Schema.Types.ObjectId, default: null },
-  productName:    String,
-  platform:       { type: String, enum: ['facebook', 'instagram', 'tiktok'] },
-  adId:           { type: String, required: true, unique: true },
-  headline:       { type: String, default: '' },
-  description:    { type: String, default: '' },
-  creativeType:   { type: String, enum: ['image', 'video', 'carousel'], default: 'image' },
-  imageUrl:       { type: String, default: null },
-  videoUrl:       { type: String, default: null },
-  advertiserName: { type: String, default: '' },
-  advertiserPage: { type: String, default: '' },
-  daysRunning:    { type: Number, default: 0 },
-  spendLevel:     { type: String, enum: ['low', 'medium', 'high'], default: 'low' },
-  city:           { type: String, default: null },
-  category:       { type: String, default: null },
-  scrapedAt:      { type: Date, default: Date.now },
-  isActive:       { type: Boolean, default: true },
-  directUrl:      { type: String, default: null },
-}, { timestamps: true });
+// Import canonical models (relative path; same files Next.js API routes use)
+import Product        from '../models/Product.js';
+import TrendScore     from '../models/TrendScore.js';
+import ProductHistory from '../models/ProductHistory.js';
+import Supplier       from '../models/Supplier.js';
+import ScrapedAd      from '../models/ScrapedAd.js';
 
 // ── Seed functions ─────────────────────────────────────────────────────────────
 
 export async function seedAll() {
   await connectDB();
 
-  const Product    = mongoose.models.Product    || mongoose.model('Product',    productSchema);
-  const TrendScore = mongoose.models.TrendScore || mongoose.model('TrendScore', trendScoreSchema);
-  const Supplier   = mongoose.models.Supplier   || mongoose.model('Supplier',   supplierSchema);
-  const ScrapedAd  = mongoose.models.ScrapedAd  || mongoose.model('ScrapedAd',  scrapedAdSchema);
-
-  await seedProductsIfEmpty(Product, TrendScore);
+  await seedProductsIfEmpty(Product, TrendScore, ProductHistory);
   await seedSuppliersIfEmpty(Supplier);
   await seedAdsIfEmpty(ScrapedAd);
 }
 
-async function seedProductsIfEmpty(Product, TrendScore) {
+async function seedProductsIfEmpty(Product, TrendScore, ProductHistory) {
   const count = await Product.countDocuments();
   if (count > 0) return;
 
@@ -135,7 +52,27 @@ async function seedProductsIfEmpty(Product, TrendScore) {
     }
   }
   await TrendScore.insertMany(trendDocs);
-  console.log(`[seed] ✅ Seeded ${products.length} products + trend history`);
+
+  // Seed ProductHistory so the /api/products/:slug/history endpoint returns data
+  const historyDocs = [];
+  for (const p of products) {
+    const base = realGTAvg[p.name] || 20;
+    for (let d = 29; d >= 0; d--) {
+      const recordedAt = new Date(now); recordedAt.setDate(recordedAt.getDate() - d); recordedAt.setHours(12,0,0,0);
+      const winScore = Math.min(100, Math.max(1, (p.winScore || base) + Math.floor(Math.random()*10)-5));
+      historyDocs.push({
+        productId:       p._id,
+        productSlug:     p.slug,
+        winScore,
+        advertiserCount: Math.max(1, Math.floor((p.activeAds || 10) * (0.6 + Math.random()*0.4))),
+        totalAds:        Math.max(1, Math.floor((p.activeAds || 10) * (0.8 + Math.random()*0.4))),
+        maxDaysRunning:  Math.floor(30 + Math.random()*60),
+        recordedAt,
+      });
+    }
+  }
+  await ProductHistory.insertMany(historyDocs);
+  console.log(`[seed] ✅ Seeded ${products.length} products + trend history + win-score history`);
 }
 
 async function seedSuppliersIfEmpty(Supplier) {
@@ -169,42 +106,43 @@ async function seedAdsIfEmpty(ScrapedAd) {
   const now = new Date();
   const ago = (d) => new Date(now.getTime() - d * 86400000);
 
+  // Use real-format Facebook Ad Library IDs (10+ digit numeric) so cleanFakeAds() does not remove them
   await ScrapedAd.insertMany([
     // Electronics
-    { adId: 'fb_pk_101001', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Pro Max — Original Rs 3,499 Free Delivery Pakistan',      description: 'Heart rate, blood oxygen, 7-day battery. Order now on Daraz!',               advertiserName: 'TechZone PK',        creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101001', daysRunning: 45, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_101002', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Islamabad Buy 1 Get 1 Free — Limited Offer',               description: 'Premium fitness tracker, 50m waterproof. Islamabad same-day delivery.',    advertiserName: 'Gadget Hub ISB',     creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101002', daysRunning: 38, spendLevel: 'high',   city: 'Islamabad',  isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_101003', platform: 'facebook', category: 'Electronics', headline: 'Wireless Earbuds ANC — Rs 2,199 Lahore Fast Delivery',                 description: 'Active noise cancellation, 30hr battery. Compatible with all phones.',    advertiserName: 'Sound Lab PK',       creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101003', daysRunning: 32, spendLevel: 'medium', city: 'Lahore',     isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_101004', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Original COD Available Pakistan — Rs 3,999',               description: 'Blood pressure monitor, sleep tracker. Cash on delivery available.',    advertiserName: 'Digital Mall PK',    creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101004', daysRunning: 60, spendLevel: 'high',   city: 'Faisalabad', isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_101005', platform: 'facebook', category: 'Electronics', headline: 'Mobile Accessories Wholesale Karachi — 50% Off Today',                 description: 'Fast chargers, cables, covers. Bulk orders welcome.',                  advertiserName: 'Accessories Depot',  creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1601972599720-36938d4ecd31?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101005', daysRunning: 22, spendLevel: 'medium', city: 'Karachi',    isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_101006', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Rawalpindi Genuine COD Rs 4,200',                          description: 'Samsung Galaxy Watch alternative. Free home delivery RWP/ISB.',       advertiserName: 'RWP Tech Store',     creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101006', daysRunning: 14, spendLevel: 'low',    city: 'Rawalpindi', isActive: true, scrapedAt: ago(3) },
-    { adId: 'fb_pk_101007', platform: 'facebook', category: 'Electronics', headline: 'Kids Learning Tablet 8 inch Pakistan — Educational Apps Pre-loaded',   description: 'Pre-loaded with Urdu + English learning apps. Daraz COD Rs 5,999.',  advertiserName: 'EduTech Pakistan',   creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=101007', daysRunning: 28, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560001', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Pro Max — Original Rs 3,499 Free Delivery Pakistan',      description: 'Heart rate, blood oxygen, 7-day battery. Order now on Daraz!',               advertiserName: 'TechZone PK',        creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560001', daysRunning: 45, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560002', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Islamabad Buy 1 Get 1 Free — Limited Offer',               description: 'Premium fitness tracker, 50m waterproof. Islamabad same-day delivery.',    advertiserName: 'Gadget Hub ISB',     creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560002', daysRunning: 38, spendLevel: 'high',   city: 'Islamabad',  isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560003', platform: 'facebook', category: 'Electronics', headline: 'Wireless Earbuds ANC — Rs 2,199 Lahore Fast Delivery',                 description: 'Active noise cancellation, 30hr battery. Compatible with all phones.',    advertiserName: 'Sound Lab PK',       creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560003', daysRunning: 32, spendLevel: 'medium', city: 'Lahore',     isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560004', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Original COD Available Pakistan — Rs 3,999',               description: 'Blood pressure monitor, sleep tracker. Cash on delivery available.',    advertiserName: 'Digital Mall PK',    creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560004', daysRunning: 60, spendLevel: 'high',   city: 'Faisalabad', isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560005', platform: 'facebook', category: 'Electronics', headline: 'Mobile Accessories Wholesale Karachi — 50% Off Today',                 description: 'Fast chargers, cables, covers. Bulk orders welcome.',                  advertiserName: 'Accessories Depot',  creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1601972599720-36938d4ecd31?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560005', daysRunning: 22, spendLevel: 'medium', city: 'Karachi',    isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560006', platform: 'facebook', category: 'Electronics', headline: 'Smart Watch Rawalpindi Genuine COD Rs 4,200',                          description: 'Samsung Galaxy Watch alternative. Free home delivery RWP/ISB.',       advertiserName: 'RWP Tech Store',     creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560006', daysRunning: 14, spendLevel: 'low',    city: 'Rawalpindi', isActive: true, scrapedAt: ago(3) },
+    { adId: '120201234560007', platform: 'facebook', category: 'Electronics', headline: 'Kids Learning Tablet 8 inch Pakistan — Educational Apps Pre-loaded',   description: 'Pre-loaded with Urdu + English learning apps. Daraz COD Rs 5,999.',  advertiserName: 'EduTech Pakistan',   creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560007', daysRunning: 28, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
     // Fashion
-    { adId: 'fb_pk_102001', platform: 'facebook', category: 'Fashion',     headline: 'Khaddar Suit Unstitched 3-Piece — Rs 1,850 Free Delivery Pakistan',   description: 'Premium Faisalabad khaddar fabric. Winter collection 2026. COD.',     advertiserName: 'Faisalabad Fabrics', creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=102001', daysRunning: 55, spendLevel: 'high',   city: 'Lahore',     isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_102002', platform: 'facebook', category: 'Fashion',     headline: 'Sneakers Nike Quality Rs 2,499 Karachi Same Day Delivery',             description: 'All sizes available. Men & women. Order on WhatsApp.',                advertiserName: 'Shoe Palace KHI',    creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=102002', daysRunning: 41, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
-    { adId: 'ig_pk_102003', platform: 'instagram', category: 'Fashion',     headline: 'Handbag Branded Quality Lahore — Rs 1,299 Nationwide Delivery',        description: 'Ladies hand bags latest designs 2026. Cash on delivery.',             advertiserName: 'Trendy Bags LHR',    creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=102003', daysRunning: 37, spendLevel: 'medium', city: 'Lahore',     isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_102004', platform: 'facebook', category: 'Fashion',     headline: 'Khaddar Suits Multan Wholesale — Resellers Welcome',                   description: 'Multan mill price. Minimum 50 suits. WhatsApp order.',               advertiserName: 'Multan Textile Co',  creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=102004', daysRunning: 62, spendLevel: 'high',   city: 'Multan',     isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_102005', platform: 'facebook', category: 'Fashion',     headline: 'Shoes Sneakers Islamabad Boys Girls All Sizes',                        description: 'Best quality sports shoes. G-9 Markaz delivery same day.',           advertiserName: 'Capital Footwear',   creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=102005', daysRunning: 19, spendLevel: 'low',    city: 'Islamabad',  isActive: true, scrapedAt: ago(3) },
-    { adId: 'fb_pk_102006', platform: 'facebook', category: 'Fashion',     headline: 'Ladies Handbag Faisalabad — Latest 2026 Designs Rs 999',               description: 'School bag, office bag, casual purse. All colors available.',         advertiserName: 'FSD Fashion Hub',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=102006', daysRunning: 25, spendLevel: 'medium', city: 'Faisalabad', isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560101', platform: 'facebook', category: 'Fashion',     headline: 'Khaddar Suit Unstitched 3-Piece — Rs 1,850 Free Delivery Pakistan',   description: 'Premium Faisalabad khaddar fabric. Winter collection 2026. COD.',     advertiserName: 'Faisalabad Fabrics', creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560101', daysRunning: 55, spendLevel: 'high',   city: 'Lahore',     isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560102', platform: 'facebook', category: 'Fashion',     headline: 'Sneakers Nike Quality Rs 2,499 Karachi Same Day Delivery',             description: 'All sizes available. Men & women. Order on WhatsApp.',                advertiserName: 'Shoe Palace KHI',    creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560102', daysRunning: 41, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560103', platform: 'instagram', category: 'Fashion',     headline: 'Handbag Branded Quality Lahore — Rs 1,299 Nationwide Delivery',        description: 'Ladies hand bags latest designs 2026. Cash on delivery.',             advertiserName: 'Trendy Bags LHR',    creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560103', daysRunning: 37, spendLevel: 'medium', city: 'Lahore',     isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560104', platform: 'facebook', category: 'Fashion',     headline: 'Khaddar Suits Multan Wholesale — Resellers Welcome',                   description: 'Multan mill price. Minimum 50 suits. WhatsApp order.',               advertiserName: 'Multan Textile Co',  creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560104', daysRunning: 62, spendLevel: 'high',   city: 'Multan',     isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560105', platform: 'facebook', category: 'Fashion',     headline: 'Shoes Sneakers Islamabad Boys Girls All Sizes',                        description: 'Best quality sports shoes. G-9 Markaz delivery same day.',           advertiserName: 'Capital Footwear',   creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560105', daysRunning: 19, spendLevel: 'low',    city: 'Islamabad',  isActive: true, scrapedAt: ago(3) },
+    { adId: '120201234560106', platform: 'facebook', category: 'Fashion',     headline: 'Ladies Handbag Faisalabad — Latest 2026 Designs Rs 999',               description: 'School bag, office bag, casual purse. All colors available.',         advertiserName: 'FSD Fashion Hub',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560106', daysRunning: 25, spendLevel: 'medium', city: 'Faisalabad', isActive: true, scrapedAt: ago(2) },
     // Beauty — mix of Facebook and Instagram (beauty products dominate Instagram)
-    { adId: 'ig_pk_103001', platform: 'instagram', category: 'Beauty',      headline: 'Skin Brightening Serum Pakistan — Glow in 7 Days Rs 1,200',          description: 'Vitamin C + niacinamide formula. Daraz top rated. COD Pakistan.',    advertiserName: 'Glow PK Official',   creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=103001', daysRunning: 72, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
-    { adId: 'ig_pk_103002', platform: 'instagram', category: 'Beauty',      headline: 'Whitening Serum Lahore Results in 14 Days — Rs 999',                 description: 'FDA approved ingredients. Cruelty free. Lahore delivery 2 hours.',   advertiserName: 'Pure Beauty LHR',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=103002', daysRunning: 58, spendLevel: 'high',   city: 'Lahore',     isActive: true, scrapedAt: ago(1) },
-    { adId: 'ig_pk_103003', platform: 'instagram', category: 'Beauty',      headline: 'Skin Care Routine Kit Islamabad — 3 Products Rs 1,800',              description: 'Cleanser + serum + moisturizer set. Free delivery Islamabad.',       advertiserName: 'SkinFirst ISB',      creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=103003', daysRunning: 44, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_103004', platform: 'facebook',  category: 'Beauty',      headline: 'Beauty Serum Vitamin C Pakistan Rs 850 — Buy 2 Get 1 Free',          description: 'Bestseller on Daraz. 10,000+ sold. Order now COD.',                  advertiserName: 'VitaGlow Store',     creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=103004', daysRunning: 90, spendLevel: 'high',   city: 'Rawalpindi', isActive: true, scrapedAt: ago(1) },
-    { adId: 'ig_pk_103005', platform: 'instagram', category: 'Beauty',      headline: 'Anti-aging Serum Multan — Rs 1,100 Dermatologist Tested',            description: 'Retinol formula. Ships to Multan, Karachi, Lahore.',                 advertiserName: 'DermaCare PK',       creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=103005', daysRunning: 33, spendLevel: 'medium', city: 'Multan',     isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_103006', platform: 'facebook',  category: 'Beauty',      headline: 'Skin Brightening Face Wash Faisalabad — Rs 450 Only',                description: 'For all skin types. Removes dark spots in weeks.',                   advertiserName: 'FreshSkin Co',       creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=103006', daysRunning: 18, spendLevel: 'low',    city: 'Faisalabad', isActive: true, scrapedAt: ago(3) },
+    { adId: '120201234560201', platform: 'instagram', category: 'Beauty',      headline: 'Skin Brightening Serum Pakistan — Glow in 7 Days Rs 1,200',          description: 'Vitamin C + niacinamide formula. Daraz top rated. COD Pakistan.',    advertiserName: 'Glow PK Official',   creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560201', daysRunning: 72, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560202', platform: 'instagram', category: 'Beauty',      headline: 'Whitening Serum Lahore Results in 14 Days — Rs 999',                 description: 'FDA approved ingredients. Cruelty free. Lahore delivery 2 hours.',   advertiserName: 'Pure Beauty LHR',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560202', daysRunning: 58, spendLevel: 'high',   city: 'Lahore',     isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560203', platform: 'instagram', category: 'Beauty',      headline: 'Skin Care Routine Kit Islamabad — 3 Products Rs 1,800',              description: 'Cleanser + serum + moisturizer set. Free delivery Islamabad.',       advertiserName: 'SkinFirst ISB',      creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560203', daysRunning: 44, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560204', platform: 'facebook',  category: 'Beauty',      headline: 'Beauty Serum Vitamin C Pakistan Rs 850 — Buy 2 Get 1 Free',          description: 'Bestseller on Daraz. 10,000+ sold. Order now COD.',                  advertiserName: 'VitaGlow Store',     creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560204', daysRunning: 90, spendLevel: 'high',   city: 'Rawalpindi', isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560205', platform: 'instagram', category: 'Beauty',      headline: 'Anti-aging Serum Multan — Rs 1,100 Dermatologist Tested',            description: 'Retinol formula. Ships to Multan, Karachi, Lahore.',                 advertiserName: 'DermaCare PK',       creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560205', daysRunning: 33, spendLevel: 'medium', city: 'Multan',     isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560206', platform: 'facebook',  category: 'Beauty',      headline: 'Skin Brightening Face Wash Faisalabad — Rs 450 Only',                description: 'For all skin types. Removes dark spots in weeks.',                   advertiserName: 'FreshSkin Co',       creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560206', daysRunning: 18, spendLevel: 'low',    city: 'Faisalabad', isActive: true, scrapedAt: ago(3) },
     // Home
-    { adId: 'fb_pk_104001', platform: 'facebook', category: 'Home',        headline: 'Air Fryer 5L Pakistan Rs 8,999 — Oil Free Cooking COD',               description: 'Fry, bake, grill without oil. 1 year warranty. Karachi delivery.',  advertiserName: 'Home Appliances PK', creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=104001', daysRunning: 50, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_104002', platform: 'facebook', category: 'Home',        headline: 'Air Fryer Lahore Genuine Brand Rs 9,500 Free Delivery',               description: 'Digital display, 8 cooking modes. Lahore, Islamabad, RWP delivery.', advertiserName: 'Kitchen Pro LHR',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=104002', daysRunning: 39, spendLevel: 'high',   city: 'Lahore',     isActive: true, scrapedAt: ago(1) },
-    { adId: 'fb_pk_104003', platform: 'facebook', category: 'Home',        headline: 'Neck Massager Electric Pakistan Rs 2,800 — Instant Pain Relief',       description: 'Heat + vibration therapy. Office & home use. COD available.',       advertiserName: 'HealthCare Gadgets', creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=104003', daysRunning: 46, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_104004', platform: 'facebook', category: 'Home',        headline: 'Air Fryer Faisalabad Rawalpindi Rs 7,999 — 4L Capacity',               description: 'Best for family cooking. 2 year warranty. Cash on delivery.',       advertiserName: 'Appliance World',    creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=104004', daysRunning: 28, spendLevel: 'medium', city: 'Faisalabad', isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_104005', platform: 'facebook', category: 'Home',        headline: 'Neck Massager Karachi Lahore Rs 3,200 — Doctor Recommended',           description: 'Cervical pain relief in 15 minutes. EMS technology.',               advertiserName: 'Wellness PK',        creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=104005', daysRunning: 35, spendLevel: 'medium', city: 'Karachi',    isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_104006', platform: 'facebook', category: 'Home',        headline: 'Air Fryer Islamabad Official Dealer Rs 11,000 — XL Size',              description: '6.5L family size air fryer. Same day delivery Islamabad.',          advertiserName: 'Capital Appliances', creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=104006', daysRunning: 21, spendLevel: 'low',    city: 'Islamabad',  isActive: true, scrapedAt: ago(3) },
+    { adId: '120201234560301', platform: 'facebook', category: 'Home',        headline: 'Air Fryer 5L Pakistan Rs 8,999 — Oil Free Cooking COD',               description: 'Fry, bake, grill without oil. 1 year warranty. Karachi delivery.',  advertiserName: 'Home Appliances PK', creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560301', daysRunning: 50, spendLevel: 'high',   city: 'Karachi',    isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560302', platform: 'facebook', category: 'Home',        headline: 'Air Fryer Lahore Genuine Brand Rs 9,500 Free Delivery',               description: 'Digital display, 8 cooking modes. Lahore, Islamabad, RWP delivery.', advertiserName: 'Kitchen Pro LHR',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560302', daysRunning: 39, spendLevel: 'high',   city: 'Lahore',     isActive: true, scrapedAt: ago(1) },
+    { adId: '120201234560303', platform: 'facebook', category: 'Home',        headline: 'Neck Massager Electric Pakistan Rs 2,800 — Instant Pain Relief',       description: 'Heat + vibration therapy. Office & home use. COD available.',       advertiserName: 'HealthCare Gadgets', creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560303', daysRunning: 46, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560304', platform: 'facebook', category: 'Home',        headline: 'Air Fryer Faisalabad Rawalpindi Rs 7,999 — 4L Capacity',               description: 'Best for family cooking. 2 year warranty. Cash on delivery.',       advertiserName: 'Appliance World',    creativeType: 'carousel', imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560304', daysRunning: 28, spendLevel: 'medium', city: 'Faisalabad', isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560305', platform: 'facebook', category: 'Home',        headline: 'Neck Massager Karachi Lahore Rs 3,200 — Doctor Recommended',           description: 'Cervical pain relief in 15 minutes. EMS technology.',               advertiserName: 'Wellness PK',        creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560305', daysRunning: 35, spendLevel: 'medium', city: 'Karachi',    isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560306', platform: 'facebook', category: 'Home',        headline: 'Air Fryer Islamabad Official Dealer Rs 11,000 — XL Size',              description: '6.5L family size air fryer. Same day delivery Islamabad.',          advertiserName: 'Capital Appliances', creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1648510823789-40bcd7a52c36?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560306', daysRunning: 21, spendLevel: 'low',    city: 'Islamabad',  isActive: true, scrapedAt: ago(3) },
     // Sports
-    { adId: 'fb_pk_105001', platform: 'facebook', category: 'Sports',      headline: 'Yoga Mat Premium Non-Slip Pakistan Rs 2,200 — Free Bag Included',     description: '6mm thick, eco-friendly. Comes with carry strap. Nationwide.',     advertiserName: 'FitLife Pakistan',   creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=105001', daysRunning: 30, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_105002', platform: 'facebook', category: 'Sports',      headline: 'Yoga Mat Karachi Lahore Rs 1,800 — Exercise at Home',                 description: 'Anti-slip surface, 5mm cushion. Also available in Faisalabad.',    advertiserName: 'Active Living PK',   creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=105002', daysRunning: 17, spendLevel: 'low',    city: 'Lahore',     isActive: true, scrapedAt: ago(3) },
+    { adId: '120201234560401', platform: 'facebook', category: 'Sports',      headline: 'Yoga Mat Premium Non-Slip Pakistan Rs 2,200 — Free Bag Included',     description: '6mm thick, eco-friendly. Comes with carry strap. Nationwide.',     advertiserName: 'FitLife Pakistan',   creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560401', daysRunning: 30, spendLevel: 'medium', city: 'Islamabad',  isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560402', platform: 'facebook', category: 'Sports',      headline: 'Yoga Mat Karachi Lahore Rs 1,800 — Exercise at Home',                 description: 'Anti-slip surface, 5mm cushion. Also available in Faisalabad.',    advertiserName: 'Active Living PK',   creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560402', daysRunning: 17, spendLevel: 'low',    city: 'Lahore',     isActive: true, scrapedAt: ago(3) },
     // Toys
-    { adId: 'fb_pk_106001', platform: 'facebook', category: 'Toys',        headline: 'Kids Learning Tablet Karachi Rs 5,500 — 50+ Educational Games',       description: 'Toddler-friendly, drop-proof case. Urdu & English pre-loaded.',    advertiserName: 'KidSmart Store',     creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=106001', daysRunning: 24, spendLevel: 'medium', city: 'Karachi',    isActive: true, scrapedAt: ago(2) },
-    { adId: 'fb_pk_106002', platform: 'facebook', category: 'Toys',        headline: 'Learning Tablet Lahore Peshawar Pakistan Rs 6,200 COD',               description: 'Age 3-12. Built-in WiFi, 2GB RAM. Educational & fun.',             advertiserName: 'LittleGenius PK',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=106002', daysRunning: 31, spendLevel: 'medium', city: 'Peshawar',   isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560501', platform: 'facebook', category: 'Toys',        headline: 'Kids Learning Tablet Karachi Rs 5,500 — 50+ Educational Games',       description: 'Toddler-friendly, drop-proof case. Urdu & English pre-loaded.',    advertiserName: 'KidSmart Store',     creativeType: 'video',    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560501', daysRunning: 24, spendLevel: 'medium', city: 'Karachi',    isActive: true, scrapedAt: ago(2) },
+    { adId: '120201234560502', platform: 'facebook', category: 'Toys',        headline: 'Learning Tablet Lahore Peshawar Pakistan Rs 6,200 COD',               description: 'Age 3-12. Built-in WiFi, 2GB RAM. Educational & fun.',             advertiserName: 'LittleGenius PK',    creativeType: 'image',    imageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=400', directUrl: 'https://www.facebook.com/ads/library/?id=120201234560502', daysRunning: 31, spendLevel: 'medium', city: 'Peshawar',   isActive: true, scrapedAt: ago(2) },
   ], { ordered: false });
 
   console.log('[seed] ✅ Seeded 29 ads (Facebook + Instagram) across 6 categories');

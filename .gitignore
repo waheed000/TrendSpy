@@ -1,5 +1,6 @@
 node_modules/
 dist/
+build/
 .env
 .env.local
 .env.*.local
@@ -11,6 +12,7 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 .cache/
+.tmp/
 *.pem
 *.key
 *.p12
