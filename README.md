@@ -18,15 +18,24 @@ cd Hunting-Goals
 # 2. Install all dependencies
 npm run install:all
 
-# 3. Run both frontend + backend
+# 3. Copy env file and fill in your values (all optional — app runs without them)
+cp .env.example backend/.env.local
+
+# 4. Run frontend + backend API
 npm run dev
+
+# 5. (Optional) Run the socket server for real-time scraping in a second terminal
+cd backend && node socket-server.js
 ```
 
-| Service | URL |
-|---|---|
-| Frontend | http://localhost:5000 |
-| Backend API | http://localhost:3001/api/health |
-| Socket Server | http://localhost:3002 |
+| Service | URL | Required? |
+|---|---|---|
+| Frontend | http://localhost:5000 | ✅ Yes |
+| Backend API | http://localhost:3001/api/health | ✅ Yes |
+| Socket Server | http://localhost:3002 | Optional (real-time scraping) |
+
+> **Zero-config start:** the app runs out of the box with in-memory MongoDB and a local AI fallback.  
+> Add `FB_SESSION_COOKIE` to `backend/.env.local` to enable live ad scraping, and `GROQ_API_KEY` for real AI analysis.
 
 ---
 
