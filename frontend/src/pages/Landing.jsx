@@ -27,7 +27,7 @@ export default function Landing() {
           </Link>
           <Link
             to="/login"
-            className="inline-flex items-center px-5 py-2 text-sm font-semibold hover:bg-teal-700 rounded-xl shadow-md shadow-teal-600/20 transition-all duration-200 text-[color:var(--border)] bg-[color:var(--secondary-dark)]"
+            className="inline-flex items-center px-5 py-2 text-sm font-semibold hover:bg-teal-700 rounded-xl shadow-md shadow-teal-600/20 transition-all duration-200 text-[color:var(--tw-ring-offset-color)] bg-[color:var(--secondary-light)]"
           >
             Get Started Free
           </Link>
@@ -60,7 +60,7 @@ export default function Landing() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-lg shadow-teal-600/25 hover:shadow-teal-600/40 transition-all duration-200"
+              className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white hover:bg-teal-700 rounded-xl shadow-lg shadow-teal-600/25 hover:shadow-teal-600/40 transition-all duration-200 bg-[color:var(--success)]"
             >
               Get Started Free
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

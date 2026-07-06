@@ -1,53 +1,97 @@
 # Hunting Goals — Pakistan's #1 Winning Product Hunter
 
-Find winning products **before** your competitors using real Facebook & Instagram ad intelligence.
+> Real-time Facebook & Instagram ad intelligence platform for Pakistani e-commerce sellers.
+
+[![Node.js](https://img.shields.io/badge/Node.js-20.x-green)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-18-blue)](https://reactjs.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-in--memory%20%7C%20Atlas-brightgreen)](https://mongodb.com)
+
+---
 
 ## Quick Start (3 Steps)
 
 ```bash
 # 1. Clone
-git clone https://github.com/waheed000/TrendSpy.git
-cd TrendSpy
+git clone https://github.com/waheed477/Hunting-Goals.git
+cd Hunting-Goals
 
-# 2. Install dependencies
-npm install
-cd trendspy-backend && npm install && cd ..
+# 2. Install all dependencies
+npm run install:all
 
-# 3. Run (both frontend + backend)
-npm run dev:all
+# 3. Run both frontend + backend
+npm run dev
 ```
 
-Open [http://localhost:5000](http://localhost:5000) — the app is ready with demo data, no sign-up needed.
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5000 |
+| Backend API | http://localhost:3001/api/health |
+| Socket Server | http://localhost:3002 |
+
+---
+
+## Project Structure
+
+```
+Hunting-Goals/
+├── frontend/               # React 18 + Vite + Tailwind CSS
+│   ├── src/
+│   │   ├── pages/          # Route-level components
+│   │   ├── components/     # Shared UI components
+│   │   ├── store/          # Zustand state management
+│   │   └── lib/            # API client, utilities
+│   ├── index.html
+│   ├── vite.config.js
+│   └── package.json
+├── backend/                # Node.js + Express + Next.js API routes
+│   ├── app/api/            # Next.js API route handlers
+│   ├── models/             # Mongoose schemas
+│   ├── services/           # Business logic
+│   ├── scrapers/           # Facebook Ad Library scraper
+│   ├── jobs/               # Scheduled cron jobs
+│   ├── lib/                # DB, seed, utilities
+│   ├── middleware/         # Auth, rate-limiting
+│   ├── socket-server.js    # Socket.IO real-time server
+│   └── server.js           # Express entry point
+├── package.json            # Monorepo scripts (orchestrator)
+├── .env.example            # Environment variable reference
+├── .gitignore
+└── README.md
+```
 
 ---
 
 ## Features
 
-- 🔥 **Real-time Ad Intelligence** — Facebook & Instagram ad spy tool
-- 🏆 **Win Score Engine** — 4+ real ad signals (days running, spend level, city coverage)
-- 🤖 **AI Product Analysis** — Profit estimates, ad copy, supplier suggestions
-- 📊 **Dashboard** — Top winning products updated daily
-- 🗺️ **City Explorer** — Pakistan heatmap + city-by-city demand comparison
-- 📈 **Trend Charts** — Line/area charts for products and categories
-- 🔔 **Alerts** — Create keyword alerts for products you want to track
-- 🗓️ **Seasonal Planner** — Pakistan seasonal calendar with 650+ keywords
-- 🔐 **Authentication** — Email registration + JWT sessions
+| Feature | Description |
+|---|---|
+| 🔍 **Ad Spy** | Browse real Facebook & Instagram ads by category |
+| 🏆 **Winning Products** | AI-scored products ranked by win potential |
+| 📊 **Dashboard** | Live stats — total ads, trending categories, top winners |
+| 📈 **Trend Scores** | 30-day search-volume history per product |
+| 🤖 **AI Analyst** | Groq-powered product analysis (local fallback included) |
+| 🔔 **Alerts** | Email/SMS alerts when a product spikes |
+| 🗺️ **City Explorer** | Demand heatmap across Pakistan's major cities |
+| 📅 **Seasonal Trends** | Seasonal product calendar & warnings |
 
 ---
 
-## Environment Variables
+## API Endpoints
 
-Copy `.env.example` to `.env.local` for optional features. The app runs fully without them using graceful fallbacks.
-
-| Variable | Purpose | Required |
-|---|---|---|
-| `JWT_SECRET` | Auth token signing | **Required in production** (tokens break on restart without it) |
-| `MONGODB_URI` | Persistent MongoDB (Atlas) | No — uses in-memory fallback |
-| `GROQ_API_KEY` | Real AI analysis | No — uses local fallback |
-| `FB_SESSION_COOKIE` | Live Facebook ad scraping | No — uses seeded demo data |
-| `EMAIL_USER` + `EMAIL_PASS` | Email alerts | No |
-| `GREEN_API_INSTANCE_ID` + `GREEN_API_TOKEN` | WhatsApp alerts | No |
-| `SOCKET_INTERNAL_SECRET` | Internal service auth | No — auto in dev |
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/health` | — | Health check |
+| GET | `/api/products` | — | All tracked products |
+| GET | `/api/products/winning` | — | Top-scored products |
+| GET | `/api/products/:slug/history` | — | 30-day win-score history |
+| GET | `/api/ads` | — | Scraped ad library |
+| GET | `/api/dashboard/stats` | — | Dashboard KPIs |
+| POST | `/api/auth/register` | — | Create account |
+| POST | `/api/auth/login` | — | Get JWT token |
+| GET | `/api/user/profile` | JWT | User profile |
+| GET/POST | `/api/alerts` | JWT | Manage price alerts |
+| POST | `/api/ai/analyze` | JWT | AI product analysis |
+| GET | `/api/notifications` | JWT | User notifications |
 
 ---
 
@@ -55,57 +99,43 @@ Copy `.env.example` to `.env.local` for optional features. The app runs fully wi
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + Vite + Tailwind CSS |
-| Backend | Next.js 14 API routes + Express wrapper |
-| Real-time | Socket.io (port 3002) |
-| Database | MongoDB (Atlas in prod / in-memory in dev) |
-| AI | Groq API (local fallback included) |
-| State | Zustand + TanStack Query |
-| Maps | Leaflet + react-leaflet |
-| Charts | Recharts |
+| Frontend | React 18, Vite, Tailwind CSS, Zustand, React Query |
+| Backend | Node.js 20, Express, Next.js 14 API routes |
+| Database | MongoDB (in-memory dev / Atlas prod) |
+| Real-time | Socket.IO |
+| AI | Groq LLaMA (with local fallback) |
+| Scraping | Facebook Ad Library API |
 
 ---
 
-## Project Structure
+## Environment Variables
 
-```
-TrendSpy/
-├── src/                    # React frontend (Vite)
-│   ├── api/                # API client functions
-│   ├── components/         # Reusable UI components
-│   ├── pages/              # 15+ page components
-│   ├── store/              # Zustand global store
-│   └── hooks/              # Custom React hooks
-└── trendspy-backend/       # Next.js + Express backend
-    ├── app/api/            # 30+ REST API routes
-    ├── models/             # Mongoose models
-    ├── services/           # Business logic
-    ├── scrapers/           # Facebook/OLX/Daraz scrapers
-    ├── jobs/               # Cron jobs
-    └── lib/                # DB, seed, utilities
-```
+Copy `.env.example` → `backend/.env.local` for the backend, and set any `VITE_*` vars in `frontend/.env.local`.
+
+| Variable | Required | Description |
+|---|---|---|
+| `JWT_SECRET` | **Production** | Auth token signing — required in prod |
+| `MONGODB_URI` | Optional | Atlas URI; omit to use in-memory MongoDB |
+| `GROQ_API_KEY` | Optional | Enables real AI analysis (free tier available) |
+| `SOCKET_INTERNAL_SECRET` | Production | Internal auth between API and socket server |
+
+Get a free Groq key at [console.groq.com](https://console.groq.com).
 
 ---
 
-## API Endpoints
+## Development Scripts
 
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `/api/health` | GET | — | Health check |
-| `/api/products` | GET | — | Product list with filters |
-| `/api/products/winning` | GET | — | Win-score ranked products |
-| `/api/ads` | GET | — | Ad spy feed |
-| `/api/dashboard/stats` | GET | — | Dashboard statistics |
-| `/api/auth/register` | POST | — | Create account |
-| `/api/auth/login` | POST | — | Login, returns JWT |
-| `/api/user/profile` | GET | JWT | User profile |
-| `/api/alerts` | GET/POST | JWT | Manage alerts |
-| `/api/ai/analyze` | POST | JWT | AI product analysis |
-| `/api/notifications` | GET | JWT | In-app notifications |
-| `/api/products/:slug/history` | GET | — | Product win-score history |
+```bash
+npm run dev              # Run frontend + backend concurrently
+npm run dev:frontend     # Frontend only (port 5000)
+npm run dev:backend      # Backend only (port 3001)
+npm run install:all      # Install deps for root + frontend + backend
+npm run build            # Build frontend for production
+npm run build:all        # Build frontend + backend
+```
 
 ---
 
 ## License
 
-MIT
+MIT © 2026 Hunting Goals

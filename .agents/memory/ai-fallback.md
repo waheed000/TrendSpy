@@ -1,14 +1,10 @@
 ---
 name: AI fallback
-description: How the AI analyze endpoint works without GROQ_API_KEY
+description: Groq AI integration has a local fallback when API key is absent
 ---
 
-# AI analyze fallback
+`backend/services/groqService.js` has a `localAnalysis()` function that computes a structured response from product data fields (winScore, trend, priceMin/Max, darazOrders, tiktokViews, etc.) — returning the same shape as the Groq API response.
 
-`trendspy-backend/services/groqService.js` has a `localAnalysis()` function that computes a structured response from product data fields (winScore, trend, priceMin/Max, darazOrders, tiktokViews, etc.) — returning the same shape as the Groq API response.
+**Why:** Keeps the AI Analyst endpoint always functional for demos and dev without requiring a Groq key. Add `GROQ_API_KEY` to Replit Secrets to enable real LLM responses.
 
-**When it activates:** `process.env.GROQ_API_KEY` is falsy.
-
-**Why:** Prevents the AI Report page from showing errors to users who haven't set up a Groq key yet. The analysis is computed, not AI-generated, but meaningful.
-
-**How to apply:** To enable real AI, add `GROQ_API_KEY` to Replit Secrets. Free key at https://console.groq.com. Uses model `llama-3.3-70b-versatile`.
+**How to apply:** No code change needed to enable real AI — just add the secret. The service auto-detects the key.
