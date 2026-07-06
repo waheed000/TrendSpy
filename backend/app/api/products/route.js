@@ -1,6 +1,5 @@
 import { connectDB } from '@/lib/db';
 import { Product } from '@/models/index';
-import { seedIfEmpty } from '@/lib/seed';
 import { isValidCity, isValidCategory } from '@/lib/validators';
 import { calculateConfidenceScore, confidenceLabel } from '@/services/productVerificationService';
 import { getSeasonalScore } from '@/services/seasonalFilterService';
@@ -43,7 +42,6 @@ const PROJECTION = {
 export async function GET(request) {
   try {
     await connectDB();
-    await seedIfEmpty(); // no-op if products already exist
 
     const { searchParams } = new URL(request.url);
     const city = searchParams.get('city');

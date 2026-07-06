@@ -237,27 +237,38 @@ export default function AIReportModal({ product, report, onClose }) {
               <FiTarget className="text-primary-400" size={16} />
               <span className="text-sm font-medium text-gray-300">Best Platform</span>
             </div>
+            {/* Platforms derived from real ad data — no fake scores */}
             <div className="space-y-2">
-              {(report?.profitAnalysis
-                ? [
-                    { name: report.profitAnalysis.recommendedPlatform || 'Daraz', score: 92, color: 'text-orange-400', rec: 'Recommended' },
-                    { name: 'TikTok', score: 78, color: 'text-pink-400', rec: 'Viral potential' },
-                    { name: 'OLX',    score: 55, color: 'text-blue-400', rec: 'Local buyers'  },
-                  ]
-                : [
-                    { name: 'Daraz',  score: 92, color: 'text-orange-400', rec: 'Best for reach'  },
-                    { name: 'TikTok', score: 78, color: 'text-pink-400',   rec: 'Viral potential' },
-                    { name: 'OLX',    score: 55, color: 'text-blue-400',   rec: 'Local buyers'    },
-                  ]
-              ).map((p) => (
-                <div key={p.name} className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold w-14 ${p.color}`}>{p.name}</span>
-                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary-500 rounded-full transition-all duration-700" style={{ width: `${p.score}%` }} />
-                  </div>
-                  <span className="text-xs text-gray-500 w-20 text-right">{p.rec}</span>
-                </div>
-              ))}
+              {(() => {
+                const PLATFORM_META = {
+                  facebook:  { label: 'Facebook',  color: 'text-blue-400'   },
+                  instagram: { label: 'Instagram', color: 'text-pink-400'   },
+                  tiktok:    { label: 'TikTok',    color: 'text-purple-400' },
+                  daraz:     { label: 'Daraz',     color: 'text-orange-400' },
+                  olx:       { label: 'OLX',       color: 'text-cyan-400'   },
+                }
+                const recommended = report?.profitAnalysis?.recommendedPlatform || null
+                const raw = product.platforms?.length > 0
+                  ? [...new Set([...product.platforms, 'daraz'])]
+                  : ['facebook', 'daraz']
+                return raw.map((key, i) => {
+                  const meta = PLATFORM_META[key] || { label: key, color: 'text-gray-400' }
+                  const isTop = i === 0 || meta.label === recommended
+                  return (
+                    <div key={key} className="flex items-center justify-between gap-3">
+                      <span className={`text-xs font-semibold ${meta.color}`}>{meta.label}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+                        isTop
+                          ? 'bg-green-500/15 text-green-400 border-green-500/25'
+                          : 'bg-white/5 text-gray-500 border-white/10'
+                      }`}>
+                        {isTop ? '✓ Recommended' : 'Active'}
+                      </span>
+                    </div>
+                  )
+                })
+              })()}
+              <p className="text-[10px] text-gray-600 pt-1">Based on platforms detected in scraped ads</p>
             </div>
           </div>
         </div>
@@ -280,18 +291,26 @@ export default function AIReportModal({ product, report, onClose }) {
             <span className="text-sm font-medium text-gray-300">Ad Copy Suggestions</span>
           </div>
           <div className="space-y-3">
-            <div className="bg-white/5 rounded-xl p-3">
-              <span className="text-xs text-primary-400 font-medium uppercase tracking-wider mb-1 block">English</span>
-              <p className="text-sm text-white leading-relaxed">
-                {adCopy.english || `"${product.name} — Trending across Pakistan! Limited stock at unbeatable price. Order now & get FREE delivery. Don't miss out!"`}
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3">
-              <span className="text-xs text-accent-400 font-medium uppercase tracking-wider mb-1 block">Roman Urdu</span>
-              <p className="text-sm text-white leading-relaxed">
-                {adCopy.urdu || `"${product.name} — Pakistan mein trending! Limited stock, behtareen qeemat par. Abhi order karein aur free delivery payein!"`}
-              </p>
-            </div>
+            {adCopy.english ? (
+              <div className="bg-white/5 rounded-xl p-3">
+                <span className="text-xs text-primary-400 font-medium uppercase tracking-wider mb-1 block">English</span>
+                <p className="text-sm text-white leading-relaxed">{adCopy.english}</p>
+              </div>
+            ) : null}
+            {adCopy.urdu ? (
+              <div className="bg-white/5 rounded-xl p-3">
+                <span className="text-xs text-accent-400 font-medium uppercase tracking-wider mb-1 block">Roman Urdu</span>
+                <p className="text-sm text-white leading-relaxed">{adCopy.urdu}</p>
+              </div>
+            ) : null}
+            {!adCopy.english && !adCopy.urdu && (
+              <div className="bg-white/5 rounded-xl p-3 text-center">
+                <p className="text-xs text-gray-500">
+                  No AI-generated copy available.{' '}
+                  <span className="text-gray-400">Add <code className="bg-white/10 px-1 rounded text-orange-300">GROQ_API_KEY</code> to Secrets to enable real ad copy suggestions.</span>
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

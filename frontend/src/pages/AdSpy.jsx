@@ -398,13 +398,25 @@ export default function AdSpy() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-xs text-gray-500">{ad.duration}d</span>
-                    {ad.directUrl && (
+                    {/* Only show direct link when directUrl contains a real numeric Facebook ad ID */}
+                    {ad.directUrl && ad.directUrl.includes('id=') ? (
                       <a
                         href={ad.directUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`p-1 ${plt.text} hover:opacity-80 ${plt.bg} rounded-lg transition-all`}
-                        title={`View ad on ${plt.label}`}
+                        title={`View this ad on ${plt.label} Ad Library`}
+                      >
+                        <FiExternalLink size={12} />
+                      </a>
+                    ) : (
+                      /* Fallback: search the Ad Library by headline keyword */
+                      <a
+                        href={`https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=PK&q=${encodeURIComponent(ad.headline || ad.productName || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 text-gray-600 hover:text-gray-400 bg-white/5 rounded-lg transition-all"
+                        title="Search Facebook Ad Library by keyword"
                       >
                         <FiExternalLink size={12} />
                       </a>
