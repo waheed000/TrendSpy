@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { FiLogOut, FiUser, FiMenu, FiX, FiGrid, FiSearch, FiEye } from 'react-icons/fi'
-import AlertBell from './AlertBell.jsx'
 import NotificationBell from './NotificationBell.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 import useStore from '../store/useStore.js'
@@ -47,7 +46,6 @@ export default function Navbar() {
             <span className="text-xs text-gray-300">Live</span>
           </div>
 
-          <AlertBell />
           <NotificationBell />
           <ThemeToggle variant="navbar" />
 
@@ -74,7 +72,6 @@ export default function Navbar() {
 
         {/* Mobile right section */}
         <div className="flex md:hidden items-center gap-2">
-          <AlertBell />
           <NotificationBell />
           <button
             onClick={() => setMenuOpen(!menuOpen)}

@@ -10,7 +10,6 @@ import useStore from '../store/useStore.js'
 
 export default function Alerts() {
   const queryClient = useQueryClient()
-  const setAlertCount = useStore((s) => s.setAlertCount)
   const user = useStore((s) => s.user)
   const alertHistory = useStore((s) => s.alertHistory)
   const storeAlertHistory = useStore((s) => s.fetchAlertHistory)
@@ -33,7 +32,6 @@ export default function Alerts() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
       toast.success('Alert created!')
-      if (alerts) setAlertCount(alerts.length + 1)
     },
     onError: (err) => toast.error(err.message),
   })

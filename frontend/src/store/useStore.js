@@ -8,7 +8,6 @@ const useStore = create(
       selectedCategory: 'All',
       minWinScore: 0,
       user: null,
-      alertCount: 3,
       darkMode: true,
       profile: null,
       alertHistory: [],
@@ -19,7 +18,6 @@ const useStore = create(
       setSelectedCategory: (category) => set({ selectedCategory: category }),
       setMinWinScore:      (score)    => set({ minWinScore: score }),
       setUser:             (user)     => set({ user }),
-      setAlertCount:       (count)    => set({ alertCount: count }),
       bumpNotifCount:      ()         => set((s) => ({ notifBumpCount: s.notifBumpCount + 1 })),
       toggleDarkMode:      ()         => set((s) => ({ darkMode: !s.darkMode })),
 

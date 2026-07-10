@@ -26,10 +26,10 @@ const FEATURES = [
 ]
 
 const STATS = [
-  { value: '10,000+', label: 'Ads Analyzed Daily' },
-  { value: '8',       label: 'Major Cities Covered' },
-  { value: '6',       label: 'Product Categories' },
-  { value: '24/7',    label: 'Live Intelligence' },
+  { value: 'Live',  label: 'Facebook Ad Data' },
+  { value: '10',    label: 'Major Cities Covered' },
+  { value: '8',     label: 'Product Categories' },
+  { value: '24/7',  label: 'Live Intelligence' },
 ]
 
 export default function About() {

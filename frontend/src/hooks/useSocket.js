@@ -31,12 +31,10 @@ function getSharedSocket(token) {
 export function useSocket() {
   const user           = useStore((s) => s.user)
   const token          = user?.token
-  const setAlertCount  = useStore((s) => s.setAlertCount)
   const bumpNotifCount = useStore((s) => s.bumpNotifCount)
 
   const [isConnected, setIsConnected] = useState(false)
   const [lastAlert,   setLastAlert]   = useState(null)
-  const alertCountRef = useRef(0)
   const socketRef     = useRef(null)
 
   const onAlertTriggered = useCallback((data) => {
@@ -45,8 +43,6 @@ export function useSocket() {
     const score   = product.winScore ?? '—'
     const city    = Array.isArray(product.cities) ? product.cities[0] : (product.cities || '')
 
-    alertCountRef.current += 1
-    setAlertCount(alertCountRef.current)
     setLastAlert(product)
     bumpNotifCount()
 
@@ -61,7 +57,7 @@ export function useSocket() {
       },
       duration: 5000,
     })
-  }, [setAlertCount, bumpNotifCount])
+  }, [bumpNotifCount])
 
   const onNewWinningProduct = useCallback((data) => {
     const product = data?.product || {}

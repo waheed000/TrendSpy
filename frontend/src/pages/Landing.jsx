@@ -1,7 +1,19 @@
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import Footer from '../components/Footer.jsx'
 
 export default function Landing() {
+  const [liveStats, setLiveStats] = useState(null)
+
+  useEffect(() => {
+    fetch('/api/dashboard/stats')
+      .then((res) => res.json())
+      .then((json) => setLiveStats(json?.data || null))
+      .catch(() => setLiveStats(null))
+  }, [])
+
+  const adsTracked = liveStats?.totalAds ?? null
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
 
@@ -85,8 +97,8 @@ export default function Landing() {
         {/* ── Stats Bar ── */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto bg-[color:var(--tw-gradient-to)]">
           {[
-            { value: '261+', label: 'Live Ads Tracked' },
-            { value: '6',    label: 'Categories' },
+            { value: adsTracked === null ? '—' : adsTracked > 0 ? `${adsTracked}+` : 'Live', label: 'Ads Tracked' },
+            { value: '8',    label: 'Categories' },
             { value: '10',   label: 'Cities Covered' },
             { value: '100%', label: 'Free to Use' },
           ].map(({ value, label }) => (
