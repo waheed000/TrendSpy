@@ -26,7 +26,14 @@ Thumbs.db
 # Replit internal
 .replit.bak
 .cache/
+.config/
 .secrets-backup.json
 *.pem
 *.key
 *.p12
+.replit
+replit.nix
+replit.md
+.agents/
+.local/
+attached_assets/

@@ -1,2 +1,0 @@
-- [Seed strategy](seed-strategy.md) — seedAll.js (relative imports) called from server.js; instrumentation.js NEXT_RUNTIME check silently skips in custom-server setup
-- [AI fallback](ai-fallback.md) — groqService has local fallback when GROQ_API_KEY absent; add key to secrets to enable real Groq LLM
