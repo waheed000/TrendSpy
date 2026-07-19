@@ -1,5 +1,8 @@
 import useStore from '../store/useStore.js'
 
+// FIXED: Use VITE_API_URL environment variable for API calls
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 async function request(path, options = {}) {
   const token = useStore.getState().user?.token
   const headers = {
@@ -7,7 +10,8 @@ async function request(path, options = {}) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   }
-  const res = await fetch(`/api${path}`, { ...options, headers })
+  // FIXED: Added API_BASE prefix to all API calls
+  const res = await fetch(`${API_BASE}/api${path}`, { ...options, headers })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Request failed')
   return data
