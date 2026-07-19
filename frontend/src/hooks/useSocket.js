@@ -7,6 +7,9 @@ let _socket = null
 let _token  = null
 
 function getSharedSocket(token) {
+  // Use VITE_API_URL if set, otherwise fallback to same-origin (dev)
+  const API_BASE = import.meta.env.VITE_API_URL || ''
+
   if (_socket && _token === token && (_socket.connected || _socket.connecting)) {
     return _socket
   }
@@ -15,7 +18,8 @@ function getSharedSocket(token) {
     _socket = null
   }
   _token  = token
-  _socket = io('/', {
+  // ✅ Connect to the actual backend URL (HF) in production, or same-origin in dev
+  _socket = io(API_BASE || undefined, {
     path: '/socket.io',
     auth: { token },
     transports: ['websocket', 'polling'],
