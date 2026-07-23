@@ -5,6 +5,13 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# ✅ IMPORTANT: /api/* rule MUST come BEFORE the SPA fallback
+[[redirects]]
+  from = "/api/*"
+  to = "https://waheed777-hunting-goals-backend.hf.space/api/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
