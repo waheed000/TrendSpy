@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Build output
+dist/
+build/
+out/
+.next/
+frontend/dist/
+
+# Temp / OS
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.tmp/
+
+# Replit internal
+.replit.bak
+.cache/
+.config/
+.secrets-backup.json
+*.pem
+*.key
+*.p12
+.replit
+replit.nix
+replit.md
+.agents/
+.local/
+attached_assets/
